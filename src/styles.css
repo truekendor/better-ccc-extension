@@ -9,10 +9,10 @@
 
   --border-color-ccc: rgb(130, 130, 130);
 
-  --won-bg: hsla(104, 35%, 54%, 0.23);
-  --loss-bg: hsla(9, 70%, 56%, 0.18);
-  --double-win-bg: hsla(111, 92%, 59%, 0.29);
-  --double-loss-bg: hsla(0, 71%, 52%, 0.39);
+  --won-bg: hsla(88, 56%, 63%, 0.17);
+  --loss-bg: hsla(9, 73%, 61%, 0.17);
+  --double-win-bg: hsla(111, 92%, 59%, 0.25);
+  --double-loss-bg: hsla(0, 71%, 52%, 0.36);
   --draw-bg: transparent;
 }
 
@@ -35,6 +35,8 @@ score, wdl etc...
   align-items: center;
 
   flex-wrap: wrap;
+
+  margin-block-end: 0.6rem;
 }
 
 /* make every non default element wrap */
@@ -46,6 +48,10 @@ score, wdl etc...
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.ccc-stat-wrapper:last-of-type {
+  margin-block-end: 0.6rem;
 }
 
 .ccc-ptnml {
@@ -139,7 +145,8 @@ background and font color selectors
   background-color: var(--won-bg);
 }
 
-.win.ccc-win {
+.win.ccc-win,
+.win:last-child {
   --ccc-color: var(--ccc-win-font-color);
 }
 
@@ -165,6 +172,14 @@ background and font color selectors
 .win.ccc-draw {
   --ccc-color: var(--globalColorWin);
   background-color: var(--draw-bg);
+}
+
+.loss:last-child {
+  --ccc-color: var(--globalColorLoss);
+}
+
+.win:last-child {
+  --ccc-color: var(--globalColorWin);
 }
 
 /* for letter l in WDL stat */
