@@ -147,10 +147,6 @@ function parseCell(cell: HTMLTableCellElement) {
 }
 
 function liveUpdate() {
-  // let crossTableElements = document.querySelectorAll(
-  //   ".crosstable-results-cell"
-  // );
-
   // @ts-ignore
   const activeCells = [...crossTableElements].filter((el) => {
     if (el.classList.contains("crosstable-empty")) {

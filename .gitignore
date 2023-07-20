@@ -1,8 +1,4 @@
 src/test.ts
 src/test.css
-src/manifest.json
 
-src.crx
-src.pem
-
-src/script.js
+firefox_dev
