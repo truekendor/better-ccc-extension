@@ -1,0 +1,12 @@
+{
+  "name": "better-ccc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "b": "tsc src/script.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
