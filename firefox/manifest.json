@@ -1,0 +1,18 @@
+{
+  "manifest_version": 2,
+  "name": "better_ccc",
+  "version": "0.1.0",
+  "content_scripts": [
+    {
+      "matches": ["*://*.chess.com/*computer-chess-championship*"],
+      "js": ["script.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "icons": {
+    "128": "icons/icon_128.png",
+    "48": "icons/icon_48.png",
+    "32": "icons/icon_32.png"
+  },
+  "permissions": ["scripting"]
+}

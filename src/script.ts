@@ -269,8 +269,7 @@ function createWDLELement(wdl: WDL) {
   d.classList.add("draw");
   // custom style for more contrast
   l.classList.add("ccc-loss-font");
-
-  const winrateElement = document.createElement("p");
+  l.classList.add("ccc-margin-right");
 
   const formatter = Intl.NumberFormat(undefined, {
     maximumFractionDigits: 2,
@@ -280,13 +279,99 @@ function createWDLELement(wdl: WDL) {
   const points = wdl[0] + wdl[1] / 2;
 
   const percent = formatter.format((points / numberOfGames) * 100);
+  const winrateElement = document.createElement("p");
+  winrateElement.classList.add("ccc-winrate-percentage");
+  winrateElement.textContent = ` ${percent}%`;
 
-  winrateElement.textContent = ` | ${percent}%`;
+  const elo = calculateEloFromPercent(parseFloat(percent));
+  const margin = calculateErrorMargin(wdl[0], wdl[1], wdl[2]);
 
-  wdlElement.append(w, d, l, winrateElement);
+  const eloWrapper = createEloAndMarginElement(elo, margin);
+
+  wdlElement.append(w, d, l, eloWrapper, winrateElement);
 
   return wdlElement;
 }
 
+function createEloAndMarginElement(elo: string, margin: string) {
+  const wrapper = document.createElement("div");
+  const eloElement = document.createElement("p");
+  const marginElement = document.createElement("p");
+
+  wrapper.classList.add("ccc-elo-wrapper");
+
+  eloElement.classList.add("ccc-elo");
+  eloElement.classList.add(
+    parseInt(elo) >= 0 ? "ccc-elo-positive" : "ccc-elo-negative"
+  );
+
+  eloElement.textContent = `${elo}`;
+
+  marginElement.textContent = `${margin}`;
+  marginElement.classList.add("ccc-error-margin");
+
+  wrapper.append(eloElement, marginElement);
+
+  return wrapper;
+}
+
 standingsBtn.addEventListener("click", standingsBtnClickHandler);
 // window.addEventListener("keydown", handleCloseModalOnKeydown);
+
+// these formulas are taken from https://3dkingdoms.com/chess/elo.htm
+// and I have no idea how they work
+function calculateEloFromPercent(percent: number) {
+  var percentage = percent / 100;
+  var eloDiff = (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
+
+  var Sign = "";
+  if (eloDiff > 0) {
+    Sign = "+";
+  }
+  return Sign + Math.round(eloDiff);
+}
+
+function calculateEloDifference(percentage: number) {
+  return (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
+}
+
+function CalculateInverseErrorFunction(x: number) {
+  var pi = Math.PI;
+  var a = (8 * (pi - 3)) / (3 * pi * (4 - pi));
+  var y = Math.log(1 - x * x);
+  var z = 2 / (pi * a) + y / 2;
+
+  var ret = Math.sqrt(Math.sqrt(z * z - y / a) - z);
+
+  if (x < 0) return -ret;
+
+  return ret;
+}
+
+function phiInv(p: number) {
+  return Math.sqrt(2) * CalculateInverseErrorFunction(2 * p - 1);
+}
+
+function calculateErrorMargin(wins: number, draws: number, losses: number) {
+  var total = wins + draws + losses;
+  var winP = wins / total;
+  var drawP = draws / total;
+  var lossP = losses / total;
+  var percentage = (wins + draws * 0.5) / total;
+  var winsDev = winP * Math.pow(1 - percentage, 2);
+  var drawsDev = drawP * Math.pow(0.5 - percentage, 2);
+  var lossesDev = lossP * Math.pow(0 - percentage, 2);
+  var stdDeviation =
+    Math.sqrt(winsDev + drawsDev + lossesDev) / Math.sqrt(total);
+
+  var confidenceP = 0.95;
+  var minConfidenceP = (1 - confidenceP) / 2;
+  var maxConfidenceP = 1 - minConfidenceP;
+  var devMin = percentage + phiInv(minConfidenceP) * stdDeviation;
+  var devMax = percentage + phiInv(maxConfidenceP) * stdDeviation;
+
+  var difference =
+    calculateEloDifference(devMax) - calculateEloDifference(devMin);
+
+  return "±" + Math.round(difference / 2);
+}

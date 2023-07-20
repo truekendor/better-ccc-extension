@@ -14,6 +14,13 @@
   --double-win-bg: hsla(111, 92%, 59%, 0.25);
   --double-loss-bg: hsla(0, 71%, 52%, 0.36);
   --draw-bg: transparent;
+
+  --wdl-font-size: 1.15rem;
+  --wdl-line-height: 1.2rem;
+
+  --ccc-light-gray: rgb(185, 185, 185);
+  --ccc-err-margin-clr: var(--ccc-light-gray);
+  /* --ccc-err-margin-clr: rgb(154, 154, 154); */
 }
 
 .crosstable-result-wrapper.ccc-cell-grid {
@@ -70,10 +77,27 @@ score, wdl etc...
 }
 
 #ptnml-header {
-  color: rgb(185, 185, 185);
+  color: var(--ccc-light-gray);
 
   font-weight: normal;
   font-size: 1.1rem;
+}
+
+.ccc-winrate-percentage {
+  color: var(--ccc-light-gray);
+  margin-inline-start: 0.5rem;
+}
+
+.ccc-error-margin {
+  color: var(--ccc-err-margin-clr);
+}
+
+.ccc-elo-positive {
+  color: var(--globalColorWin);
+}
+
+.ccc-elo-negative {
+  color: var(--globalColorLoss);
 }
 
 /* 
@@ -126,8 +150,21 @@ result table section
 }
 
 .ccc-wdl-container > p {
-  font-size: 1.2rem;
-  line-height: 1.4rem;
+  font-size: var(--wdl-font-size);
+  line-height: var(--wdl-line-height);
+}
+
+.ccc-elo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin-inline: 0.6rem;
+}
+
+.ccc-wdl-container .ccc-elo-wrapper > p {
+  font-size: var(--wdl-font-size);
+  line-height: var(--wdl-line-height);
 }
 
 .ccc-wdl-container > :nth-child(2) {
