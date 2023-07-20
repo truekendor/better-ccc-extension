@@ -40,10 +40,54 @@
   transform: translateX(50%);
 }
 
+.ccc-double-win {
+  background-color: rgba(136, 209, 27, 0.624);
+}
+
 .ccc-win {
   background-color: rgba(46, 144, 46, 0.295);
 }
 
+.ccc-draw {
+  /*  */
+}
+
 .ccc-loss {
   background-color: rgba(164, 49, 49, 0.302);
+}
+
+.ccc-double-loss {
+  background-color: rgba(201, 52, 26, 0.612);
+}
+
+#ccc-cell-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex-wrap: wrap;
+}
+
+/* make every non default element wrap */
+#ccc-cell-header :nth-child(1n + 5) {
+  width: 100%;
+}
+
+.ccc-stat-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ccc-ptnml {
+  height: 100%;
+  padding-inline: 0.4rem;
+
+  border-radius: 3px;
+
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgb(211, 211, 211);
+
+  word-break: break-all;
 }

@@ -2,17 +2,17 @@ const standingsDiv = document.getElementById("bottomtable-bottomtable");
 
 // panel with vote/standings/schedule buttons
 const btnPanel = standingsDiv.querySelector(".selection-panel-container");
+// Button with text "Standings"
 const standingsBtn = btnPanel.querySelectorAll("span")[1];
 
 let crossTableBtn: HTMLButtonElement;
 let crossTableElements: NodeListOf<HTMLTableCellElement>;
 
-standingsBtn.addEventListener("click", standingsBtnClickHandler);
+// need this for @media queries
+let enginesAmount = 0;
 
 function standingsBtnClickHandler() {
   try {
-    console.log("click on standing btn");
-
     crossTableBtn = document
       .getElementById("standings-standings")
       .querySelector("button");
@@ -30,16 +30,11 @@ function crossTableBtnClickHandler() {
     ".crosstable-results-cell"
   );
 
-  console.log("CLICK CROSSTABLE");
-  console.log("CROSSTABLE ELEMS", crossTableElements);
-
   convertCrossTable();
 }
 
 function convertCrossTable() {
   try {
-    let enginesAmount = 0;
-
     const activeCells = [...crossTableElements].filter((el) => {
       if (el.classList.contains("crosstable-empty")) {
         enginesAmount++;
@@ -65,10 +60,12 @@ enum Pairs {
 type ResultAsScore = 1 | 0 | -1;
 
 function parseCell(cell: HTMLTableCellElement) {
-  // header with result (105.5 - 100.5[+5])
+  // header with result --> 205 - 195 [+10]
   const cellHeader: HTMLDivElement = cell.querySelector(
     ".crosstable-head-to-head"
   );
+
+  cellHeader.id = "ccc-cell-header";
 
   // result table for h2h vs one opponent
   const crossTableCell: HTMLDivElement = cell.querySelector(
@@ -81,6 +78,7 @@ function parseCell(cell: HTMLTableCellElement) {
   const gameResultsDivs: NodeListOf<HTMLDivElement> =
     crossTableCell.querySelectorAll(".crosstable-result");
 
+  const scoresArray: ResultAsScore[] = [];
   let lastResult: ResultAsScore = undefined;
 
   gameResultsDivs.forEach((result, index) => {
@@ -91,11 +89,13 @@ function parseCell(cell: HTMLTableCellElement) {
       result.classList.add("ccc-border-left");
 
       lastResult = getResultFromGame(result);
+      scoresArray.push(lastResult);
     } else {
       result.classList.add("ccc-border-right");
 
       const currentResult = getResultFromGame(result);
       const pairResult = getClassNameForPair(lastResult, currentResult);
+      scoresArray.push(currentResult);
 
       result.classList.add(pairResult);
       gameResultsDivs[index - 1].classList.add(pairResult);
@@ -105,9 +105,58 @@ function parseCell(cell: HTMLTableCellElement) {
     }
   });
 
-  // results but in -1/0/+1 array
-  // * easy
-  // const resultsArray = countResult(gameResultsDivs);
+  // create and add ptnml stat
+  const wrapper = createStatWrapper();
+  const [ptnml, wdlArray] = getStats(scoresArray);
+  const ptnmlElement = document.createElement("div");
+
+  ptnmlElement.textContent = `Ptnml(0-2) [ ${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]} ]`;
+  ptnmlElement.classList.add("ccc-ptnml");
+
+  wrapper.append(ptnmlElement);
+
+  // create and add WDL stat
+  const wdlWrapper = createStatWrapper();
+  const wdlElement = document.createElement("div");
+  wdlElement.textContent = `${wdlArray[0]} ${wdlArray[1]} ${wdlArray[2]}`;
+  wdlWrapper.append(wdlElement);
+
+  cellHeader.append(wdlWrapper, wrapper);
+}
+
+// * utils
+function getStats(arr: ResultAsScore[]): [number[], number[]] {
+  const wdlArray = [0, 0, 0]; // W D L in that order
+  arr.forEach((score) => {
+    // score is either 1 0 -1
+    // so by doing this we automatically
+    // increment correct value
+    wdlArray[1 - score] += 1;
+  });
+
+  // to get rid of an unfinished pair
+  if (arr.length % 2 === 1) arr.pop();
+  const ptnml = [0, 0, 0, 0, 0]; // ptnml(0-2)
+
+  for (let i = 0; i < arr.length; i += 2) {
+    const first = arr[i];
+    const second = arr[i + 1];
+    const res = first + second;
+
+    if (res === 2) {
+      ptnml[4] += 1;
+    } else if (res === 1) {
+      ptnml[3] += 1;
+    } else if (res === 0) {
+      ptnml[2] += 1;
+    } else if (res === -1) {
+      ptnml[1] += 1;
+    } else {
+      ptnml[0] += 1;
+    }
+  }
+
+  return [ptnml, wdlArray];
 }
 
 function getResultFromGame(node: HTMLDivElement) {
@@ -129,39 +178,32 @@ function getClassNameForPair(
   return Pairs.DoubleLoss;
 }
 
-// ! _________________________
-// waitForLoad();
+function handleCloseModalOnKeydown(e: KeyboardEvent) {
+  if (e.code !== "Escape") return;
+  const crossTableModal = document.querySelector(".modal-vue-modal-content");
+  const tournamentsList = document.querySelector(".bottomtable-resultspopup");
 
-// async function waitForLoad() {
-//   await loadPromise;
+  if (crossTableModal) {
+    const closeBtn: HTMLButtonElement =
+      crossTableModal.querySelector(".modal-close");
+    closeBtn.click();
+    return;
+  }
+  if (tournamentsList) {
+    const closeDiv: HTMLDivElement = document.querySelector(
+      ".bottomtable-event-name-wrapper"
+    );
+    closeDiv.click();
+    return;
+  }
+}
 
-//   await new Promise((res) => {
-//     console.log("TIMER 1");
-//     setTimeout(res, 100);
-//   });
+function createStatWrapper() {
+  const wrapper = document.createElement("div");
+  wrapper.classList.add("ccc-stat-wrapper");
 
-//   main();
-// }
+  return wrapper;
+}
 
-// // document load ends when loader modal is closed
-// // this promise will fire when loader close event occurs
-// // DOMContentLoad event doesn't work as expected
-// const loadPromise = new Promise((res) => {
-//   console.log("YES LOADER ==================================");
-
-//   const cpuChampsMain = document.querySelector(".cpu-champs-page-main");
-//   const loader = document.querySelector(".cpu-champs-page-loader-wrapper");
-
-//   const observer = new MutationObserver((entries) => {
-//     entries.forEach((e) => {
-//       if (e.removedNodes[0] === loader) {
-//         res(true);
-//         observer.disconnect();
-//       }
-//     });
-//   });
-
-//   observer.observe(cpuChampsMain, {
-//     childList: true,
-//   });
-// });
+standingsBtn.addEventListener("click", standingsBtnClickHandler);
+window.addEventListener("keydown", handleCloseModalOnKeydown);
