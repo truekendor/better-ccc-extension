@@ -35,6 +35,7 @@ function crossTableBtnClickHandler() {
 
 function convertCrossTable() {
   try {
+    enginesAmount = 0;
     const activeCells = [...crossTableElements].filter((el) => {
       if (el.classList.contains("crosstable-empty")) {
         enginesAmount++;
@@ -58,6 +59,7 @@ enum Pairs {
 }
 
 type ResultAsScore = 1 | 0 | -1;
+type WDL = [number, number, number];
 
 function parseCell(cell: HTMLTableCellElement) {
   // header with result --> 205 - 195 [+10]
@@ -71,6 +73,12 @@ function parseCell(cell: HTMLTableCellElement) {
   const crossTableCell: HTMLDivElement = cell.querySelector(
     ".crosstable-result-wrapper"
   );
+
+  if (enginesAmount === 2) {
+    crossTableCell.classList.add("one-v-one");
+  } else if (enginesAmount > 8) {
+    crossTableCell.classList.add("many");
+  }
 
   crossTableCell.classList.add("ccc-cell-grid");
 
@@ -106,27 +114,27 @@ function parseCell(cell: HTMLTableCellElement) {
   });
 
   // create and add ptnml stat
-  const wrapper = createStatWrapper();
+  const ptnmlWrapper = createStatWrapper();
   const [ptnml, wdlArray] = getStats(scoresArray);
   const ptnmlElement = document.createElement("div");
 
   ptnmlElement.textContent = `Ptnml(0-2) [ ${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]} ]`;
   ptnmlElement.classList.add("ccc-ptnml");
 
-  wrapper.append(ptnmlElement);
+  ptnmlWrapper.append(ptnmlElement);
 
   // create and add WDL stat
   const wdlWrapper = createStatWrapper();
-  const wdlElement = document.createElement("div");
-  wdlElement.textContent = `${wdlArray[0]} ${wdlArray[1]} ${wdlArray[2]}`;
+  const wdlElement = createWDLELement(wdlArray);
+  // wdlElement.textContent = `${wdlArray[0]} ${wdlArray[1]} ${wdlArray[2]}`;
   wdlWrapper.append(wdlElement);
 
-  cellHeader.append(wdlWrapper, wrapper);
+  cellHeader.append(wdlWrapper, ptnmlWrapper);
 }
 
 // * utils
-function getStats(arr: ResultAsScore[]): [number[], number[]] {
-  const wdlArray = [0, 0, 0]; // W D L in that order
+function getStats(arr: ResultAsScore[]): [number[], WDL] {
+  const wdlArray: WDL = [0, 0, 0]; // W D L in that order
   arr.forEach((score) => {
     // score is either 1 0 -1
     // so by doing this we automatically
@@ -205,5 +213,43 @@ function createStatWrapper() {
   return wrapper;
 }
 
+function createWDLELement(wdl: WDL) {
+  const numberOfGames = wdl.reduce((amount, prev) => amount + prev, 0);
+
+  const wdlElement = document.createElement("div");
+  wdlElement.classList.add("ccc-wdl-container");
+
+  const w = document.createElement("p");
+  const d = document.createElement("p");
+  const l = document.createElement("p");
+
+  w.textContent = `+${wdl[0]}`;
+  d.textContent = `=${wdl[1]}`;
+  l.textContent = `-${wdl[2]}`;
+
+  // default CCC styles
+  w.classList.add("win");
+  d.classList.add("draw");
+  // custom style for more contrast
+  l.classList.add("ccc-loss-font");
+
+  const winrateElement = document.createElement("p");
+
+  const formatter = Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 1,
+  });
+
+  const points = wdl[0] + wdl[1] / 2;
+
+  const percent = formatter.format((points / numberOfGames) * 100);
+
+  winrateElement.textContent = `${percent}%`;
+
+  wdlElement.append(w, d, l, winrateElement);
+
+  return wdlElement;
+}
+
 standingsBtn.addEventListener("click", standingsBtnClickHandler);
-window.addEventListener("keydown", handleCloseModalOnKeydown);
+// window.addEventListener("keydown", handleCloseModalOnKeydown);

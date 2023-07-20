@@ -1,64 +1,33 @@
-* {
-  /* background-color: rgba(255, 99, 71, 0.2); */
+.crosstable-results-cell {
+  /* for fonts in won/lost game pairs */
+  --ccc-loss-font-color: hsl(0, 100%, 72%);
+  --ccc-win-font-color: hsl(121, 51%, 62%);
+
+  /* for fonts in Double won/lost game pairs */
+  --ccc-double-win-font-color: hsl(102, 61%, 50%);
+  --ccc-double-loss-font-color: hsl(0, 100%, 63%);
+
+  --border-color-ccc: rgb(130, 130, 130);
+
+  --won-bg: hsla(104, 35%, 54%, 0.23);
+  --loss-bg: hsla(9, 70%, 56%, 0.18);
+  --double-win-bg: hsla(111, 92%, 59%, 0.29);
+  --double-loss-bg: hsla(0, 71%, 52%, 0.39);
+  --draw-bg: transparent;
 }
 
 .crosstable-result-wrapper.ccc-cell-grid {
   display: grid;
 
-  grid-template-columns: repeat(20, 1fr);
+  grid-template-columns: repeat(var(--column-amount), 1fr);
 }
 
-#ccc-result {
-  contain: layout;
-  grid-column: span 1;
-
-  width: 100%;
-
-  --border-color: rgb(240, 240, 240);
-
-  position: relative;
-}
-
-#ccc-result::before {
-  content: "";
-
-  position: absolute;
-
-  width: 1px;
-  height: 100%;
-
-  background-color: var(--border-color);
-}
-
-#ccc-result.ccc-border-left::before {
-  left: 0;
-  transform: translateX(-50%);
-}
-
-#ccc-result.ccc-border-right::before {
-  right: 0;
-  transform: translateX(50%);
-}
-
-.ccc-double-win {
-  background-color: rgba(136, 209, 27, 0.624);
-}
-
-.ccc-win {
-  background-color: rgba(46, 144, 46, 0.295);
-}
-
-.ccc-draw {
-  /*  */
-}
-
-.ccc-loss {
-  background-color: rgba(164, 49, 49, 0.302);
-}
-
-.ccc-double-loss {
-  background-color: rgba(201, 52, 26, 0.612);
-}
+/* 
+---------------
+header section of the h2h 
+score, wdl etc...
+---------------
+*/
 
 #ccc-cell-header {
   display: flex;
@@ -90,4 +59,188 @@
   color: rgb(211, 211, 211);
 
   word-break: break-all;
+}
+
+/* 
+---------------
+result table section  
+---------------
+*/
+
+/* individual results */
+#ccc-result {
+  color: var(--ccc-color) !important;
+
+  contain: layout;
+  grid-column: span 1;
+
+  width: 100%;
+
+  position: relative;
+}
+
+#ccc-result::before {
+  content: "";
+
+  position: absolute;
+
+  width: 1px;
+  height: 100%;
+
+  background-color: var(--border-color-ccc);
+}
+
+#ccc-result.ccc-border-left::before {
+  left: 0;
+  transform: translateX(-50%);
+}
+
+#ccc-result.ccc-border-right::before {
+  right: 0;
+  transform: translateX(50%);
+}
+
+/* WDL */
+
+.ccc-wdl-container {
+  display: inline-flex;
+  border-radius: 2px;
+
+  padding-inline: 0.5rem;
+  margin-block: 0.2rem;
+}
+
+.ccc-wdl-container > p {
+  font-size: 1.2rem;
+  line-height: 1.4rem;
+}
+
+.ccc-wdl-container > :nth-child(2) {
+  margin-inline: 0.4rem;
+}
+
+.ccc-wdl-container > :last-child {
+  margin-inline-start: 0.6rem;
+}
+
+/* 
+-------------------
+background and font color selectors
+-------------------
+*/
+
+.ccc-double-win {
+  --ccc-color: var(--ccc-double-win-font-color);
+
+  background-color: var(--double-win-bg);
+}
+
+.ccc-win {
+  background-color: var(--won-bg);
+}
+
+.win.ccc-win {
+  --ccc-color: var(--ccc-win-font-color);
+}
+
+.ccc-loss {
+  background-color: var(--loss-bg);
+}
+
+.loss.ccc-loss {
+  --ccc-color: var(--ccc-loss-font-color);
+}
+
+.ccc-double-loss {
+  --ccc-color: var(--ccc-double-loss-font-color);
+
+  background-color: var(--double-loss-bg);
+}
+
+.loss.ccc-draw {
+  --ccc-color: var(--globalColorLoss);
+  background-color: var(--draw-bg);
+}
+
+.win.ccc-draw {
+  --ccc-color: var(--globalColorWin);
+  background-color: var(--draw-bg);
+}
+
+/* for letter l in WDL stat */
+.ccc-loss-font {
+  color: var(--ccc-loss-font-color);
+  font-weight: 600;
+}
+
+/* 
+-------------------
+media queries
+-------------------
+*/
+
+@media (min-width: 0px) {
+  .crosstable-results-cell .crosstable-result-wrapper {
+    --column-amount: 8;
+  }
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 8;
+  }
+}
+
+@media (min-width: 580px) {
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 10;
+  }
+}
+
+@media (min-width: 715px) {
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 12;
+  }
+}
+
+@media (min-width: 930px) {
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 14;
+  }
+}
+
+@media (min-width: 1060px) {
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 16;
+  }
+}
+
+@media (min-width: 1200px) {
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 18;
+  }
+}
+
+@media (min-width: 1300px) {
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 22;
+  }
+}
+
+@media (min-width: 1350px) {
+  .crosstable-results-cell .crosstable-result-wrapper:not(.many) {
+    --column-amount: 10;
+  }
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 24;
+  }
+}
+
+@media (min-width: 1400px) {
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 26;
+  }
+}
+
+@media (min-width: 1450px) {
+  .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
+    --column-amount: 28;
+  }
 }
