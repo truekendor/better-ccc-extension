@@ -131,10 +131,46 @@ function parseCell(cell: HTMLTableCellElement) {
   // create and add WDL stat
   const wdlWrapper = createStatWrapper();
   const wdlElement = createWDLELement(wdlArray);
-  // wdlElement.textContent = `${wdlArray[0]} ${wdlArray[1]} ${wdlArray[2]}`;
   wdlWrapper.append(wdlElement);
 
   cellHeader.append(wdlWrapper, ptnmlWrapper);
+
+  const observer = new MutationObserver(() => {
+    observer.disconnect();
+
+    liveUpdate();
+  });
+
+  observer.observe(crossTableCell, {
+    childList: true,
+  });
+}
+
+function liveUpdate() {
+  // let crossTableElements = document.querySelectorAll(
+  //   ".crosstable-results-cell"
+  // );
+
+  // @ts-ignore
+  const activeCells = [...crossTableElements].filter((el) => {
+    if (el.classList.contains("crosstable-empty")) {
+      enginesAmount++;
+      return;
+    }
+    return el;
+  });
+
+  activeCells.forEach((cell) => {
+    const header = cell.querySelector("#ccc-cell-header");
+    // wrappers for custom stats
+    const wrappers = cell.querySelectorAll(".ccc-stat-wrapper");
+
+    wrappers.forEach((wrapper) => {
+      header.removeChild(wrapper);
+    });
+  });
+
+  convertCrossTable();
 }
 
 // * utils
