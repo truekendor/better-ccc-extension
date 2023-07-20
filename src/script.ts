@@ -36,6 +36,7 @@ function crossTableBtnClickHandler() {
 function convertCrossTable() {
   try {
     enginesAmount = 0;
+    // @ts-ignore
     const activeCells = [...crossTableElements].filter((el) => {
       if (el.classList.contains("crosstable-empty")) {
         enginesAmount++;
@@ -118,10 +119,14 @@ function parseCell(cell: HTMLTableCellElement) {
   const [ptnml, wdlArray] = getStats(scoresArray);
   const ptnmlElement = document.createElement("div");
 
-  ptnmlElement.textContent = `Ptnml(0-2) [ ${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]} ]`;
+  const ptnmlHeader = document.createElement("div");
+  ptnmlHeader.classList.add("header");
+  ptnmlHeader.textContent = "Ptnml(0-2)";
+
+  ptnmlElement.textContent = `${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]}`;
   ptnmlElement.classList.add("ccc-ptnml");
 
-  ptnmlWrapper.append(ptnmlElement);
+  ptnmlWrapper.append(ptnmlHeader, ptnmlElement);
 
   // create and add WDL stat
   const wdlWrapper = createStatWrapper();
@@ -225,7 +230,7 @@ function createWDLELement(wdl: WDL) {
 
   w.textContent = `+${wdl[0]}`;
   d.textContent = `=${wdl[1]}`;
-  l.textContent = `-${wdl[2]}`;
+  l.textContent = `-${wdl[2]} `;
 
   // default CCC styles
   w.classList.add("win");
@@ -244,7 +249,7 @@ function createWDLELement(wdl: WDL) {
 
   const percent = formatter.format((points / numberOfGames) * 100);
 
-  winrateElement.textContent = `${percent}%`;
+  winrateElement.textContent = ` | ${percent}%`;
 
   wdlElement.append(w, d, l, winrateElement);
 
