@@ -18,6 +18,6 @@
 
 # Acknowledgements TBA
 
-Formulas for calculating elo and errors were taken from here   [3dkingdoms.com/chess/elo](https://3dkingdoms.com/chess/elo.htm)
+Formulas for calculating elo and error bars were taken from [here](https://3dkingdoms.com/chess/elo.htm)
 
-TBA Design stolen from David
+TBA Design stolen from David (I'll fill it out later)
