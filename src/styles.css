@@ -69,7 +69,9 @@ score, wdl etc...
   word-break: break-all;
 }
 
-.ccc-ptnml .header {
+#ptnml-header {
+  color: rgb(185, 185, 185);
+
   font-weight: normal;
   font-size: 1.1rem;
 }

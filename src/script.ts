@@ -120,7 +120,7 @@ function parseCell(cell: HTMLTableCellElement) {
   const ptnmlElement = document.createElement("div");
 
   const ptnmlHeader = document.createElement("div");
-  ptnmlHeader.classList.add("header");
+  ptnmlHeader.id = "ptnml-header";
   ptnmlHeader.textContent = "Ptnml(0-2)";
 
   ptnmlElement.textContent = `${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]}`;
