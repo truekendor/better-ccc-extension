@@ -334,6 +334,7 @@ media queries
   color: #80c5e5;
 }
 
+/* TODO get rid of !important flag */
 .movetable-movetable table tr td {
   min-width: unset !important;
   padding-left: 0 !important;
