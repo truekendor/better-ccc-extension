@@ -305,3 +305,36 @@ media queries
     --column-amount: 28;
   }
 }
+
+/* 
+! __________________________
+! test features 
+*/
+
+#righttable-content,
+.chat-chat {
+  height: 100vh !important;
+}
+
+/* * David suggested styles 
+-------------------
+*/
+
+/* * center the game number in Schedule */
+.schedule-container > div :first-child {
+  justify-content: center;
+}
+
+.movetable-highlighted {
+  color: #52b0dc;
+}
+
+/* fck you, specificity */
+.movetable-highlighted:is(td.movetable-highlighted.movetable-hoverable):hover {
+  color: #80c5e5;
+}
+
+.movetable-movetable table tr td {
+  min-width: unset !important;
+  padding-left: 0 !important;
+}

@@ -1,5 +1,8 @@
 const standingsDiv = document.getElementById("bottomtable-bottomtable");
 
+const content = document.getElementById("righttable-content");
+const chat = document.querySelector("chat-chat");
+
 // panel with vote/standings/schedule buttons
 const btnPanel = standingsDiv.querySelector(".selection-panel-container");
 // Button with text "Standings"
@@ -10,6 +13,11 @@ let crossTableElements: NodeListOf<HTMLTableCellElement>;
 
 // need this for @media queries
 let enginesAmount = 0;
+
+const formatter = Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 2,
+});
 
 function standingsBtnClickHandler() {
   try {
@@ -271,11 +279,6 @@ function createWDLELement(wdl: WDL) {
   l.classList.add("ccc-loss-font");
   l.classList.add("ccc-margin-right");
 
-  const formatter = Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 1,
-  });
-
   const points = wdl[0] + wdl[1] / 2;
 
   const percent = formatter.format((points / numberOfGames) * 100);
@@ -316,7 +319,7 @@ function createEloAndMarginElement(elo: string, margin: string) {
 }
 
 standingsBtn.addEventListener("click", standingsBtnClickHandler);
-// window.addEventListener("keydown", handleCloseModalOnKeydown);
+window.addEventListener("keydown", handleCloseModalOnKeydown);
 
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
@@ -328,7 +331,10 @@ function calculateEloFromPercent(percent: number) {
   if (eloDiff > 0) {
     Sign = "+";
   }
-  return Sign + Math.round(eloDiff);
+
+  const eloDiffAsString = formatter.format(eloDiff);
+
+  return `${Sign}${eloDiffAsString}`;
 }
 
 function calculateEloDifference(percentage: number) {
@@ -373,5 +379,7 @@ function calculateErrorMargin(wins: number, draws: number, losses: number) {
   var difference =
     calculateEloDifference(devMax) - calculateEloDifference(devMin);
 
-  return "±" + Math.round(difference / 2);
+  const errorMargin = formatter.format(difference / 2);
+
+  return `±${errorMargin}`;
 }
