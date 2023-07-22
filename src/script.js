@@ -290,15 +290,15 @@ function createEloAndMarginElement(elo, margin) {
     wrapper.append(eloElement, marginElement);
     return wrapper;
 }
+// handles creation of customization inputs
 function createOptionInputs() {
     var crossTableModal = document.querySelector(".modal-vue-modal-content");
     if (!crossTableModal) {
         return;
     }
-    else {
-        // const options = crossTableModal.querySelectorAll("ccc-custom-option");
-        // options.forEach((option) => crossTableModal.removeChild(option));
-    }
+    var width = crossTableModal.getBoundingClientRect().width;
+    if (width < 220)
+        return;
     var wrapper = document.createElement("div");
     wrapper.classList.add("ccc-options-wrapper");
     var formElement = document.createElement("form");
@@ -309,6 +309,7 @@ function createOptionInputs() {
     rowAmountInput.classList.add("ccc-pairs-per-row-input");
     rowAmountInput.placeholder = "Pairs per row";
     rowAmountInput.type = "number";
+    rowAmountInput.min = "0";
     formElement.append(rowAmountInput);
     wrapper.append(formElement);
     formElement.addEventListener("submit", function (e) {
@@ -336,7 +337,6 @@ function keydownHandler(e) {
         return;
     if (e.code === "Escape") {
         handleCloseModalOnKeydown();
-        return;
     }
     if (e.code === "Space") {
         // prevent scroll on Space
@@ -380,6 +380,7 @@ function pointerMoveHandler(e) {
 function handleCloseModalOnKeydown() {
     var crossTableModal = document.querySelector(".modal-vue-modal-content");
     var tournamentsList = document.querySelector(".bottomtable-resultspopup");
+    var engineDetailsPanel = document.querySelector(".enginedetails-panel");
     if (crossTableModal) {
         var closeBtn = crossTableModal.querySelector(".modal-close");
         closeBtn.click();
@@ -389,6 +390,12 @@ function handleCloseModalOnKeydown() {
         var closeDiv = document.querySelector(".bottomtable-event-name-wrapper");
         closeDiv.click();
         return;
+    }
+    if (engineDetailsPanel) {
+        var closeBtn = document.querySelector("#enginedetails-close");
+        console.log(closeBtn, "CLOSE BTN");
+        console.log("INSIDE ENGINE DETAILS");
+        closeBtn === null || closeBtn === void 0 ? void 0 : closeBtn.click();
     }
 }
 function standingsBtnClickHandler() {

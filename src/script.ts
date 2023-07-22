@@ -347,6 +347,7 @@ function createEloAndMarginElement(elo: string, margin: string) {
   return wrapper;
 }
 
+// handles creation of customization inputs
 function createOptionInputs() {
   const crossTableModal: HTMLDivElement = document.querySelector(
     ".modal-vue-modal-content"
@@ -354,10 +355,9 @@ function createOptionInputs() {
 
   if (!crossTableModal) {
     return;
-  } else {
-    // const options = crossTableModal.querySelectorAll("ccc-custom-option");
-    // options.forEach((option) => crossTableModal.removeChild(option));
   }
+  const { width } = crossTableModal.getBoundingClientRect();
+  if (width < 220) return;
 
   const wrapper = document.createElement("div");
   wrapper.classList.add("ccc-options-wrapper");
@@ -371,6 +371,7 @@ function createOptionInputs() {
   rowAmountInput.classList.add("ccc-pairs-per-row-input");
   rowAmountInput.placeholder = "Pairs per row";
   rowAmountInput.type = "number";
+  rowAmountInput.min = "0";
 
   formElement.append(rowAmountInput);
   wrapper.append(formElement);
@@ -410,7 +411,6 @@ function keydownHandler(e: KeyboardEvent) {
   if (e.code !== "Escape" && e.code !== "Space") return;
   if (e.code === "Escape") {
     handleCloseModalOnKeydown();
-    return;
   }
 
   if (e.code === "Space") {
@@ -467,6 +467,7 @@ function pointerMoveHandler(e: PointerEvent) {
 function handleCloseModalOnKeydown() {
   const crossTableModal = document.querySelector(".modal-vue-modal-content");
   const tournamentsList = document.querySelector(".bottomtable-resultspopup");
+  const engineDetailsPanel = document.querySelector(".enginedetails-panel");
 
   if (crossTableModal) {
     const closeBtn: HTMLButtonElement =
@@ -479,6 +480,14 @@ function handleCloseModalOnKeydown() {
       ".bottomtable-event-name-wrapper"
     );
     closeDiv.click();
+    return;
+  }
+  if (engineDetailsPanel) {
+    const closeBtn: HTMLIFrameElement = document.querySelector(
+      "#enginedetails-close"
+    );
+
+    closeBtn?.click();
     return;
   }
 }
