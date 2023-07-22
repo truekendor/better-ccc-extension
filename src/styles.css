@@ -7,7 +7,7 @@
   --ccc-double-win-font-color: hsl(102, 61%, 50%);
   --ccc-double-loss-font-color: hsl(0, 100%, 63%);
 
-  --border-color-ccc: rgb(115, 115, 115);
+  --border-color-ccc: hsl(0, 0%, 45%);
 
   --won-bg: hsla(81, 56%, 63%, 0.17);
   --loss-bg: hsla(9, 86%, 61%, 0.17);
@@ -18,15 +18,33 @@
   --wdl-font-size: 1.15rem;
   --wdl-line-height: 1.2rem;
 
-  --ccc-light-gray: rgb(185, 185, 185);
+  --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
-  /* --ccc-err-margin-clr: rgb(154, 154, 154); */
+
+  width: fit-content !important;
+}
+
+.modal-vue-modal-content {
+  resize: horizontal !important;
+}
+
+.crosstable-crosstable {
+  resize: horizontal;
+  max-width: unset !important;
+
+  width: min-content !important;
+  /* width: 100% !important; */
 }
 
 .crosstable-result-wrapper.ccc-cell-grid {
   display: grid;
+  /* width: min-content; */
+  justify-content: center;
 
-  grid-template-columns: repeat(var(--column-amount), 1fr);
+  grid-template-columns: repeat(
+    var(--custom-column-amount, var(--column-amount)),
+    /* TODO add clamp() / minmax() */ 1.5rem
+  );
 }
 
 /* 
@@ -55,6 +73,8 @@ score, wdl etc...
   display: flex;
   justify-content: center;
   align-items: center;
+
+  flex-wrap: wrap;
 }
 
 .ccc-stat-wrapper:last-of-type {
@@ -113,7 +133,7 @@ result table section
   contain: layout;
   grid-column: span 1;
 
-  width: 100%;
+  max-width: 100%;
 
   position: relative;
 }
@@ -311,13 +331,14 @@ media queries
 ! test features 
 */
 
+/* twitch chat */
 #righttable-content,
 .chat-chat {
   height: 100vh !important;
 }
 
-/* * David suggested styles 
--------------------
+/* * ---------------
+* David suggested styles
 */
 
 /* * center the game number in Schedule */
@@ -325,17 +346,26 @@ media queries
   justify-content: center;
 }
 
+/* moves in movelist */
+.movetable-movetable table tr td {
+  min-width: unset !important;
+  padding-left: 0 !important;
+}
+
 .movetable-highlighted {
   color: #52b0dc;
 }
 
 /* fck you, specificity */
+/* current move in movelist */
 .movetable-highlighted:is(td.movetable-highlighted.movetable-hoverable):hover {
   color: #80c5e5;
 }
 
-/* TODO get rid of !important flag */
-.movetable-movetable table tr td {
-  min-width: unset !important;
-  padding-left: 0 !important;
+.ccc-options-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  background-color: tomato;
 }

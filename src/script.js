@@ -8,34 +8,27 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 var standingsDiv = document.getElementById("bottomtable-bottomtable");
+var content = document.getElementById("righttable-content");
+var chat = document.querySelector("chat-chat");
 // panel with vote/standings/schedule buttons
 var btnPanel = standingsDiv.querySelector(".selection-panel-container");
-// Button with text "Standings"
+// button with text "Standings"
 var standingsBtn = btnPanel.querySelectorAll("span")[1];
 var crossTableBtn;
 var crossTableElements;
 // need this for @media queries
 var enginesAmount = 0;
-function standingsBtnClickHandler() {
-    try {
-        crossTableBtn = document
-            .getElementById("standings-standings")
-            .querySelector("button");
-        crossTableBtn.addEventListener("click", crossTableBtnClickHandler);
-    }
-    catch (e) {
-        console.log(e.message);
-    }
-}
-function crossTableBtnClickHandler() {
-    var crossTableModal = document.querySelector(".modal-vue-modal-content");
-    crossTableElements = crossTableModal.querySelectorAll(".crosstable-results-cell");
-    convertCrossTable();
-}
+var formatter = Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 2,
+});
+standingsBtn.addEventListener("click", standingsBtnClickHandler);
+window.addEventListener("keydown", handleCloseModalOnKeydown);
 function convertCrossTable() {
     try {
         enginesAmount = 0;
         // @ts-ignore
+        createOptionInputs();
         var activeCells = __spreadArray([], crossTableElements, true).filter(function (el) {
             if (el.classList.contains("crosstable-empty")) {
                 enginesAmount++;
@@ -58,6 +51,7 @@ var Pairs;
     Pairs["DoubleLoss"] = "ccc-double-loss";
 })(Pairs || (Pairs = {}));
 function parseCell(cell) {
+    console.log("parse cell");
     // header with result --> 205 - 195 [+10]
     var cellHeader = cell.querySelector(".crosstable-head-to-head");
     cellHeader.id = "ccc-cell-header";
@@ -79,12 +73,12 @@ function parseCell(cell) {
         result.id = "ccc-result";
         if (index % 2 === 0) {
             result.classList.add("ccc-border-left");
-            lastResult = getResultFromGame(result);
+            lastResult = getResultFromNode(result);
             scoresArray.push(lastResult);
         }
         else {
             result.classList.add("ccc-border-right");
-            var currentResult = getResultFromGame(result);
+            var currentResult = getResultFromNode(result);
             var pairResult = getClassNameForPair(lastResult, currentResult);
             scoresArray.push(currentResult);
             result.classList.add(pairResult);
@@ -94,7 +88,7 @@ function parseCell(cell) {
         }
     });
     // create and add ptnml stat
-    var ptnmlWrapper = createStatWrapper();
+    var ptnmlWrapper = createStatWrapperElement();
     var _a = getStats(scoresArray), ptnml = _a[0], wdlArray = _a[1];
     var ptnmlElement = document.createElement("div");
     var ptnmlHeader = document.createElement("div");
@@ -104,19 +98,22 @@ function parseCell(cell) {
     ptnmlElement.classList.add("ccc-ptnml");
     ptnmlWrapper.append(ptnmlHeader, ptnmlElement);
     // create and add WDL stat
-    var wdlWrapper = createStatWrapper();
+    var wdlWrapper = createStatWrapperElement();
     var wdlElement = createWDLELement(wdlArray);
     wdlWrapper.append(wdlElement);
     cellHeader.append(wdlWrapper, ptnmlWrapper);
     var observer = new MutationObserver(function () {
         observer.disconnect();
+        console.log("Mutation");
         liveUpdate();
     });
     observer.observe(crossTableCell, {
         childList: true,
     });
 }
+// updates stats with each new game result
 function liveUpdate() {
+    console.log("live update");
     // @ts-ignore
     var activeCells = __spreadArray([], crossTableElements, true).filter(function (el) {
         if (el.classList.contains("crosstable-empty")) {
@@ -125,6 +122,8 @@ function liveUpdate() {
         }
         return el;
     });
+    // for each cell with games in it
+    // find and remove all custom elements
     activeCells.forEach(function (cell) {
         var header = cell.querySelector("#ccc-cell-header");
         // wrappers for custom stats
@@ -133,6 +132,7 @@ function liveUpdate() {
             header.removeChild(wrapper);
         });
     });
+    // recalculate custom elements
     convertCrossTable();
 }
 // * utils
@@ -170,7 +170,7 @@ function getStats(arr) {
     }
     return [ptnml, wdlArray];
 }
-function getResultFromGame(node) {
+function getResultFromNode(node) {
     if (node.classList.contains("win"))
         return 1;
     if (node.classList.contains("draw"))
@@ -189,23 +189,7 @@ function getClassNameForPair(lastResult, currentResult) {
         return Pairs.Loss;
     return Pairs.DoubleLoss;
 }
-function handleCloseModalOnKeydown(e) {
-    if (e.code !== "Escape")
-        return;
-    var crossTableModal = document.querySelector(".modal-vue-modal-content");
-    var tournamentsList = document.querySelector(".bottomtable-resultspopup");
-    if (crossTableModal) {
-        var closeBtn = crossTableModal.querySelector(".modal-close");
-        closeBtn.click();
-        return;
-    }
-    if (tournamentsList) {
-        var closeDiv = document.querySelector(".bottomtable-event-name-wrapper");
-        closeDiv.click();
-        return;
-    }
-}
-function createStatWrapper() {
+function createStatWrapperElement() {
     var wrapper = document.createElement("div");
     wrapper.classList.add("ccc-stat-wrapper");
     return wrapper;
@@ -226,10 +210,6 @@ function createWDLELement(wdl) {
     // custom style for more contrast
     l.classList.add("ccc-loss-font");
     l.classList.add("ccc-margin-right");
-    var formatter = Intl.NumberFormat(undefined, {
-        maximumFractionDigits: 2,
-        minimumFractionDigits: 1,
-    });
     var points = wdl[0] + wdl[1] / 2;
     var percent = formatter.format((points / numberOfGames) * 100);
     var winrateElement = document.createElement("p");
@@ -254,8 +234,71 @@ function createEloAndMarginElement(elo, margin) {
     wrapper.append(eloElement, marginElement);
     return wrapper;
 }
-standingsBtn.addEventListener("click", standingsBtnClickHandler);
-// window.addEventListener("keydown", handleCloseModalOnKeydown);
+function createOptionInputs() {
+    var crossTableModal = document.querySelector(".modal-vue-modal-content");
+    if (!crossTableModal) {
+        return;
+    }
+    else {
+        // const options = crossTableModal.querySelectorAll("ccc-custom-option");
+        // options.forEach((option) => crossTableModal.removeChild(option));
+    }
+    var wrapper = document.createElement("div");
+    wrapper.classList.add("ccc-options-wrapper");
+    var formElement = document.createElement("form");
+    var rowAmountInput = document.createElement("input");
+    var ptnmlSwitchElement = document.createElement("input");
+    var eloSwitchElement = document.createElement("input");
+    rowAmountInput.classList.add("ccc-custom-option");
+    rowAmountInput.textContent = "gamepairs per row";
+    rowAmountInput.type = "number";
+    formElement.append(rowAmountInput);
+    wrapper.append(formElement);
+    formElement.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var value = rowAmountInput.valueAsNumber;
+        console.log("form data", value);
+        console.log("form data", rowAmountInput.value);
+        crossTableModal.style.setProperty("--custom-column-amount", "".concat(value ? value * 2 : ""));
+        // TODO
+        // save this value to localStorage
+    });
+    crossTableModal.append(wrapper);
+}
+// * event handlers
+// close crosstable and tournament list on ESC
+function handleCloseModalOnKeydown(e) {
+    if (e.code !== "Escape")
+        return;
+    var crossTableModal = document.querySelector(".modal-vue-modal-content");
+    var tournamentsList = document.querySelector(".bottomtable-resultspopup");
+    if (crossTableModal) {
+        var closeBtn = crossTableModal.querySelector(".modal-close");
+        closeBtn.click();
+        return;
+    }
+    if (tournamentsList) {
+        var closeDiv = document.querySelector(".bottomtable-event-name-wrapper");
+        closeDiv.click();
+        return;
+    }
+}
+function standingsBtnClickHandler() {
+    try {
+        crossTableBtn = document
+            .getElementById("standings-standings")
+            .querySelector("button");
+        crossTableBtn.addEventListener("click", crossTableBtnClickHandler);
+    }
+    catch (e) {
+        console.log(e.message);
+    }
+}
+function crossTableBtnClickHandler() {
+    var crossTableModal = document.querySelector(".modal-vue-modal-content");
+    crossTableElements = crossTableModal.querySelectorAll(".crosstable-results-cell");
+    convertCrossTable();
+}
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
 function calculateEloFromPercent(percent) {
@@ -265,7 +308,8 @@ function calculateEloFromPercent(percent) {
     if (eloDiff > 0) {
         Sign = "+";
     }
-    return Sign + Math.round(eloDiff);
+    var eloDiffAsString = formatter.format(eloDiff);
+    return "".concat(Sign).concat(eloDiffAsString);
 }
 function calculateEloDifference(percentage) {
     return (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
@@ -299,5 +343,6 @@ function calculateErrorMargin(wins, draws, losses) {
     var devMin = percentage + phiInv(minConfidenceP) * stdDeviation;
     var devMax = percentage + phiInv(maxConfidenceP) * stdDeviation;
     var difference = calculateEloDifference(devMax) - calculateEloDifference(devMin);
-    return "±" + Math.round(difference / 2);
+    var errorMargin = formatter.format(difference / 2);
+    return "\u00B1".concat(errorMargin);
 }
