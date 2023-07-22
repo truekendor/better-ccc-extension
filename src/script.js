@@ -16,32 +16,16 @@ var btnPanel = standingsDiv.querySelector(".selection-panel-container");
 var standingsBtn = btnPanel.querySelectorAll("span")[1];
 var crossTableBtn;
 var crossTableElements;
+var crossTableModal;
+standingsBtn.addEventListener("click", standingsBtnClickHandler);
 // need this for @media queries
 var enginesAmount = 0;
 var formatter = Intl.NumberFormat(undefined, {
     minimumFractionDigits: 1,
     maximumFractionDigits: 2,
 });
-standingsBtn.addEventListener("click", standingsBtnClickHandler);
-window.addEventListener("keydown", handleCloseModalOnKeydown);
-function convertCrossTable() {
-    try {
-        enginesAmount = 0;
-        // @ts-ignore
-        createOptionInputs();
-        var activeCells = __spreadArray([], crossTableElements, true).filter(function (el) {
-            if (el.classList.contains("crosstable-empty")) {
-                enginesAmount++;
-                return;
-            }
-            return el;
-        });
-        activeCells.forEach(parseCell);
-    }
-    catch (e) {
-        console.log(e.message);
-    }
-}
+var isSpaceKeyPressed = false;
+// * typescript
 var Pairs;
 (function (Pairs) {
     Pairs["DoubleWin"] = "ccc-double-win";
@@ -50,8 +34,46 @@ var Pairs;
     Pairs["Loss"] = "ccc-loss";
     Pairs["DoubleLoss"] = "ccc-double-loss";
 })(Pairs || (Pairs = {}));
+// * ---------------
+// * extension logic
+function convertCrossTable() {
+    try {
+        enginesAmount = 0;
+        createOptionInputs();
+        // @ts-ignore
+        var activeCells = __spreadArray([], crossTableElements, true).filter(function (el) {
+            if (el.classList.contains("crosstable-empty")) {
+                enginesAmount++;
+                return;
+            }
+            return el;
+        });
+        console.log("ACTIVE CELLS LENGTH", activeCells.length);
+        if (activeCells.length === 0) {
+            console.log("NO ACTIVE CELLS!!!!!");
+            observeInitial();
+        }
+        activeCells.forEach(parseCell);
+    }
+    catch (e) {
+        console.log(e.message);
+    }
+}
+function observeInitial() {
+    var initObserver = new MutationObserver(function (e) {
+        console.log(e, "INIT MUTATIONS");
+        initObserver.disconnect();
+        crossTableBtnClickHandler();
+    });
+    var modal = document.querySelector(".modal-vue-modal-container");
+    if (modal) {
+        initObserver.observe(modal, {
+            childList: true,
+            subtree: true,
+        });
+    }
+}
 function parseCell(cell) {
-    console.log("parse cell");
     // header with result --> 205 - 195 [+10]
     var cellHeader = cell.querySelector(".crosstable-head-to-head");
     cellHeader.id = "ccc-cell-header";
@@ -135,6 +157,7 @@ function liveUpdate() {
     // recalculate custom elements
     convertCrossTable();
 }
+// * -------------
 // * utils
 function getStats(arr) {
     var wdlArray = [0, 0, 0]; // W D L in that order
@@ -250,26 +273,87 @@ function createOptionInputs() {
     var ptnmlSwitchElement = document.createElement("input");
     var eloSwitchElement = document.createElement("input");
     rowAmountInput.classList.add("ccc-custom-option");
-    rowAmountInput.textContent = "gamepairs per row";
+    rowAmountInput.classList.add("ccc-pairs-per-row-input");
+    rowAmountInput.placeholder = "Pairs per row";
     rowAmountInput.type = "number";
     formElement.append(rowAmountInput);
     wrapper.append(formElement);
     formElement.addEventListener("submit", function (e) {
         e.preventDefault();
         var value = rowAmountInput.valueAsNumber;
-        console.log("form data", value);
-        console.log("form data", rowAmountInput.value);
         crossTableModal.style.setProperty("--custom-column-amount", "".concat(value ? value * 2 : ""));
         // TODO
         // save this value to localStorage
     });
     crossTableModal.append(wrapper);
 }
-// * event handlers
-// close crosstable and tournament list on ESC
-function handleCloseModalOnKeydown(e) {
-    if (e.code !== "Escape")
+// * event handlers and listeners
+var crossTableWithScroll = undefined;
+window.addEventListener("keydown", keydownHandler);
+window.addEventListener("keyup", function (e) {
+    if (e.code !== "Space")
         return;
+    crossTableWithScroll === null || crossTableWithScroll === void 0 ? void 0 : crossTableWithScroll.classList.remove("ccc-scroll-ready");
+    window.removeEventListener("pointermove", pointerMoveHandler);
+    isSpaceKeyPressed = false;
+});
+// close crosstable and tournament list on ESC
+function keydownHandler(e) {
+    if (e.code !== "Escape" && e.code !== "Space")
+        return;
+    console.log(e.code);
+    if (e.code === "Escape") {
+        handleCloseModalOnKeydown();
+        return;
+    }
+    if (e.code === "Space") {
+        // prevent scroll on Space
+        e.preventDefault();
+        if (!isSpaceKeyPressed) {
+            crossTableWithScroll = document.getElementById("crosstable-crosstableModal");
+            if (!crossTableWithScroll) {
+                console.log("NO CROSSTABLE ==========================");
+                return;
+            }
+            isSpaceKeyPressed = true;
+            handleScrollByHold(e);
+        }
+    }
+}
+function handleScrollByHold(e) {
+    // const crossTableWithScroll: HTMLDivElement = document.getElementById(
+    //   "crosstable-crosstableModal"
+    // ) as HTMLDivElement;
+    var hasHorizontalScrollbar = crossTableWithScroll.scrollWidth > crossTableWithScroll.clientWidth;
+    console.log("HAS SCROLL?", hasHorizontalScrollbar);
+    if (hasHorizontalScrollbar) {
+        crossTableWithScroll.classList.add("ccc-scroll-ready");
+    }
+    else {
+        crossTableWithScroll.classList.remove("ccc-scroll-ready");
+        return;
+    }
+    window.addEventListener("pointerdown", function () {
+        window.addEventListener("pointermove", pointerMoveHandler);
+        crossTableWithScroll.classList.add("ccc-scrolling");
+    });
+    window.addEventListener("pointerup", function () {
+        crossTableWithScroll.classList.remove("ccc-scrolling");
+        window.removeEventListener("pointermove", pointerMoveHandler);
+    });
+}
+function pointerMoveHandler(e) {
+    // const crossTableWithScroll: HTMLDivElement = document.getElementById(
+    //   "crosstable-crosstableModal"
+    // ) as HTMLDivElement;
+    console.log(e.movementX, "MOVE X");
+    crossTableWithScroll.scrollBy({
+        left: -e.movementX,
+        top: 0,
+        behavior: "instant",
+    });
+}
+function handleCloseModalOnKeydown() {
     var crossTableModal = document.querySelector(".modal-vue-modal-content");
     var tournamentsList = document.querySelector(".bottomtable-resultspopup");
     if (crossTableModal) {
@@ -299,6 +383,7 @@ function crossTableBtnClickHandler() {
     crossTableElements = crossTableModal.querySelectorAll(".crosstable-results-cell");
     convertCrossTable();
 }
+// * elo calculation
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
 function calculateEloFromPercent(percent) {

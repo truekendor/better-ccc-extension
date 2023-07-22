@@ -11,6 +11,10 @@ const standingsBtn = btnPanel.querySelectorAll("span")[1];
 let crossTableBtn: HTMLButtonElement;
 let crossTableElements: NodeListOf<HTMLTableCellElement>;
 
+let crossTableModal: HTMLDivElement;
+
+standingsBtn.addEventListener("click", standingsBtnClickHandler);
+
 // need this for @media queries
 let enginesAmount = 0;
 
@@ -19,28 +23,9 @@ const formatter = Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 });
 
-standingsBtn.addEventListener("click", standingsBtnClickHandler);
-window.addEventListener("keydown", handleCloseModalOnKeydown);
+let isSpaceKeyPressed = false;
 
-function convertCrossTable() {
-  try {
-    enginesAmount = 0;
-    // @ts-ignore
-    createOptionInputs();
-    const activeCells = [...crossTableElements].filter((el) => {
-      if (el.classList.contains("crosstable-empty")) {
-        enginesAmount++;
-        return;
-      }
-      return el;
-    });
-
-    activeCells.forEach(parseCell);
-  } catch (e: any) {
-    console.log(e.message);
-  }
-}
-
+// * typescript
 enum Pairs {
   DoubleWin = "ccc-double-win",
   Win = "ccc-win",
@@ -52,9 +37,53 @@ enum Pairs {
 type ResultAsScore = 1 | 0 | -1;
 type WDL = [number, number, number];
 
-function parseCell(cell: HTMLTableCellElement) {
-  console.log("parse cell");
+// * ---------------
+// * extension logic
 
+function convertCrossTable() {
+  try {
+    enginesAmount = 0;
+    createOptionInputs();
+
+    // @ts-ignore
+    const activeCells = [...crossTableElements].filter((el) => {
+      if (el.classList.contains("crosstable-empty")) {
+        enginesAmount++;
+        return;
+      }
+      return el;
+    });
+
+    if (activeCells.length === 0) {
+      // if we're here, then cross table
+      // was opened before game data was received
+      // and this function will handle live cross table update
+      observeInitial();
+    }
+
+    activeCells.forEach(parseCell);
+  } catch (e: any) {
+    console.log(e.message);
+  }
+}
+
+function observeInitial() {
+  const initObserver = new MutationObserver(() => {
+    initObserver.disconnect();
+    crossTableBtnClickHandler();
+  });
+
+  const modal = document.querySelector(".modal-vue-modal-container");
+
+  if (modal) {
+    initObserver.observe(modal, {
+      childList: true,
+      subtree: true,
+    });
+  }
+}
+
+function parseCell(cell: HTMLTableCellElement) {
   // header with result --> 205 - 195 [+10]
   const cellHeader: HTMLDivElement = cell.querySelector(
     ".crosstable-head-to-head"
@@ -130,7 +159,6 @@ function parseCell(cell: HTMLTableCellElement) {
   const observer = new MutationObserver(() => {
     observer.disconnect();
 
-    console.log("Mutation");
     liveUpdate();
   });
 
@@ -141,7 +169,7 @@ function parseCell(cell: HTMLTableCellElement) {
 
 // updates stats with each new game result
 function liveUpdate() {
-  console.log("live update");
+  console.log("live update\nlive update");
   // @ts-ignore
   const activeCells = [...crossTableElements].filter((el) => {
     if (el.classList.contains("crosstable-empty")) {
@@ -167,6 +195,7 @@ function liveUpdate() {
   convertCrossTable();
 }
 
+// * -------------
 // * utils
 function getStats(arr: ResultAsScore[]): [number[], WDL] {
   const wdlArray: WDL = [0, 0, 0]; // W D L in that order
@@ -309,7 +338,8 @@ function createOptionInputs() {
   const eloSwitchElement = document.createElement("input");
 
   rowAmountInput.classList.add("ccc-custom-option");
-  rowAmountInput.textContent = "gamepairs per row";
+  rowAmountInput.classList.add("ccc-pairs-per-row-input");
+  rowAmountInput.placeholder = "Pairs per row";
   rowAmountInput.type = "number";
 
   formElement.append(rowAmountInput);
@@ -319,9 +349,6 @@ function createOptionInputs() {
     e.preventDefault();
 
     const value = rowAmountInput.valueAsNumber;
-
-    console.log("form data", value);
-    console.log("form data", rowAmountInput.value);
 
     crossTableModal.style.setProperty(
       "--custom-column-amount",
@@ -335,11 +362,79 @@ function createOptionInputs() {
   crossTableModal.append(wrapper);
 }
 
-// * event handlers
+// * event handlers and listeners
+
+let crossTableWithScroll: HTMLDivElement = undefined;
+
+window.addEventListener("keydown", keydownHandler);
+window.addEventListener("keyup", (e) => {
+  if (e.code !== "Space") return;
+
+  crossTableWithScroll?.classList.remove("ccc-scroll-ready");
+  window.removeEventListener("pointermove", pointerMoveHandler);
+  isSpaceKeyPressed = false;
+});
 
 // close crosstable and tournament list on ESC
-function handleCloseModalOnKeydown(e: KeyboardEvent) {
-  if (e.code !== "Escape") return;
+function keydownHandler(e: KeyboardEvent) {
+  if (e.code !== "Escape" && e.code !== "Space") return;
+  if (e.code === "Escape") {
+    handleCloseModalOnKeydown();
+    return;
+  }
+
+  if (e.code === "Space") {
+    // prevent scroll on Space
+    e.preventDefault();
+
+    if (!isSpaceKeyPressed) {
+      crossTableWithScroll = document.getElementById(
+        "crosstable-crosstableModal"
+      ) as HTMLDivElement;
+
+      if (!crossTableWithScroll) {
+        //
+        return;
+      }
+
+      isSpaceKeyPressed = true;
+      handleScrollByHold(e);
+    }
+  }
+}
+
+function handleScrollByHold(e: KeyboardEvent) {
+  const hasHorizontalScrollbar =
+    crossTableWithScroll.scrollWidth > crossTableWithScroll.clientWidth;
+
+  if (hasHorizontalScrollbar) {
+    crossTableWithScroll.classList.add("ccc-scroll-ready");
+  } else {
+    crossTableWithScroll.classList.remove("ccc-scroll-ready");
+    return;
+  }
+
+  window.addEventListener("pointerdown", () => {
+    window.addEventListener("pointermove", pointerMoveHandler);
+
+    crossTableWithScroll.classList.add("ccc-scrolling");
+  });
+
+  window.addEventListener("pointerup", () => {
+    crossTableWithScroll.classList.remove("ccc-scrolling");
+    window.removeEventListener("pointermove", pointerMoveHandler);
+  });
+}
+
+function pointerMoveHandler(e: PointerEvent) {
+  crossTableWithScroll.scrollBy({
+    left: -e.movementX,
+    top: 0,
+    behavior: "instant",
+  });
+}
+
+function handleCloseModalOnKeydown() {
   const crossTableModal = document.querySelector(".modal-vue-modal-content");
   const tournamentsList = document.querySelector(".bottomtable-resultspopup");
 
@@ -380,6 +475,7 @@ function crossTableBtnClickHandler() {
   convertCrossTable();
 }
 
+// * elo calculation
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
 function calculateEloFromPercent(percent: number) {

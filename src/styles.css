@@ -24,10 +24,6 @@
   width: fit-content !important;
 }
 
-.modal-vue-modal-content {
-  resize: horizontal !important;
-}
-
 .crosstable-crosstable {
   resize: horizontal;
   max-width: unset !important;
@@ -41,9 +37,10 @@
   /* width: min-content; */
   justify-content: center;
 
+  /* TODO add clamp() / minmax() */
   grid-template-columns: repeat(
     var(--custom-column-amount, var(--column-amount)),
-    /* TODO add clamp() / minmax() */ 1.5rem
+    1.6rem
   );
 }
 
@@ -85,8 +82,6 @@ score, wdl etc...
   height: 100%;
   padding-inline: 0.4rem;
 
-  /* background-color: rgb(32, 32, 30); */
-
   border-radius: 3px;
 
   font-size: 1.1rem;
@@ -117,7 +112,8 @@ score, wdl etc...
 }
 
 .ccc-elo-negative {
-  color: var(--globalColorLoss);
+  /* color: var(--globalColorLoss); */
+  color: var(--ccc-loss-font-color);
 }
 
 /* 
@@ -133,6 +129,7 @@ result table section
   contain: layout;
   grid-column: span 1;
 
+  width: 100%;
   max-width: 100%;
 
   position: relative;
@@ -362,10 +359,84 @@ media queries
   color: #80c5e5;
 }
 
+/* * wrapper for stat customization inputs
+*/
 .ccc-options-wrapper {
   position: absolute;
   top: 0;
   left: 0;
 
-  background-color: tomato;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* same as button.modal-close */
+  height: 30px;
+
+  /* TODO add @media */
+  margin-inline-start: 3rem;
+
+  /* background-color: tomato; */
+}
+
+.ccc-custom-option {
+  /*  */
+}
+
+.ccc-pairs-per-row-input {
+  outline: transparent;
+  border: none;
+
+  background-color: transparent;
+  background-color: hsla(0, 0%, 100%, 0.08);
+  color: rgb(180, 180, 180);
+
+  max-width: 14ch;
+  font-size: 1.3rem;
+
+  padding-inline: 0.4rem;
+  padding-block: 0.3rem;
+  outline: 1px solid rgb(81, 81, 81);
+
+  font-weight: 600;
+
+  border-radius: 3px;
+}
+.ccc-pairs-per-row-input:focus-visible,
+.ccc-pairs-per-row-input:focus-within,
+.ccc-pairs-per-row-input:active {
+  outline: 2px solid rgb(97, 97, 97);
+}
+
+.ccc-pairs-per-row-input::placeholder {
+  color: rgb(112, 112, 112);
+}
+
+/* * default CCC elements styling
+*/
+
+.modal-vue-modal-content {
+  cursor: auto;
+}
+
+.modal-vue-modal-container:hover,
+button.modal-close:hover {
+  cursor: pointer;
+}
+
+button.modal-close > i {
+  pointer-events: none;
+}
+
+.ccc-scroll-ready:not(.ccc-scrolling) {
+  cursor: grab !important;
+}
+
+.ccc-scroll-ready.ccc-scrolling {
+  cursor: grabbing !important;
+}
+
+.ccc-scrolling * {
+  user-select: none !important;
+  pointer-events: none !important;
 }
