@@ -1,4 +1,4 @@
-.crosstable-results-cell {
+.crosstable-results-cell:not(:empty) {
   /* for fonts in won/lost game pairs */
   --ccc-loss-font-color: hsl(0, 100%, 72%);
   --ccc-win-font-color: hsl(121, 51%, 62%);
@@ -21,15 +21,16 @@
   --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
 
-  width: fit-content !important;
+  /* width: fit-content !important; */
 }
 
-.crosstable-crosstable {
-  resize: horizontal;
-  max-width: unset !important;
+.crosstable-results-cell:empty {
+  background-color: rgba(255, 99, 71, 0.363);
+}
 
+.crosstable-crosstable:not(:empty) {
+  max-width: unset !important;
   width: min-content !important;
-  /* width: 100% !important; */
 }
 
 .crosstable-result-wrapper.ccc-cell-grid {
@@ -40,7 +41,7 @@
   /* TODO add clamp() / minmax() */
   grid-template-columns: repeat(
     var(--custom-column-amount, var(--column-amount)),
-    1.6rem
+    minmax(1.6rem, 1fr)
   );
 }
 
@@ -341,6 +342,7 @@ media queries
 /* * center the game number in Schedule */
 .schedule-container > div :first-child {
   justify-content: center;
+  text-align: center;
 }
 
 /* moves in movelist */

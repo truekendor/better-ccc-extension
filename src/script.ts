@@ -68,167 +68,186 @@ function convertCrossTable() {
 }
 
 function observeInitial() {
-  const initObserver = new MutationObserver(() => {
-    initObserver.disconnect();
-    crossTableBtnClickHandler();
-  });
-
-  const modal = document.querySelector(".modal-vue-modal-container");
-
-  if (modal) {
-    initObserver.observe(modal, {
-      childList: true,
-      subtree: true,
+  try {
+    const initObserver = new MutationObserver(() => {
+      initObserver.disconnect();
+      crossTableBtnClickHandler();
     });
+
+    const modal = document.querySelector(".modal-vue-modal-container");
+
+    if (modal) {
+      initObserver.observe(modal, {
+        childList: true,
+        subtree: true,
+      });
+    }
+  } catch (e: any) {
+    console.log(e.message);
   }
 }
 
 function parseCell(cell: HTMLTableCellElement) {
   // header with result --> 205 - 195 [+10]
-  const cellHeader: HTMLDivElement = cell.querySelector(
-    ".crosstable-head-to-head"
-  );
+  try {
+    const cellHeader: HTMLDivElement = cell.querySelector(
+      ".crosstable-head-to-head"
+    );
+    if (!cellHeader) return;
 
-  cellHeader.id = "ccc-cell-header";
+    cellHeader.id = "ccc-cell-header";
 
-  // result table for h2h vs one opponent
-  const crossTableCell: HTMLDivElement = cell.querySelector(
-    ".crosstable-result-wrapper"
-  );
+    // result table for h2h vs one opponent
+    const crossTableCell: HTMLDivElement = cell.querySelector(
+      ".crosstable-result-wrapper"
+    );
 
-  if (enginesAmount === 2) {
-    crossTableCell.classList.add("one-v-one");
-  } else if (enginesAmount > 8) {
-    crossTableCell.classList.add("many");
-  }
-
-  crossTableCell.classList.add("ccc-cell-grid");
-
-  // each div with game result in it
-  const gameResultsDivs: NodeListOf<HTMLDivElement> =
-    crossTableCell.querySelectorAll(".crosstable-result");
-
-  const scoresArray: ResultAsScore[] = [];
-  let lastResult: ResultAsScore = undefined;
-
-  gameResultsDivs.forEach((result, index) => {
-    // ID needed to overwrite default CCC styles
-    result.id = "ccc-result";
-
-    if (index % 2 === 0) {
-      result.classList.add("ccc-border-left");
-
-      lastResult = getResultFromNode(result);
-      scoresArray.push(lastResult);
-    } else {
-      result.classList.add("ccc-border-right");
-
-      const currentResult = getResultFromNode(result);
-      const pairResult = getClassNameForPair(lastResult, currentResult);
-      scoresArray.push(currentResult);
-
-      result.classList.add(pairResult);
-      gameResultsDivs[index - 1].classList.add(pairResult);
-
-      result.classList.add(pairResult);
-      gameResultsDivs[index - 1].classList.add(pairResult);
+    if (enginesAmount === 2) {
+      crossTableCell.classList.add("one-v-one");
+    } else if (enginesAmount > 8) {
+      crossTableCell.classList.add("many");
     }
-  });
 
-  // create and add ptnml stat
-  const ptnmlWrapper = createStatWrapperElement();
-  const [ptnml, wdlArray] = getStats(scoresArray);
-  const ptnmlElement = document.createElement("div");
+    crossTableCell.classList.add("ccc-cell-grid");
 
-  const ptnmlHeader = document.createElement("div");
-  ptnmlHeader.id = "ptnml-header";
-  ptnmlHeader.textContent = "Ptnml(0-2)";
+    // each div with game result in it
+    const gameResultsDivs: NodeListOf<HTMLDivElement> =
+      crossTableCell.querySelectorAll(".crosstable-result");
 
-  ptnmlElement.textContent = `${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]}`;
-  ptnmlElement.classList.add("ccc-ptnml");
+    const scoresArray: ResultAsScore[] = [];
+    let lastResult: ResultAsScore = undefined;
 
-  ptnmlWrapper.append(ptnmlHeader, ptnmlElement);
+    gameResultsDivs.forEach((result, index) => {
+      // ID needed to overwrite default CCC styles
+      if (result) {
+        result.id = "ccc-result";
+      }
 
-  // create and add WDL stat
-  const wdlWrapper = createStatWrapperElement();
-  const wdlElement = createWDLELement(wdlArray);
-  wdlWrapper.append(wdlElement);
+      if (index % 2 === 0) {
+        result.classList.add("ccc-border-left");
 
-  cellHeader.append(wdlWrapper, ptnmlWrapper);
+        lastResult = getResultFromNode(result);
+        scoresArray.push(lastResult);
+      } else {
+        result.classList.add("ccc-border-right");
 
-  const observer = new MutationObserver(() => {
-    observer.disconnect();
+        const currentResult = getResultFromNode(result);
+        const pairResult = getClassNameForPair(lastResult, currentResult);
+        scoresArray.push(currentResult);
 
-    liveUpdate();
-  });
+        result.classList.add(pairResult);
+        gameResultsDivs[index - 1].classList.add(pairResult);
 
-  observer.observe(crossTableCell, {
-    childList: true,
-  });
+        result.classList.add(pairResult);
+        gameResultsDivs[index - 1].classList.add(pairResult);
+      }
+    });
+
+    // create and add ptnml stat
+    const ptnmlWrapper = createStatWrapperElement();
+    const [ptnml, wdlArray] = getStats(scoresArray);
+    const ptnmlElement = document.createElement("div");
+
+    const ptnmlHeader = document.createElement("div");
+    ptnmlHeader.id = "ptnml-header";
+    ptnmlHeader.textContent = "Ptnml(0-2)";
+
+    ptnmlElement.textContent = `${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]}`;
+    ptnmlElement.classList.add("ccc-ptnml");
+
+    ptnmlWrapper.append(ptnmlHeader, ptnmlElement);
+
+    // create and add WDL stat
+    const wdlWrapper = createStatWrapperElement();
+    const wdlElement = createWDLELement(wdlArray);
+    wdlWrapper.append(wdlElement);
+
+    cellHeader.append(wdlWrapper, ptnmlWrapper);
+
+    const observer = new MutationObserver(() => {
+      observer.disconnect();
+
+      liveUpdate();
+    });
+
+    observer.observe(crossTableCell, {
+      childList: true,
+    });
+  } catch (e: any) {
+    console.log(e.message);
+  }
 }
 
 // updates stats with each new game result
 function liveUpdate() {
-  console.log("live update\nlive update");
-  // @ts-ignore
-  const activeCells = [...crossTableElements].filter((el) => {
-    if (el.classList.contains("crosstable-empty")) {
-      enginesAmount++;
-      return;
-    }
-    return el;
-  });
-
-  // for each cell with games in it
-  // find and remove all custom elements
-  activeCells.forEach((cell) => {
-    const header = cell.querySelector("#ccc-cell-header");
-    // wrappers for custom stats
-    const wrappers = cell.querySelectorAll(".ccc-stat-wrapper");
-
-    wrappers.forEach((wrapper) => {
-      header.removeChild(wrapper);
+  try {
+    // @ts-ignore
+    const activeCells = [...crossTableElements].filter((el) => {
+      if (el.classList.contains("crosstable-empty")) {
+        enginesAmount++;
+        return;
+      }
+      return el;
     });
-  });
+    if (activeCells.length === 0) return;
 
-  // recalculate custom elements
-  convertCrossTable();
+    // for each cell with games in it
+    // find and remove all custom elements
+    activeCells.forEach((cell) => {
+      const header = cell.querySelector("#ccc-cell-header");
+      // wrappers for custom stats
+      const wrappers = cell.querySelectorAll(".ccc-stat-wrapper");
+
+      wrappers.forEach((wrapper) => {
+        header.removeChild(wrapper);
+      });
+    });
+
+    // recalculate custom elements
+    convertCrossTable();
+  } catch (e: any) {
+    console.log(e.message);
+  }
 }
 
 // * -------------
 // * utils
 function getStats(arr: ResultAsScore[]): [number[], WDL] {
-  const wdlArray: WDL = [0, 0, 0]; // W D L in that order
-  arr.forEach((score) => {
-    // score is either 1 0 -1
-    // so by doing this we automatically
-    // increment correct value
-    wdlArray[1 - score] += 1;
-  });
+  try {
+    const wdlArray: WDL = [0, 0, 0]; // W D L in that order
+    arr.forEach((score) => {
+      // score is either 1 0 -1
+      // so by doing this we automatically
+      // increment correct value
+      wdlArray[1 - score] += 1;
+    });
 
-  // to get rid of an unfinished pair
-  if (arr.length % 2 === 1) arr.pop();
-  const ptnml = [0, 0, 0, 0, 0]; // ptnml(0-2)
+    // to get rid of an unfinished pair
+    if (arr.length % 2 === 1) arr.pop();
+    const ptnml = [0, 0, 0, 0, 0]; // ptnml(0-2)
 
-  for (let i = 0; i < arr.length; i += 2) {
-    const first = arr[i];
-    const second = arr[i + 1];
-    const res = first + second;
+    for (let i = 0; i < arr.length; i += 2) {
+      const first = arr[i];
+      const second = arr[i + 1];
+      const res = first + second;
 
-    if (res === 2) {
-      ptnml[4] += 1;
-    } else if (res === 1) {
-      ptnml[3] += 1;
-    } else if (res === 0) {
-      ptnml[2] += 1;
-    } else if (res === -1) {
-      ptnml[1] += 1;
-    } else {
-      ptnml[0] += 1;
+      if (res === 2) {
+        ptnml[4] += 1;
+      } else if (res === 1) {
+        ptnml[3] += 1;
+      } else if (res === 0) {
+        ptnml[2] += 1;
+      } else if (res === -1) {
+        ptnml[1] += 1;
+      } else {
+        ptnml[0] += 1;
+      }
     }
-  }
 
-  return [ptnml, wdlArray];
+    return [ptnml, wdlArray];
+  } catch (e: any) {
+    console.log(e.message);
+  }
 }
 
 function getResultFromNode(node: HTMLDivElement) {
@@ -285,12 +304,23 @@ function createWDLELement(wdl: WDL) {
   winrateElement.classList.add("ccc-winrate-percentage");
   winrateElement.textContent = ` ${percent}%`;
 
-  const elo = calculateEloFromPercent(parseFloat(percent));
-  const margin = calculateErrorMargin(wdl[0], wdl[1], wdl[2]);
+  let elo;
+  let margin;
+  let eloWrapper;
 
-  const eloWrapper = createEloAndMarginElement(elo, margin);
+  if (numberOfGames >= 2) {
+    elo = calculateEloFromPercent(parseFloat(percent));
+    margin = calculateErrorMargin(wdl[0], wdl[1], wdl[2]);
+    eloWrapper = createEloAndMarginElement(elo, margin);
+  }
 
-  wdlElement.append(w, d, l, eloWrapper, winrateElement);
+  wdlElement.append(w, d, l);
+
+  if (eloWrapper) {
+    wdlElement.append(eloWrapper);
+  }
+
+  wdlElement.append(winrateElement);
 
   return wdlElement;
 }
