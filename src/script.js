@@ -17,6 +17,7 @@ var standingsBtn = btnPanel.querySelectorAll("span")[1];
 var crossTableBtn;
 var crossTableElements;
 var crossTableModal;
+var crossTableWithScroll = undefined;
 standingsBtn.addEventListener("click", standingsBtnClickHandler);
 // need this for @media queries
 var enginesAmount = 0;
@@ -24,7 +25,33 @@ var formatter = Intl.NumberFormat(undefined, {
     minimumFractionDigits: 1,
     maximumFractionDigits: 2,
 });
-var isSpaceKeyPressed = false;
+var userCustomOptions = {
+    ptnml: true,
+    elo: true,
+    pairPerRow: undefined,
+};
+function loadUserSettings() {
+    try {
+        chrome.storage.local.get("elo").then(function (result) {
+            var _a;
+            userCustomOptions.elo = (_a = result.elo) !== null && _a !== void 0 ? _a : true;
+        });
+        chrome.storage.local.get("ptnml").then(function (result) {
+            var _a;
+            userCustomOptions.ptnml = (_a = result.ptnml) !== null && _a !== void 0 ? _a : true;
+        });
+        chrome.storage.local.get("pairPerRow").then(function (result) {
+            var _a;
+            userCustomOptions.pairPerRow = (_a = result.pairPerRow) !== null && _a !== void 0 ? _a : undefined;
+            document.body.style.setProperty("--custom-column-amount", "".concat(userCustomOptions.pairPerRow ? userCustomOptions.pairPerRow * 2 : ""));
+        });
+    }
+    catch (e) {
+        console.log(e.message);
+    }
+}
+loadUserSettings();
+var spaceKeyPressed = false;
 // * typescript
 var Pairs;
 (function (Pairs) {
@@ -39,7 +66,10 @@ var Pairs;
 function convertCrossTable() {
     try {
         enginesAmount = 0;
-        createOptionInputs();
+        var optionsWrapper = document.querySelector(".ccc-options-wrapper");
+        if (!optionsWrapper) {
+            createOptionInputs();
+        }
         // @ts-ignore
         var activeCells = __spreadArray([], crossTableElements, true).filter(function (el) {
             if (el.classList.contains("crosstable-empty")) {
@@ -54,12 +84,13 @@ function convertCrossTable() {
             // and this function will handle live cross table update
             observeInitial();
         }
-        activeCells.forEach(parseCell);
+        activeCells.forEach(convertCell);
     }
     catch (e) {
         console.log(e.message);
     }
 }
+// observes prematurely opened cross table
 function observeInitial() {
     try {
         var initObserver_1 = new MutationObserver(function () {
@@ -78,67 +109,51 @@ function observeInitial() {
         console.log(e.message);
     }
 }
-function parseCell(cell) {
-    // header with result --> 205 - 195 [+10]
+// observes cells with no h2h records
+function observeEmpty(cell) {
     try {
+        var observer_1 = new MutationObserver(function () {
+            observer_1.disconnect();
+            // convertCrossTable()
+            convertCell(cell);
+        });
+        observer_1.observe(cell, {
+            childList: true,
+        });
+    }
+    catch (e) {
+        console.log(e.message);
+    }
+}
+function convertCell(cell) {
+    try {
+        // header with result --> 205 - 195 [+10]
         var cellHeader = cell.querySelector(".crosstable-head-to-head");
-        if (!cellHeader)
+        // TODO handle null observer
+        if (!cellHeader) {
+            observeEmpty(cell);
             return;
+        }
         cellHeader.id = "ccc-cell-header";
         // result table for h2h vs one opponent
         var crossTableCell = cell.querySelector(".crosstable-result-wrapper");
-        if (enginesAmount === 2) {
-            crossTableCell.classList.add("one-v-one");
-        }
-        else if (enginesAmount > 8) {
-            crossTableCell.classList.add("many");
-        }
-        crossTableCell.classList.add("ccc-cell-grid");
-        // each div with game result in it
-        var gameResultsDivs_1 = crossTableCell.querySelectorAll(".crosstable-result");
-        var scoresArray_1 = [];
-        var lastResult_1 = undefined;
-        gameResultsDivs_1.forEach(function (result, index) {
-            // ID needed to overwrite default CCC styles
-            if (result) {
-                result.id = "ccc-result";
-            }
-            if (index % 2 === 0) {
-                result.classList.add("ccc-border-left");
-                lastResult_1 = getResultFromNode(result);
-                scoresArray_1.push(lastResult_1);
-            }
-            else {
-                result.classList.add("ccc-border-right");
-                var currentResult = getResultFromNode(result);
-                var pairResult = getClassNameForPair(lastResult_1, currentResult);
-                scoresArray_1.push(currentResult);
-                result.classList.add(pairResult);
-                gameResultsDivs_1[index - 1].classList.add(pairResult);
-                result.classList.add(pairResult);
-                gameResultsDivs_1[index - 1].classList.add(pairResult);
-            }
-        });
-        // create and add ptnml stat
-        var ptnmlWrapper = createStatWrapperElement();
-        var _a = getStats(scoresArray_1), ptnml = _a[0], wdlArray = _a[1];
-        var ptnmlElement = document.createElement("div");
-        var ptnmlHeader = document.createElement("div");
-        ptnmlHeader.id = "ptnml-header";
-        ptnmlHeader.textContent = "Ptnml(0-2)";
-        ptnmlElement.textContent = "".concat(ptnml[0], ", ").concat(ptnml[1], ", ").concat(ptnml[2], ", ").concat(ptnml[3], ", ").concat(ptnml[4]);
-        ptnmlElement.classList.add("ccc-ptnml");
-        ptnmlWrapper.append(ptnmlHeader, ptnmlElement);
-        // create and add WDL stat
-        var wdlWrapper = createStatWrapperElement();
-        var wdlElement = createWDLELement(wdlArray);
-        wdlWrapper.append(wdlElement);
-        cellHeader.append(wdlWrapper, ptnmlWrapper);
-        var observer_1 = new MutationObserver(function () {
-            observer_1.disconnect();
+        addClassNamesCrossTable(crossTableCell);
+        var scoresArray = calculateScores(crossTableCell);
+        var _a = getStats(scoresArray), ptnml = _a[0], wdlArray = _a[1];
+        // * create stats
+        var ptnmlWrapper = createPTNMLStatHeader(ptnml);
+        var wdlWrapper = createWDLStatHeader(wdlArray);
+        // * add stats
+        handleCustomStat(cellHeader, wdlWrapper, ptnmlWrapper);
+        var observer_2 = new MutationObserver(function () {
+            observer_2.disconnect();
             liveUpdate();
         });
-        observer_1.observe(crossTableCell, {
+        // TODO change it to observe header scores
+        // TODO NO, to observe the whole cell
+        // TODO cause if there is no h2h games,
+        // TODO there is no cells and headers to observe
+        observer_2.observe(crossTableCell, {
             childList: true,
         });
     }
@@ -149,7 +164,6 @@ function parseCell(cell) {
 // updates stats with each new game result
 function liveUpdate() {
     try {
-        // @ts-ignore
         var activeCells = __spreadArray([], crossTableElements, true).filter(function (el) {
             if (el.classList.contains("crosstable-empty")) {
                 enginesAmount++;
@@ -163,13 +177,14 @@ function liveUpdate() {
         // find and remove all custom elements
         activeCells.forEach(function (cell) {
             var header = cell.querySelector("#ccc-cell-header");
+            if (!header)
+                return;
             // wrappers for custom stats
             var wrappers = cell.querySelectorAll(".ccc-stat-wrapper");
-            wrappers.forEach(function (wrapper) {
-                header.removeChild(wrapper);
+            wrappers === null || wrappers === void 0 ? void 0 : wrappers.forEach(function (wrapper) {
+                header === null || header === void 0 ? void 0 : header.removeChild(wrapper);
             });
         });
-        // recalculate custom elements
         convertCrossTable();
     }
     catch (e) {
@@ -241,7 +256,7 @@ function createStatWrapperElement() {
     wrapper.classList.add("ccc-stat-wrapper");
     return wrapper;
 }
-function createWDLELement(wdl) {
+function createWLDEloElement(wdl) {
     var numberOfGames = wdl.reduce(function (amount, prev) { return amount + prev; }, 0);
     var wdlElement = document.createElement("div");
     wdlElement.classList.add("ccc-wdl-container");
@@ -261,7 +276,7 @@ function createWDLELement(wdl) {
     var percent = formatter.format((points / numberOfGames) * 100);
     var winrateElement = document.createElement("p");
     winrateElement.classList.add("ccc-winrate-percentage");
-    winrateElement.textContent = " ".concat(percent, "%");
+    // winrateElement.textContent = ` ${percent}%`;
     var elo;
     var margin;
     var eloWrapper;
@@ -290,6 +305,32 @@ function createEloAndMarginElement(elo, margin) {
     wrapper.append(eloElement, marginElement);
     return wrapper;
 }
+// leaves user chosen stats
+function handleCustomStat(cellHeader, wdlWrapper, ptnmlWrapper) {
+    var ptnmlElement = cellHeader.querySelector(".ccc-ptnml");
+    var eloElement = cellHeader.querySelector(".ccc-wdl-container");
+    var statWrappers = cellHeader.querySelectorAll(".ccc-stat-wrapper");
+    if (userCustomOptions.elo && !eloElement) {
+        cellHeader.append(wdlWrapper);
+    }
+    else if (!userCustomOptions.elo && eloElement) {
+        statWrappers.forEach(function (wrapper) {
+            if (wrapper.contains(eloElement)) {
+                cellHeader.removeChild(wrapper);
+            }
+        });
+    }
+    if (userCustomOptions.ptnml && !ptnmlElement) {
+        cellHeader.append(ptnmlWrapper);
+    }
+    else if (!userCustomOptions.ptnml && ptnmlElement) {
+        statWrappers.forEach(function (wrapper) {
+            if (wrapper.contains(ptnmlElement)) {
+                cellHeader.removeChild(wrapper);
+            }
+        });
+    }
+}
 // handles creation of customization inputs
 function createOptionInputs() {
     var crossTableModal = document.querySelector(".modal-vue-modal-content");
@@ -301,81 +342,118 @@ function createOptionInputs() {
         return;
     var wrapper = document.createElement("div");
     wrapper.classList.add("ccc-options-wrapper");
-    var formElement = document.createElement("form");
-    var rowAmountInput = document.createElement("input");
-    var ptnmlSwitchElement = document.createElement("input");
-    var eloSwitchElement = document.createElement("input");
-    rowAmountInput.classList.add("ccc-custom-option");
-    rowAmountInput.classList.add("ccc-pairs-per-row-input");
-    rowAmountInput.placeholder = "Pairs per row";
-    rowAmountInput.type = "number";
-    rowAmountInput.min = "0";
-    formElement.append(rowAmountInput);
-    wrapper.append(formElement);
-    formElement.addEventListener("submit", function (e) {
-        e.preventDefault();
-        var value = rowAmountInput.valueAsNumber;
-        crossTableModal.style.setProperty("--custom-column-amount", "".concat(value ? value * 2 : ""));
-        // TODO
-        // save this value to localStorage
+    var formElement = createRowsForm();
+    // * create switches
+    var eloLabel = createSwitchLabel("WDL + Elo", "elo");
+    var ptnmlLabel = createSwitchLabel("Ptnml", "ptnml");
+    wrapper.append(formElement, eloLabel, ptnmlLabel);
+    eloLabel.addEventListener("change", function () {
+        userCustomOptions.elo = !userCustomOptions.elo;
+        chrome.storage.local
+            .set({ elo: userCustomOptions.elo })
+            .then(convertCrossTable);
+    });
+    ptnmlLabel.addEventListener("change", function () {
+        userCustomOptions.ptnml = !userCustomOptions.ptnml;
+        chrome.storage.local
+            .set({ ptnml: userCustomOptions.ptnml })
+            .then(convertCrossTable);
     });
     crossTableModal.append(wrapper);
 }
-// * event handlers and listeners
-var crossTableWithScroll = undefined;
-window.addEventListener("keydown", keydownHandler);
-window.addEventListener("keyup", function (e) {
-    if (e.code !== "Space")
-        return;
-    crossTableWithScroll === null || crossTableWithScroll === void 0 ? void 0 : crossTableWithScroll.classList.remove("ccc-scroll-ready");
-    window.removeEventListener("pointermove", pointerMoveHandler);
-    isSpaceKeyPressed = false;
-});
-// close crosstable and tournament list on ESC
-function keydownHandler(e) {
-    if (e.code !== "Escape" && e.code !== "Space")
-        return;
-    if (e.code === "Escape") {
-        handleCloseModalOnKeydown();
-    }
-    if (e.code === "Space") {
-        // prevent scroll on Space
+function createPTNMLStatHeader(ptnml) {
+    var ptnmlWrapper = createStatWrapperElement();
+    ptnmlWrapper.classList.add("ccc-ptnml-wrapper");
+    var ptnmlElement = document.createElement("div");
+    var ptnmlHeader = document.createElement("div");
+    ptnmlHeader.id = "ptnml-header";
+    ptnmlHeader.textContent = "Ptnml(0-2)";
+    ptnmlElement.textContent = "".concat(ptnml[0], ", ").concat(ptnml[1], ", ").concat(ptnml[2], ", ").concat(ptnml[3], ", ").concat(ptnml[4]);
+    ptnmlElement.classList.add("ccc-ptnml");
+    ptnmlWrapper.append(ptnmlHeader, ptnmlElement);
+    return ptnmlWrapper;
+}
+function createWDLStatHeader(wdlArray) {
+    var wdlWrapper = createStatWrapperElement();
+    wdlWrapper.classList.add("ccc-wdl-wrapper");
+    var wdlElement = createWLDEloElement(wdlArray);
+    wdlWrapper.append(wdlElement);
+    return wdlWrapper;
+}
+function createRowsForm() {
+    var formElement = document.createElement("form");
+    var rowAmountInput = document.createElement("input");
+    formElement.classList.add("ccc-form");
+    rowAmountInput.classList.add("ccc-row-input");
+    formElement.textContent = "Pairs per row";
+    rowAmountInput.type = "number";
+    rowAmountInput.min = "0";
+    rowAmountInput.value = "".concat(userCustomOptions.pairPerRow);
+    formElement.append(rowAmountInput);
+    formElement.addEventListener("submit", function (e) {
         e.preventDefault();
-        if (!isSpaceKeyPressed) {
-            crossTableWithScroll = document.getElementById("crosstable-crosstableModal");
-            if (!crossTableWithScroll) {
-                //
-                return;
-            }
-            isSpaceKeyPressed = true;
-            handleScrollByHold(e);
+        var value = rowAmountInput.valueAsNumber;
+        chrome.storage.local.set({ pairPerRow: value || "" });
+        document.body.style.setProperty("--custom-column-amount", "".concat(value ? value * 2 : ""));
+    });
+    return formElement;
+}
+function createSwitchLabel(text, field) {
+    var _a;
+    var label = document.createElement("label");
+    var switchInput = document.createElement("input");
+    label.classList.add("ccc-label");
+    label.textContent = "".concat(text, ":");
+    switchInput.classList.add("ccc-input");
+    switchInput.type = "checkbox";
+    switchInput.checked = (_a = userCustomOptions[field]) !== null && _a !== void 0 ? _a : true;
+    label.append(switchInput);
+    return label;
+}
+function addClassNamesCrossTable(crossTableCell) {
+    crossTableCell.classList.add("ccc-cell-grid");
+    if (enginesAmount === 2) {
+        crossTableCell.classList.add("one-v-one");
+    }
+    else if (enginesAmount > 8) {
+        crossTableCell.classList.add("many");
+    }
+}
+function calculateScores(crossTableCell) {
+    var gameResultsDivs = crossTableCell.querySelectorAll(".crosstable-result");
+    var scoresArray = [];
+    var lastResult = undefined;
+    gameResultsDivs.forEach(function (result, index) {
+        // ID needed to overwrite default CCC styles
+        if (result) {
+            result.id = "ccc-result";
         }
-    }
+        if (index % 2 === 0) {
+            result.classList.add("ccc-border-left");
+            lastResult = getResultFromNode(result);
+            scoresArray.push(lastResult);
+        }
+        else {
+            result.classList.add("ccc-border-right");
+            var currentResult = getResultFromNode(result);
+            var pairResult = getClassNameForPair(lastResult, currentResult);
+            scoresArray.push(currentResult);
+            result.classList.add(pairResult);
+            gameResultsDivs[index - 1].classList.add(pairResult);
+            result.classList.add(pairResult);
+            gameResultsDivs[index - 1].classList.add(pairResult);
+        }
+    });
+    return scoresArray;
 }
-function handleScrollByHold(e) {
-    var hasHorizontalScrollbar = crossTableWithScroll.scrollWidth > crossTableWithScroll.clientWidth;
-    if (hasHorizontalScrollbar) {
-        crossTableWithScroll.classList.add("ccc-scroll-ready");
-    }
-    else {
-        crossTableWithScroll.classList.remove("ccc-scroll-ready");
+// * ----------------------------
+// * event handlers and listeners
+window.addEventListener("keydown", keydownHandler);
+// close modals on ESC
+function keydownHandler(e) {
+    if (e.code !== "Escape")
         return;
-    }
-    window.addEventListener("pointerdown", function () {
-        window.addEventListener("pointermove", pointerMoveHandler);
-        crossTableWithScroll.classList.add("ccc-scrolling");
-    });
-    window.addEventListener("pointerup", function () {
-        crossTableWithScroll.classList.remove("ccc-scrolling");
-        window.removeEventListener("pointermove", pointerMoveHandler);
-    });
-}
-function pointerMoveHandler(e) {
-    crossTableWithScroll.scrollBy({
-        left: -e.movementX,
-        top: 0,
-        behavior: "instant",
-    });
+    handleCloseModalOnKeydown();
 }
 function handleCloseModalOnKeydown() {
     var crossTableModal = document.querySelector(".modal-vue-modal-content");
@@ -393,9 +471,8 @@ function handleCloseModalOnKeydown() {
     }
     if (engineDetailsPanel) {
         var closeBtn = document.querySelector("#enginedetails-close");
-        console.log(closeBtn, "CLOSE BTN");
-        console.log("INSIDE ENGINE DETAILS");
         closeBtn === null || closeBtn === void 0 ? void 0 : closeBtn.click();
+        return;
     }
 }
 function standingsBtnClickHandler() {
@@ -410,9 +487,15 @@ function standingsBtnClickHandler() {
     }
 }
 function crossTableBtnClickHandler() {
-    var crossTableModal = document.querySelector(".modal-vue-modal-content");
-    crossTableElements = crossTableModal.querySelectorAll(".crosstable-results-cell");
-    convertCrossTable();
+    try {
+        var crossTableModal_1 = document.querySelector(".modal-vue-modal-content");
+        // if (!crossTableModal) return;
+        crossTableElements = crossTableModal_1.querySelectorAll(".crosstable-results-cell");
+        convertCrossTable();
+    }
+    catch (e) {
+        console.log(e.message);
+    }
 }
 // * elo calculation
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm

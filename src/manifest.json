@@ -15,5 +15,5 @@
     "48": "icons/icon_48.png",
     "32": "icons/icon_32.png"
   },
-  "permissions": ["scripting"]
+  "permissions": ["scripting", "storage"]
 }

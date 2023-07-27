@@ -9,10 +9,10 @@
 
   --border-color-ccc: hsl(0, 0%, 45%);
 
-  --won-bg: hsla(81, 56%, 63%, 0.17);
+  --won-bg: hsla(81, 63%, 62%, 0.17);
   --loss-bg: hsla(9, 86%, 61%, 0.17);
-  --double-win-bg: hsla(111, 92%, 59%, 0.25);
-  --double-loss-bg: hsla(0, 71%, 52%, 0.36);
+  --double-win-bg: hsla(111, 84%, 39%, 0.35);
+  --double-loss-bg: hsla(0, 90%, 36%, 0.36);
   --draw-bg: transparent;
 
   --wdl-font-size: 1.15rem;
@@ -20,12 +20,6 @@
 
   --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
-
-  /* width: fit-content !important; */
-}
-
-.crosstable-results-cell:empty {
-  background-color: rgba(255, 99, 71, 0.363);
 }
 
 .crosstable-crosstable:not(:empty) {
@@ -35,14 +29,30 @@
 
 .crosstable-result-wrapper.ccc-cell-grid {
   display: grid;
-  /* width: min-content; */
   justify-content: center;
 
-  /* TODO add clamp() / minmax() */
   grid-template-columns: repeat(
     var(--custom-column-amount, var(--column-amount)),
     minmax(1.6rem, 1fr)
   );
+}
+
+.crosstable-results-cell.crosstable-empty {
+  /* contain: content;
+
+  --ccc-pattern-bg-1: transparent;
+  --ccc-pattern-bg-2: rgba(92, 92, 92, 0.6);
+  --ccc-line-spacing: 16px;
+
+  background-color: var(--ccc-pattern-bg-1);
+  background-size: var(--ccc-line-spacing) var(--ccc-line-spacing);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--ccc-pattern-bg-2) 0,
+    var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
+    var(--ccc-pattern-bg-1) 0,
+    var(--ccc-pattern-bg-1) 50%
+  ); */
 }
 
 /* 
@@ -104,6 +114,10 @@ score, wdl etc...
   margin-inline-start: 0.5rem;
 }
 
+.ccc-winrate-percentage:empty {
+  display: none;
+}
+
 .ccc-error-margin {
   color: var(--ccc-err-margin-clr);
 }
@@ -113,7 +127,6 @@ score, wdl etc...
 }
 
 .ccc-elo-negative {
-  /* color: var(--globalColorLoss); */
   color: var(--ccc-loss-font-color);
 }
 
@@ -158,13 +171,14 @@ result table section
 }
 
 /* WDL */
-
 .ccc-wdl-container {
   display: inline-flex;
   border-radius: 2px;
 
   padding-inline: 0.5rem;
   margin-block: 0.2rem;
+
+  width: 100%;
 }
 
 .ccc-wdl-container > p {
@@ -177,7 +191,8 @@ result table section
   justify-content: center;
   align-items: center;
 
-  margin-inline: 0.6rem;
+  /* margin-inline-start: auto; */
+  /* margin-inline: 0.6rem; */
 }
 
 .ccc-wdl-container .ccc-elo-wrapper > p {
@@ -238,11 +253,11 @@ background and font color selectors
   background-color: var(--draw-bg);
 }
 
-.loss:last-child {
+.loss:last-child:nth-child(2n + 1) {
   --ccc-color: var(--globalColorLoss);
 }
 
-.win:last-child {
+.win:last-child:nth-child(2n + 1) {
   --ccc-color: var(--globalColorWin);
 }
 
@@ -260,7 +275,7 @@ media queries
 
 @media (min-width: 0px) {
   .crosstable-results-cell .crosstable-result-wrapper {
-    --column-amount: 8;
+    --column-amount: 10;
   }
   .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
     --column-amount: 8;
@@ -329,13 +344,15 @@ media queries
 ! test features 
 */
 
-/* twitch chat */
+/* * ------------------------
+* Peregrine suggested styles
+*/
 #righttable-content,
 .chat-chat {
   height: 100vh !important;
 }
 
-/* * ---------------
+/* * ------------------------
 * David suggested styles
 */
 
@@ -368,79 +385,126 @@ media queries
   top: 0;
   left: 0;
 
-  display: flex;
-  justify-content: center;
+  display: grid;
   align-items: center;
+  grid-template-columns: repeat(3, auto);
+  /* grid-template-columns: repeat(auto-fill, auto); */
 
-  /* same as button.modal-close */
-  height: 30px;
+  gap: 1.9rem;
 
-  /* TODO add @media */
+  height: var(--ccc-modal-pd-top);
+
   margin-inline-start: 3rem;
 
-  /* background-color: tomato; */
+  color: rgb(199, 199, 199);
 }
 
-.ccc-custom-option {
-  /*  */
+.ccc-label {
+  --ccc-input-width: 4rem;
+  --ccc-input-height: 1.8rem;
+
+  --ccc-circle-radius: 2.4rem;
+  --ccc-circle-offset: 0.4rem;
+
+  display: flex;
+  align-items: center;
+
+  cursor: pointer;
 }
 
-.ccc-pairs-per-row-input {
-  outline: transparent;
+.ccc-label :last-child {
+  margin-inline-start: calc(var(--ccc-circle-offset) * 2);
+}
+
+.ccc-input {
+  display: flex;
+  align-items: center;
+
+  width: var(--ccc-input-width);
+  height: var(--ccc-input-height);
+
+  position: relative;
+
+  border-radius: 10rem;
+
+  margin: 0;
+  padding: 0;
+
+  background-color: rgb(187, 187, 187);
+
+  appearance: none;
+
+  cursor: pointer;
+}
+
+.ccc-input::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--ccc-circle-offset) * -1);
+
+  height: var(--ccc-circle-radius);
+  width: var(--ccc-circle-radius);
+
+  border-radius: 50%;
+
+  background-color: rgb(104, 104, 104);
+  transition: transform 60ms ease;
+}
+
+.ccc-input:checked {
+  background-color: rgb(148, 193, 143);
+}
+
+.ccc-input:checked::before {
+  transform: translateX(
+    calc((var(--ccc-input-width) / 2) + var(--ccc-circle-offset))
+  );
+  background-color: rgb(84, 137, 71);
+}
+
+.ccc-row-input {
   border: none;
+  outline: 1px solid rgb(81, 81, 81);
 
-  background-color: transparent;
   background-color: hsla(0, 0%, 100%, 0.08);
-  color: rgb(180, 180, 180);
 
-  max-width: 14ch;
-  font-size: 1.3rem;
+  max-width: 3.5rem;
+
+  margin-inline-start: 0.5rem;
 
   padding-inline: 0.4rem;
   padding-block: 0.3rem;
-  outline: 1px solid rgb(81, 81, 81);
 
+  font-size: 1.3rem;
+  color: rgb(180, 180, 180);
   font-weight: 600;
 
   border-radius: 3px;
 }
-.ccc-pairs-per-row-input:focus-visible,
-.ccc-pairs-per-row-input:focus-within,
-.ccc-pairs-per-row-input:active {
-  outline: 2px solid rgb(97, 97, 97);
-}
 
-.ccc-pairs-per-row-input::placeholder {
-  color: rgb(112, 112, 112);
+.ccc-row-input:focus-visible {
+  outline: 2px solid rgb(173, 173, 173) !important;
 }
 
 /* * default CCC elements styling
 */
 
 .modal-vue-modal-content {
+  --ccc-modal-pd-top: 4rem;
+
   cursor: auto;
+  padding-block-start: var(--ccc-modal-pd-top) !important;
 }
 
+/* crosstable modal backdrop */
 .modal-vue-modal-container:hover,
 button.modal-close:hover {
   cursor: pointer;
 }
 
+/* crosstable button */
 button.modal-close > i {
   pointer-events: none;
-}
-
-.ccc-scroll-ready:not(.ccc-scrolling) {
-  cursor: grab !important;
-}
-
-.ccc-scroll-ready.ccc-scrolling {
-  cursor: grabbing !important;
-}
-
-.ccc-scrolling * {
-  user-select: none !important;
-  pointer-events: none !important;
 }
 
 #enginedetails-close {
@@ -448,7 +512,7 @@ button.modal-close > i {
   justify-content: center;
   align-items: center;
 
-  background-color: tomato !important;
+  /* background-color: tomato !important; */
   width: 3.1rem !important;
   height: 3.1rem !important;
   right: 0 !important;
