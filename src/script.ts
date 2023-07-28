@@ -30,17 +30,19 @@ const userCustomOptions: Options = {
   pairPerRow: undefined,
 };
 
-function loadUserSettings() {
+const prefix: Browsers = chrome?.storage ? chrome : browser;
+
+function loadUserSettings(): void {
   try {
-    chrome.storage.local.get("elo").then((result: Partial<Options>) => {
+    prefix.storage.local.get("elo").then((result: Partial<Options>) => {
       userCustomOptions.elo = result.elo ?? true;
     });
 
-    chrome.storage.local.get("ptnml").then((result: Partial<Options>) => {
+    prefix.storage.local.get("ptnml").then((result: Partial<Options>) => {
       userCustomOptions.ptnml = result.ptnml ?? true;
     });
 
-    chrome.storage.local.get("pairPerRow").then((result: Partial<Options>) => {
+    prefix.storage.local.get("pairPerRow").then((result: Partial<Options>) => {
       userCustomOptions.pairPerRow = result.pairPerRow ?? undefined;
       document.body.style.setProperty(
         "--custom-column-amount",
@@ -72,6 +74,10 @@ type WDL = [number, number, number];
 type PTNML = [number, number, number, number, number];
 type LabelForField = keyof Omit<Options, "pairPerRow">;
 
+type TChrome = typeof chrome;
+type TFirefox = typeof browser;
+type Browsers = TChrome | TFirefox;
+
 interface Options {
   ptnml: boolean;
   elo: boolean;
@@ -80,7 +86,7 @@ interface Options {
 
 // * ---------------
 // * extension logic
-function convertCrossTable() {
+function convertCrossTable(): void {
   try {
     enginesAmount = 0;
     const optionsWrapper = document.querySelector(".ccc-options-wrapper");
@@ -111,7 +117,7 @@ function convertCrossTable() {
 }
 
 // observes prematurely opened cross table
-function observeInitial() {
+function observeInitial(): void {
   try {
     const initObserver = new MutationObserver(() => {
       initObserver.disconnect();
@@ -132,7 +138,7 @@ function observeInitial() {
 }
 
 // observes cells with no h2h records
-function observeEmpty(cell: HTMLTableCellElement) {
+function observeEmpty(cell: HTMLTableCellElement): void {
   try {
     const observer = new MutationObserver(() => {
       observer.disconnect();
@@ -149,7 +155,7 @@ function observeEmpty(cell: HTMLTableCellElement) {
   }
 }
 
-function convertCell(cell: HTMLTableCellElement) {
+function convertCell(cell: HTMLTableCellElement): void {
   try {
     // header with result --> 205 - 195 [+10]
     const cellHeader: HTMLDivElement = cell.querySelector(
@@ -196,7 +202,7 @@ function convertCell(cell: HTMLTableCellElement) {
 }
 
 // updates stats with each new game result
-function liveUpdate() {
+function liveUpdate(): void {
   try {
     const activeCells = [...crossTableElements].filter((el) => {
       if (el.classList.contains("crosstable-empty")) {
@@ -267,7 +273,7 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL] {
   }
 }
 
-function getResultFromNode(node: HTMLDivElement) {
+function getResultFromNode(node: HTMLDivElement): ResultAsScore {
   if (node.classList.contains("win")) return 1;
   if (node.classList.contains("draw")) return 0;
   return -1;
@@ -276,7 +282,7 @@ function getResultFromNode(node: HTMLDivElement) {
 function getClassNameForPair(
   lastResult: ResultAsScore,
   currentResult: ResultAsScore
-) {
+): Pairs {
   const pairScore = lastResult + currentResult;
 
   if (pairScore === 2) return Pairs.DoubleWin;
@@ -286,14 +292,16 @@ function getClassNameForPair(
   return Pairs.DoubleLoss;
 }
 
-function createStatWrapperElement() {
+function createStatWrapperElement(): HTMLDivElement {
   const wrapper = document.createElement("div");
   wrapper.classList.add("ccc-stat-wrapper");
 
   return wrapper;
 }
 
-function createWLDEloElement(wdl: WDL) {
+function createWLDEloElement(
+  wdl: WDL
+): [HTMLDivElement, HTMLDivElement | undefined] {
   const numberOfGames = wdl.reduce((amount, prev) => amount + prev, 0);
 
   const wdlElement = document.createElement("div");
@@ -317,8 +325,8 @@ function createWLDEloElement(wdl: WDL) {
   const points = wdl[0] + wdl[1] / 2;
 
   const percent = formatter.format((points / numberOfGames) * 100);
-  const winrateElement = document.createElement("p");
-  winrateElement.classList.add("ccc-winrate-percentage");
+  // const winrateElement = document.createElement("p");
+  // winrateElement.classList.add("ccc-winrate-percentage");
   // winrateElement.textContent = ` ${percent}%`;
 
   let elo;
@@ -333,16 +341,13 @@ function createWLDEloElement(wdl: WDL) {
 
   wdlElement.append(w, d, l);
 
-  if (eloWrapper) {
-    wdlElement.append(eloWrapper);
-  }
-
-  wdlElement.append(winrateElement);
-
-  return wdlElement;
+  return [wdlElement, eloWrapper];
 }
 
-function createEloAndMarginElement(elo: string, margin: string) {
+function createEloAndMarginElement(
+  elo: string,
+  margin: string
+): HTMLDivElement {
   const wrapper = document.createElement("div");
   const eloElement = document.createElement("p");
   const marginElement = document.createElement("p");
@@ -369,7 +374,7 @@ function handleCustomStat(
   cellHeader: HTMLDivElement,
   wdlWrapper: HTMLDivElement,
   ptnmlWrapper: HTMLDivElement
-) {
+): void {
   const ptnmlElement = cellHeader.querySelector(".ccc-ptnml");
   const eloElement = cellHeader.querySelector(".ccc-wdl-container");
 
@@ -396,8 +401,8 @@ function handleCustomStat(
   }
 }
 
-// handles creation of customization inputs
-function createOptionInputs() {
+// handles creation of switch inputs for custom stats
+function createOptionInputs(): void {
   const crossTableModal: HTMLDivElement = document.querySelector(
     ".modal-vue-modal-content"
   );
@@ -422,7 +427,7 @@ function createOptionInputs() {
   eloLabel.addEventListener("change", () => {
     userCustomOptions.elo = !userCustomOptions.elo;
 
-    chrome.storage.local
+    prefix.storage.local
       .set({ elo: userCustomOptions.elo })
       .then(convertCrossTable);
   });
@@ -430,15 +435,16 @@ function createOptionInputs() {
   ptnmlLabel.addEventListener("change", () => {
     userCustomOptions.ptnml = !userCustomOptions.ptnml;
 
-    chrome.storage.local
+    prefix.storage.local
       .set({ ptnml: userCustomOptions.ptnml })
       .then(convertCrossTable);
   });
 
+  console.log("PREFIX IN ACTION");
   crossTableModal.append(wrapper);
 }
 
-function createPTNMLStatHeader(ptnml: PTNML) {
+function createPTNMLStatHeader(ptnml: PTNML): HTMLDivElement {
   const ptnmlWrapper = createStatWrapperElement();
   ptnmlWrapper.classList.add("ccc-ptnml-wrapper");
 
@@ -456,17 +462,20 @@ function createPTNMLStatHeader(ptnml: PTNML) {
   return ptnmlWrapper;
 }
 
-function createWDLStatHeader(wdlArray: WDL) {
+function createWDLStatHeader(wdlArray: WDL): HTMLDivElement {
   const wdlWrapper = createStatWrapperElement();
   wdlWrapper.classList.add("ccc-wdl-wrapper");
 
-  const wdlElement = createWLDEloElement(wdlArray);
+  const [wdlElement, eloElement] = createWLDEloElement(wdlArray);
 
   wdlWrapper.append(wdlElement);
+  if (eloElement) {
+    wdlWrapper.append(eloElement);
+  }
   return wdlWrapper;
 }
 
-function createRowsForm() {
+function createRowsForm(): HTMLFormElement {
   const formElement = document.createElement("form");
   const rowAmountInput = document.createElement("input");
 
@@ -494,7 +503,10 @@ function createRowsForm() {
   return formElement;
 }
 
-function createSwitchLabel(text: string, field: LabelForField) {
+function createSwitchLabel(
+  text: string,
+  field: LabelForField
+): HTMLLabelElement {
   const label = document.createElement("label");
   const switchInput = document.createElement("input");
 
@@ -511,7 +523,7 @@ function createSwitchLabel(text: string, field: LabelForField) {
   return label;
 }
 
-function addClassNamesCrossTable(crossTableCell: HTMLDivElement) {
+function addClassNamesCrossTable(crossTableCell: HTMLDivElement): void {
   crossTableCell.classList.add("ccc-cell-grid");
   if (enginesAmount === 2) {
     crossTableCell.classList.add("one-v-one");
@@ -520,7 +532,7 @@ function addClassNamesCrossTable(crossTableCell: HTMLDivElement) {
   }
 }
 
-function calculateScores(crossTableCell: HTMLDivElement) {
+function calculateScores(crossTableCell: HTMLDivElement): ResultAsScore[] {
   const gameResultsDivs: NodeListOf<HTMLDivElement> =
     crossTableCell.querySelectorAll(".crosstable-result");
 
@@ -562,13 +574,13 @@ function calculateScores(crossTableCell: HTMLDivElement) {
 window.addEventListener("keydown", keydownHandler);
 
 // close modals on ESC
-function keydownHandler(e: KeyboardEvent) {
+function keydownHandler(e: KeyboardEvent): void {
   if (e.code !== "Escape") return;
 
   handleCloseModalOnKeydown();
 }
 
-function handleCloseModalOnKeydown() {
+function handleCloseModalOnKeydown(): void {
   const crossTableModal = document.querySelector(".modal-vue-modal-content");
   const tournamentsList = document.querySelector(".bottomtable-resultspopup");
   const engineDetailsPanel = document.querySelector(".enginedetails-panel");
@@ -596,7 +608,7 @@ function handleCloseModalOnKeydown() {
   }
 }
 
-function standingsBtnClickHandler() {
+function standingsBtnClickHandler(): void {
   try {
     crossTableBtn = document
       .getElementById("standings-standings")
@@ -608,7 +620,7 @@ function standingsBtnClickHandler() {
   }
 }
 
-function crossTableBtnClickHandler() {
+function crossTableBtnClickHandler(): void {
   try {
     const crossTableModal = document.querySelector(".modal-vue-modal-content");
 
@@ -626,7 +638,7 @@ function crossTableBtnClickHandler() {
 // * elo calculation
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
-function calculateEloFromPercent(percent: number) {
+function calculateEloFromPercent(percent: number): string {
   var percentage = percent / 100;
   var eloDiff = (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
 
@@ -640,11 +652,11 @@ function calculateEloFromPercent(percent: number) {
   return `${Sign}${eloDiffAsString}`;
 }
 
-function calculateEloDifference(percentage: number) {
+function calculateEloDifference(percentage: number): number {
   return (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
 }
 
-function CalculateInverseErrorFunction(x: number) {
+function CalculateInverseErrorFunction(x: number): number {
   var pi = Math.PI;
   var a = (8 * (pi - 3)) / (3 * pi * (4 - pi));
   var y = Math.log(1 - x * x);
@@ -657,11 +669,15 @@ function CalculateInverseErrorFunction(x: number) {
   return ret;
 }
 
-function phiInv(p: number) {
+function phiInv(p: number): number {
   return Math.sqrt(2) * CalculateInverseErrorFunction(2 * p - 1);
 }
 
-function calculateErrorMargin(wins: number, draws: number, losses: number) {
+function calculateErrorMargin(
+  wins: number,
+  draws: number,
+  losses: number
+): string {
   var total = wins + draws + losses;
   var winP = wins / total;
   var drawP = draws / total;

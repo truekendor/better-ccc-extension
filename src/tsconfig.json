@@ -84,7 +84,8 @@
     /* Type Checking */
     "strict": true,                                      /* Enable all strict type-checking options. */
     "types": [
-      "chrome"
+      "chrome",
+      "firefox-webext-browser"
   ],
     // "noImplicitAny": true,                            /* Enable error reporting for expressions and declarations with an implied 'any' type. */
     "strictNullChecks": false,                         /* When type checking, take into account 'null' and 'undefined'. */

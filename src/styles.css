@@ -171,31 +171,26 @@ result table section
 }
 
 /* WDL */
+.ccc-stat-wrapper.ccc-wdl-wrapper {
+  font-size: var(--wdl-font-size);
+  line-height: var(--wdl-line-height);
+}
+
 .ccc-wdl-container {
   display: inline-flex;
   border-radius: 2px;
 
   padding-inline: 0.5rem;
   margin-block: 0.2rem;
-
-  width: 100%;
-}
-
-.ccc-wdl-container > p {
-  font-size: var(--wdl-font-size);
-  line-height: var(--wdl-line-height);
 }
 
 .ccc-elo-wrapper {
   display: flex;
-  justify-content: center;
-  align-items: center;
-
-  /* margin-inline-start: auto; */
-  /* margin-inline: 0.6rem; */
+  margin-inline: 0.6rem;
 }
 
-.ccc-wdl-container .ccc-elo-wrapper > p {
+.ccc-wdl-container > p,
+.ccc-elo-wrapper > p {
   font-size: var(--wdl-font-size);
   line-height: var(--wdl-line-height);
 }
