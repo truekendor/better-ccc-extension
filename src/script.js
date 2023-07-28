@@ -30,17 +30,18 @@ var userCustomOptions = {
     elo: true,
     pairPerRow: undefined,
 };
+var prefix = (chrome === null || chrome === void 0 ? void 0 : chrome.storage) ? chrome : browser;
 function loadUserSettings() {
     try {
-        chrome.storage.local.get("elo").then(function (result) {
+        prefix.storage.local.get("elo").then(function (result) {
             var _a;
             userCustomOptions.elo = (_a = result.elo) !== null && _a !== void 0 ? _a : true;
         });
-        chrome.storage.local.get("ptnml").then(function (result) {
+        prefix.storage.local.get("ptnml").then(function (result) {
             var _a;
             userCustomOptions.ptnml = (_a = result.ptnml) !== null && _a !== void 0 ? _a : true;
         });
-        chrome.storage.local.get("pairPerRow").then(function (result) {
+        prefix.storage.local.get("pairPerRow").then(function (result) {
             var _a;
             userCustomOptions.pairPerRow = (_a = result.pairPerRow) !== null && _a !== void 0 ? _a : undefined;
             document.body.style.setProperty("--custom-column-amount", "".concat(userCustomOptions.pairPerRow ? userCustomOptions.pairPerRow * 2 : ""));
@@ -129,8 +130,8 @@ function convertCell(cell) {
     try {
         // header with result --> 205 - 195 [+10]
         var cellHeader = cell.querySelector(".crosstable-head-to-head");
-        // TODO handle null observer
         if (!cellHeader) {
+            // observing empty cell for live changes
             observeEmpty(cell);
             return;
         }
@@ -149,10 +150,6 @@ function convertCell(cell) {
             observer_2.disconnect();
             liveUpdate();
         });
-        // TODO change it to observe header scores
-        // TODO NO, to observe the whole cell
-        // TODO cause if there is no h2h games,
-        // TODO there is no cells and headers to observe
         observer_2.observe(crossTableCell, {
             childList: true,
         });
@@ -274,8 +271,8 @@ function createWLDEloElement(wdl) {
     l.classList.add("ccc-margin-right");
     var points = wdl[0] + wdl[1] / 2;
     var percent = formatter.format((points / numberOfGames) * 100);
-    var winrateElement = document.createElement("p");
-    winrateElement.classList.add("ccc-winrate-percentage");
+    // const winrateElement = document.createElement("p");
+    // winrateElement.classList.add("ccc-winrate-percentage");
     // winrateElement.textContent = ` ${percent}%`;
     var elo;
     var margin;
@@ -286,11 +283,7 @@ function createWLDEloElement(wdl) {
         eloWrapper = createEloAndMarginElement(elo, margin);
     }
     wdlElement.append(w, d, l);
-    if (eloWrapper) {
-        wdlElement.append(eloWrapper);
-    }
-    wdlElement.append(winrateElement);
-    return wdlElement;
+    return [wdlElement, eloWrapper];
 }
 function createEloAndMarginElement(elo, margin) {
     var wrapper = document.createElement("div");
@@ -331,7 +324,7 @@ function handleCustomStat(cellHeader, wdlWrapper, ptnmlWrapper) {
         });
     }
 }
-// handles creation of customization inputs
+// handles creation of switch inputs for custom stats
 function createOptionInputs() {
     var crossTableModal = document.querySelector(".modal-vue-modal-content");
     if (!crossTableModal) {
@@ -349,16 +342,17 @@ function createOptionInputs() {
     wrapper.append(formElement, eloLabel, ptnmlLabel);
     eloLabel.addEventListener("change", function () {
         userCustomOptions.elo = !userCustomOptions.elo;
-        chrome.storage.local
+        prefix.storage.local
             .set({ elo: userCustomOptions.elo })
             .then(convertCrossTable);
     });
     ptnmlLabel.addEventListener("change", function () {
         userCustomOptions.ptnml = !userCustomOptions.ptnml;
-        chrome.storage.local
+        prefix.storage.local
             .set({ ptnml: userCustomOptions.ptnml })
             .then(convertCrossTable);
     });
+    console.log("PREFIX IN ACTION");
     crossTableModal.append(wrapper);
 }
 function createPTNMLStatHeader(ptnml) {
@@ -376,8 +370,11 @@ function createPTNMLStatHeader(ptnml) {
 function createWDLStatHeader(wdlArray) {
     var wdlWrapper = createStatWrapperElement();
     wdlWrapper.classList.add("ccc-wdl-wrapper");
-    var wdlElement = createWLDEloElement(wdlArray);
+    var _a = createWLDEloElement(wdlArray), wdlElement = _a[0], eloElement = _a[1];
     wdlWrapper.append(wdlElement);
+    if (eloElement) {
+        wdlWrapper.append(eloElement);
+    }
     return wdlWrapper;
 }
 function createRowsForm() {
@@ -489,7 +486,8 @@ function standingsBtnClickHandler() {
 function crossTableBtnClickHandler() {
     try {
         var crossTableModal_1 = document.querySelector(".modal-vue-modal-content");
-        // if (!crossTableModal) return;
+        if (!crossTableModal_1)
+            return;
         crossTableElements = crossTableModal_1.querySelectorAll(".crosstable-results-cell");
         convertCrossTable();
     }
