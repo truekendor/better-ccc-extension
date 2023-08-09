@@ -1,4 +1,4 @@
-.crosstable-results-cell {
+.crosstable-results-cell:not(:empty) {
   /* for fonts in won/lost game pairs */
   --ccc-loss-font-color: hsl(0, 100%, 72%);
   --ccc-win-font-color: hsl(121, 51%, 62%);
@@ -7,26 +7,81 @@
   --ccc-double-win-font-color: hsl(102, 61%, 50%);
   --ccc-double-loss-font-color: hsl(0, 100%, 63%);
 
-  --border-color-ccc: rgb(115, 115, 115);
+  --border-color-ccc: hsl(0, 0%, 45%);
 
-  --won-bg: hsla(81, 56%, 63%, 0.17);
+  --won-bg: hsla(81, 63%, 62%, 0.17);
   --loss-bg: hsla(9, 86%, 61%, 0.17);
-  --double-win-bg: hsla(111, 92%, 59%, 0.25);
-  --double-loss-bg: hsla(0, 71%, 52%, 0.36);
+  --double-win-bg: hsla(111, 84%, 39%, 0.35);
+  --double-loss-bg: hsla(0, 90%, 36%, 0.36);
   --draw-bg: transparent;
 
   --wdl-font-size: 1.15rem;
   --wdl-line-height: 1.2rem;
 
-  --ccc-light-gray: rgb(185, 185, 185);
+  --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
-  /* --ccc-err-margin-clr: rgb(154, 154, 154); */
+}
+
+.crosstable-crosstable:not(:empty) {
+  max-width: unset !important;
+  width: min-content !important;
+}
+
+.crosstable-results-cell {
+  position: relative;
+
+  border: 1px solid hsla(0, 0%, 100%, 0.14) !important;
+  border-top: transparent;
 }
 
 .crosstable-result-wrapper.ccc-cell-grid {
   display: grid;
+  justify-content: center;
+  min-width: 100% !important;
 
-  grid-template-columns: repeat(var(--column-amount), 1fr);
+  grid-template-columns: repeat(
+    var(--custom-column-amount, var(--column-amount)),
+    minmax(1.6rem, 1fr)
+  );
+}
+
+.crosstable-results-cell.crosstable-empty {
+  /* position: relative;
+  contain: strict;
+
+  --ccc-pattern-bg-1: transparent;
+  --ccc-pattern-bg-2: var(--ccc-pattern-bg-3, rgba(92, 92, 92, 0.6));
+  --ccc-line-spacing: 16px;
+
+  background-color: var(--ccc-pattern-bg-1);
+  background-size: var(--ccc-line-spacing) var(--ccc-line-spacing);
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--ccc-pattern-bg-2) 0,
+    var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
+    var(--ccc-pattern-bg-1) 0,
+    var(--ccc-pattern-bg-1) 50%
+  ); */
+}
+
+.crosstable-results-cell.crosstable-empty:nth-of-type(2n) {
+  /* --ccc-pattern-bg-2: var(--ccc-pattern-bg-3, rgba(92, 92, 92, 0.7)); */
+}
+
+.crosstable-results-cell.crosstable-empty::before {
+  /* content: "";
+  position: absolute;
+  inset: 0;
+
+  background-color: var(--ccc-pattern-bg-1);
+  background-size: var(--ccc-line-spacing) var(--ccc-line-spacing);
+  background-image: repeating-linear-gradient(
+    135deg,
+    var(--ccc-pattern-bg-2) 0,
+    var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
+    var(--ccc-pattern-bg-1) 0,
+    var(--ccc-pattern-bg-1) 50%
+  ); */
 }
 
 /* 
@@ -44,9 +99,11 @@ score, wdl etc...
   flex-wrap: wrap;
 
   margin-block-end: 0.6rem;
+
+  position: relative;
 }
 
-/* make every non default element wrap */
+/* makes every non default element to be on a new line  */
 #ccc-cell-header :nth-child(1n + 5) {
   width: 100%;
 }
@@ -55,6 +112,8 @@ score, wdl etc...
   display: flex;
   justify-content: center;
   align-items: center;
+
+  flex-wrap: wrap;
 }
 
 .ccc-stat-wrapper:last-of-type {
@@ -64,8 +123,6 @@ score, wdl etc...
 .ccc-ptnml {
   height: 100%;
   padding-inline: 0.4rem;
-
-  /* background-color: rgb(32, 32, 30); */
 
   border-radius: 3px;
 
@@ -88,6 +145,10 @@ score, wdl etc...
   margin-inline-start: 0.5rem;
 }
 
+.ccc-winrate-percentage:empty {
+  display: none;
+}
+
 .ccc-error-margin {
   color: var(--ccc-err-margin-clr);
 }
@@ -97,7 +158,7 @@ score, wdl etc...
 }
 
 .ccc-elo-negative {
-  color: var(--globalColorLoss);
+  color: var(--ccc-loss-font-color);
 }
 
 /* 
@@ -114,6 +175,7 @@ result table section
   grid-column: span 1;
 
   width: 100%;
+  max-width: 100%;
 
   position: relative;
 }
@@ -140,39 +202,31 @@ result table section
 }
 
 /* WDL */
+.ccc-stat-wrapper.ccc-wdl-wrapper {
+  row-gap: 0.4rem;
+  margin-block: 0.2rem !important;
+}
 
 .ccc-wdl-container {
   display: inline-flex;
   border-radius: 2px;
 
   padding-inline: 0.5rem;
-  margin-block: 0.2rem;
-}
-
-.ccc-wdl-container > p {
-  font-size: var(--wdl-font-size);
-  line-height: var(--wdl-line-height);
 }
 
 .ccc-elo-wrapper {
   display: flex;
-  justify-content: center;
-  align-items: center;
-
-  margin-inline: 0.6rem;
+  margin-inline-start: 0.4rem;
 }
 
-.ccc-wdl-container .ccc-elo-wrapper > p {
+.ccc-wdl-container > p,
+.ccc-elo-wrapper > p {
   font-size: var(--wdl-font-size);
   line-height: var(--wdl-line-height);
 }
 
 .ccc-wdl-container > :nth-child(2) {
   margin-inline: 0.4rem;
-}
-
-.ccc-wdl-container > :last-child {
-  margin-inline-start: 0.6rem;
 }
 
 /* 
@@ -220,11 +274,11 @@ background and font color selectors
   background-color: var(--draw-bg);
 }
 
-.loss:last-child {
+.loss:last-child:nth-child(2n + 1) {
   --ccc-color: var(--globalColorLoss);
 }
 
-.win:last-child {
+.win:last-child:nth-child(2n + 1) {
   --ccc-color: var(--globalColorWin);
 }
 
@@ -242,7 +296,7 @@ media queries
 
 @media (min-width: 0px) {
   .crosstable-results-cell .crosstable-result-wrapper {
-    --column-amount: 8;
+    --column-amount: 10;
   }
   .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
     --column-amount: 8;
@@ -304,4 +358,261 @@ media queries
   .crosstable-results-cell .crosstable-result-wrapper.one-v-one {
     --column-amount: 28;
   }
+}
+
+/* 
+! __________________________
+! test features 
+*/
+
+/* * ------------------------
+* Peregrine suggested styles
+*/
+#righttable-content,
+.chat-chat {
+  height: 100vh !important;
+}
+
+/* * ------------------------
+* David suggested styles
+*/
+
+/* * center the game number in Schedule */
+.schedule-container > div :first-child {
+  justify-content: center;
+  text-align: center;
+}
+
+/* moves in movelist */
+.movetable-movetable table tr td {
+  min-width: unset !important;
+  padding-left: 0 !important;
+}
+
+.movetable-highlighted {
+  color: #52b0dc;
+}
+
+/* fck you, specificity */
+/* current move in movelist */
+.movetable-highlighted:is(td.movetable-highlighted.movetable-hoverable):hover {
+  color: #80c5e5;
+}
+
+/* * wrapper for stat customization inputs
+*/
+.ccc-options-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  display: grid;
+  align-items: center;
+  grid-template-columns: repeat(3, auto);
+  /* grid-template-columns: repeat(auto-fill, auto); */
+
+  gap: 1.9rem;
+
+  height: var(--ccc-modal-pd-top);
+
+  margin-inline-start: 3rem;
+
+  color: rgb(199, 199, 199);
+}
+
+.ccc-label {
+  --ccc-input-width: 4rem;
+  --ccc-input-height: 1.8rem;
+
+  --ccc-circle-radius: 2.4rem;
+  --ccc-circle-offset: 0.4rem;
+
+  display: flex;
+  align-items: center;
+
+  cursor: pointer;
+}
+
+.ccc-label :last-child {
+  margin-inline-start: calc(var(--ccc-circle-offset) * 2);
+}
+
+.ccc-input {
+  display: flex;
+  align-items: center;
+
+  width: var(--ccc-input-width);
+  height: var(--ccc-input-height);
+
+  position: relative;
+
+  border-radius: 10rem;
+
+  margin: 0;
+  padding: 0;
+
+  background-color: rgb(187, 187, 187);
+
+  appearance: none;
+
+  cursor: pointer;
+}
+
+.ccc-input::before {
+  content: "";
+  position: absolute;
+  left: calc(var(--ccc-circle-offset) * -1);
+
+  height: var(--ccc-circle-radius);
+  width: var(--ccc-circle-radius);
+
+  border-radius: 50%;
+
+  background-color: rgb(104, 104, 104);
+  transition: transform 60ms ease;
+}
+
+.ccc-input:checked {
+  background-color: rgb(148, 193, 143);
+}
+
+.ccc-input:checked::before {
+  transform: translateX(
+    calc((var(--ccc-input-width) / 2) + var(--ccc-circle-offset))
+  );
+  background-color: rgb(84, 137, 71);
+}
+
+.ccc-row-input {
+  border: none;
+  outline: 1px solid rgb(81, 81, 81);
+
+  background-color: hsla(0, 0%, 100%, 0.08);
+
+  max-width: 3.5rem;
+
+  margin-inline-start: 0.5rem;
+
+  padding-inline: 0.4rem;
+  padding-block: 0.3rem;
+
+  font-size: 1.3rem;
+  color: rgb(180, 180, 180);
+  font-weight: 600;
+
+  border-radius: 3px;
+}
+
+.ccc-row-input:focus-visible {
+  outline: 2px solid rgb(173, 173, 173) !important;
+}
+
+/* * default CCC elements styling
+*/
+
+.modal-vue-modal-content {
+  --ccc-modal-pd-top: 4rem;
+
+  cursor: auto;
+  padding-block-start: var(--ccc-modal-pd-top) !important;
+}
+
+/* crosstable modal backdrop */
+.modal-vue-modal-container:hover,
+button.modal-close:hover {
+  cursor: pointer;
+}
+
+/* crosstable button */
+button.modal-close > i {
+  pointer-events: none;
+}
+
+#enginedetails-close {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  /* background-color: tomato !important; */
+  width: 3.1rem !important;
+  height: 3.1rem !important;
+  right: 0 !important;
+
+  font-size: 2.2rem !important;
+}
+
+/* !
+!   MORE INFO STYLES DEV
+*/
+
+.ccc-info-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin: 0 !important;
+  width: 20px;
+  height: 20px;
+
+  position: absolute;
+
+  top: 0;
+  right: 0;
+
+  cursor: pointer;
+}
+
+.ccc-info-button > svg {
+  fill: rgb(107, 107, 107);
+  width: 15px;
+  height: 15px;
+}
+
+.ccc-info-backdrop {
+  position: fixed;
+  inset: 0;
+
+  background-color: rgba(0, 0, 0, 0.4);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+  z-index: 100;
+}
+
+.ccc-info-panel {
+  position: fixed;
+  width: 270px;
+  height: 400px;
+
+  inset: 0;
+  margin: auto;
+
+  background-color: hsl(32, 13%, 20%);
+  color: rgb(185, 185, 185);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex-direction: column;
+
+  font-size: 20px;
+
+  cursor: auto;
+
+  border-radius: 0.5rem;
+}
+
+tr.font-faded-white > td:nth-child(2) > div {
+  width: max-content;
+}
+
+tr.font-faded-white > :nth-child(2) {
+  /* position: sticky;
+  position: -webkit-sticky;
+
+  left: 0; */
 }
