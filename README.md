@@ -1,9 +1,13 @@
 # Chrome/Firefox extension for [CCC](https://www.chess.com/computer-chess-championship#)
 
-![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/preview.webp)
+![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview.webp)
 
 ## Installation
 
+  Download/clone this repo
+
+  ![Download helper](https://github.com/truekendor/better-ccc-extension/blob/main/img/download.webp)
+ 
 - Google Chrome
   - Open `chrome://extensions/` page
   - Enable developer mode
@@ -12,11 +16,11 @@
 - Firefox
   - Open `about:addons` page
   - Click on this button
-  - ![](https://github.com/truekendor/better-ccc-extension/blob/main/firefox_where.webp)
+  - ![](https://github.com/truekendor/better-ccc-extension/blob/main/img/firefox_where.webp)
   - Click `Install add-on From File...`
   - Select `.xpi` file from `firefox` folder
   - Grant permissions if needed
-  - ![Grant permissions](https://github.com/truekendor/better-ccc-extension/blob/main/grant%20permissions.webp)
+  - ![Grant permissions](https://github.com/truekendor/better-ccc-extension/blob/main/img/grant%20permissions.webp)
 
 # Acknowledgements TBA
 
