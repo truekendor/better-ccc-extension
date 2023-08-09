@@ -8,12 +8,12 @@
 
   ![Download helper](https://github.com/truekendor/better-ccc-extension/blob/main/img/download.webp)
  
-- Google Chrome
+### Google Chrome
   - Open `chrome://extensions/` page
   - Enable developer mode
   - Click `Load unpacked` button
   - Select the `chrome` folder from this repo
-- Firefox
+### Firefox
   - Open `about:addons` page
   - Click on this button
   - ![](https://github.com/truekendor/better-ccc-extension/blob/main/img/firefox_where.webp)
