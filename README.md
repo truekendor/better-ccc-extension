@@ -15,9 +15,11 @@
   - ![](https://github.com/truekendor/better-ccc-extension/blob/main/firefox_where.webp)
   - Click `Install add-on From File...`
   - Select `.xpi` file from `firefox` folder
+  - Grant permissions if needed
+  - ![Grant permissions](https://github.com/truekendor/better-ccc-extension/blob/main/grant%20permissions.webp)
 
 # Acknowledgements TBA
 
 Formulas for calculating elo and error bars were taken from [here](https://3dkingdoms.com/chess/elo.htm)
 
-TBA Design stolen from David (I'll fill it out later)
+Idea and design taken from David [David](https://github.com/dav1312)
