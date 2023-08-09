@@ -4,9 +4,9 @@
 
 ## Installation
 
-  Download/clone this repo
+  - Download/clone this repo
 
-  ![Download helper](https://github.com/truekendor/better-ccc-extension/blob/main/img/download.webp)
+  - ![Download helper](https://github.com/truekendor/better-ccc-extension/blob/main/img/download.webp)
  
 ### Google Chrome
   - Open `chrome://extensions/` page
