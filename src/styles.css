@@ -1,3 +1,8 @@
+:root {
+  --ccc-blue-light-raw: 199, 66%, 59%;
+  --ccc-blue-light-hsl: hsl(var(--ccc-blue-light-raw));
+}
+
 .crosstable-results-cell:not(:empty) {
   /* for fonts in won/lost game pairs */
   --ccc-loss-font-color: hsl(0, 100%, 72%);
@@ -82,6 +87,37 @@
     var(--ccc-pattern-bg-1) 0,
     var(--ccc-pattern-bg-1) 50%
   ); */
+}
+
+.schedule-container {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+div.schedule-container > div:nth-child(4n + 1),
+div.schedule-container > div:nth-child(4n + 2) {
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* current game in progress */
+.schedule-container > div.schedule-inProgress {
+  outline: 1px solid hsla(var(--ccc-blue-light-raw), 0.4);
+
+  background-color: unset;
+}
+
+.schedule-container .schedule-inProgress * {
+  color: var(--ccc-blue-light-hsl);
+}
+
+.tooltip.tip.vue-tooltip > .inner:last-child {
+  white-space: pre-line !important;
+  background-color: rgba(0, 0, 0, 0.95) !important;
+}
+
+#resultstable-resultstable div:last-child > table > tr:nth-child(4n + 1),
+#resultstable-resultstable div:last-child > table > tr:nth-child(4n + 2) {
+  background-color: rgba(0, 0, 0, 0.3);
 }
 
 /* 
@@ -390,7 +426,7 @@ media queries
 }
 
 .movetable-highlighted {
-  color: #52b0dc;
+  color: var(--ccc-blue-light-hsl);
 }
 
 /* fck you, specificity */
@@ -409,7 +445,6 @@ media queries
   display: grid;
   align-items: center;
   grid-template-columns: repeat(3, auto);
-  /* grid-template-columns: repeat(auto-fill, auto); */
 
   gap: 1.9rem;
 
