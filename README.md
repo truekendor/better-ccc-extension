@@ -22,4 +22,4 @@
 
 Formulas for calculating elo and error bars were taken from [here](https://3dkingdoms.com/chess/elo.htm)
 
-Idea and design taken from David [David](https://github.com/dav1312)
+Idea and design taken from [David](https://github.com/dav1312)
