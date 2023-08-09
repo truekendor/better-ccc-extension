@@ -28,29 +28,47 @@ const userCustomOptions: Options = {
   ptnml: true,
   elo: true,
   pairPerRow: undefined,
+  drawBgOnEmptyCells: false,
 };
 
-const prefix: Browsers = chrome?.storage ? chrome : browser;
+const userCustomOptionsDefault: Options = {
+  ptnml: true,
+  elo: true,
+  pairPerRow: undefined,
+  drawBgOnEmptyCells: false,
+} as const;
+
+const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
 function loadUserSettings(): void {
   try {
-    prefix.storage.local.get("elo").then((result: Partial<Options>) => {
-      userCustomOptions.elo = result.elo ?? true;
-    });
+    browserPrefix.storage.local
+      .get("elo" as keyof Options)
+      .then(({ elo }: Partial<Options>) => {
+        userCustomOptions.elo = elo ?? true;
+      });
 
-    prefix.storage.local.get("ptnml").then((result: Partial<Options>) => {
-      userCustomOptions.ptnml = result.ptnml ?? true;
-    });
+    browserPrefix.storage.local
+      .get("ptnml" as keyof Options)
+      .then((result: Partial<Options>) => {
+        userCustomOptions.ptnml = result.ptnml ?? true;
+      });
 
-    prefix.storage.local.get("pairPerRow").then((result: Partial<Options>) => {
-      userCustomOptions.pairPerRow = result.pairPerRow ?? undefined;
-      document.body.style.setProperty(
-        "--custom-column-amount",
-        `${
-          userCustomOptions.pairPerRow ? userCustomOptions.pairPerRow * 2 : ""
-        }`
-      );
-    });
+    browserPrefix.storage.local
+      .get("pairPerRow" as keyof Options)
+      .then((result: Partial<Options>) => {
+        userCustomOptions.pairPerRow = result.pairPerRow ?? undefined;
+        applyStylesToGrid();
+      });
+
+    browserPrefix.storage.local
+      .get("drawBgOnEmptyCells" as keyof Options)
+      .then((result: Partial<Options>) => {
+        userCustomOptions.drawBgOnEmptyCells =
+          result.drawBgOnEmptyCells ?? false;
+
+        applyStylesToEmptyCells();
+      });
   } catch (e: any) {
     console.log(e.message);
   }
@@ -82,6 +100,15 @@ interface Options {
   ptnml: boolean;
   elo: boolean;
   pairPerRow: number;
+  drawBgOnEmptyCells: boolean;
+}
+
+interface AdditionalStats {
+  longestLossless: number;
+  longestWinStreak: number;
+  longestWinless: number;
+  pairsRatio: number;
+  performancePercent: number;
 }
 
 // * ---------------
@@ -106,8 +133,26 @@ function convertCrossTable(): void {
     if (activeCells.length === 0) {
       // if we're here, then cross table
       // was opened before game data was received
-      // and this function will handle live cross table update
+      // and this function will handle live update for cross table
       observeInitial();
+    }
+
+    const engines = document.querySelectorAll(".crosstable-name");
+    if (engines && enginesAmount >= 6) {
+      const enginesNames: string[] = [];
+      engines.forEach((engine) => {
+        enginesNames.push(engine.textContent.replace("\n", "").trim());
+      });
+
+      const crossTable = document.querySelector(".crosstable-crosstable");
+      const standingsRow = crossTable.querySelector("tr");
+      const enginesRows = standingsRow.querySelectorAll(
+        ".font-extra-faded-white"
+      );
+
+      enginesRows.forEach((row, index) => {
+        row.textContent = `${index + 1} ${enginesNames[index]}`;
+      });
     }
 
     activeCells.forEach(convertCell);
@@ -157,13 +202,12 @@ function observeEmpty(cell: HTMLTableCellElement): void {
 
 function convertCell(cell: HTMLTableCellElement): void {
   try {
-    // header with result --> 205 - 195 [+10]
+    // header with result -->       205 - 195 [+10]
     const cellHeader: HTMLDivElement = cell.querySelector(
       ".crosstable-head-to-head"
     );
 
     if (!cellHeader) {
-      // observing empty cell for live changes
       observeEmpty(cell);
       return;
     }
@@ -178,13 +222,16 @@ function convertCell(cell: HTMLTableCellElement): void {
     addClassNamesCrossTable(crossTableCell);
     const scoresArray = calculateScores(crossTableCell);
 
-    const [ptnml, wdlArray] = getStats(scoresArray);
+    const [ptnml, wdlArray, stats] = getStats(scoresArray);
 
     // * create stats
     const ptnmlWrapper = createPTNMLStatHeader(ptnml);
     const wdlWrapper = createWDLStatHeader(wdlArray);
 
-    // * add stats
+    // const additionalInfoWrapper = createAdvancedStats(stats);
+    // cell.append(additionalInfoWrapper);
+
+    // * adds/removes user chosen stats to the header
     handleCustomStat(cellHeader, wdlWrapper, ptnmlWrapper);
 
     const observer = new MutationObserver(() => {
@@ -235,7 +282,7 @@ function liveUpdate(): void {
 
 // * -------------
 // * utils
-function getStats(arr: ResultAsScore[]): [PTNML, WDL] {
+function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
   try {
     const wdlArray: WDL = [0, 0, 0]; // W D L in that order
     arr.forEach((score) => {
@@ -249,6 +296,26 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL] {
     if (arr.length % 2 === 1) arr.pop();
     const ptnml: PTNML = [0, 0, 0, 0, 0]; // ptnml(0-2)
 
+    const stats: AdditionalStats = {
+      longestLossless: 0,
+      longestWinStreak: 0,
+      pairsRatio: 0,
+      performancePercent: 0,
+      longestWinless: 0,
+    };
+
+    // lossless
+    let longesLosslessRecord = 0;
+    let longesLosslessCurrent = 0;
+
+    // win streak
+    let longestWinRecord = 0;
+    let longestWinCurrent = 0;
+
+    // winless
+    let longestWinlessRecord = 0;
+    let longestWinlessCurrent = 0;
+
     for (let i = 0; i < arr.length; i += 2) {
       const first = arr[i];
       const second = arr[i + 1];
@@ -256,18 +323,105 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL] {
 
       if (res === 2) {
         ptnml[4] += 1;
+
+        longesLosslessCurrent += 1;
+        longestWinCurrent += 1;
+
+        longestWinRecord = Math.max(longestWinCurrent, longestWinRecord);
+        longesLosslessRecord = Math.max(
+          longesLosslessCurrent,
+          longesLosslessRecord
+        );
+        longestWinlessRecord = Math.max(
+          longestWinlessCurrent,
+          longestWinlessRecord
+        );
+
+        // reset
+        longestWinlessCurrent = 0;
       } else if (res === 1) {
         ptnml[3] += 1;
+
+        longesLosslessCurrent += 1;
+        longestWinCurrent += 1;
+
+        longestWinRecord = Math.max(longestWinCurrent, longestWinRecord);
+        longesLosslessRecord = Math.max(
+          longesLosslessCurrent,
+          longesLosslessRecord
+        );
+        longestWinlessRecord = Math.max(
+          longestWinlessCurrent,
+          longestWinlessRecord
+        );
+
+        // reset
+        longestWinlessCurrent = 0;
       } else if (res === 0) {
         ptnml[2] += 1;
+        longesLosslessCurrent += 1;
+        longestWinlessCurrent += 1;
+
+        longestWinRecord = Math.max(longestWinCurrent, longestWinRecord);
+        longesLosslessRecord = Math.max(
+          longesLosslessCurrent,
+          longesLosslessRecord
+        );
+        longestWinlessRecord = Math.max(
+          longestWinlessCurrent,
+          longestWinlessRecord
+        );
+
+        // reset
+        longestWinCurrent = 0;
       } else if (res === -1) {
         ptnml[1] += 1;
+        longestWinlessCurrent += 1;
+
+        longesLosslessRecord = Math.max(
+          longesLosslessCurrent,
+          longesLosslessRecord
+        );
+        longestWinRecord = Math.max(longestWinCurrent, longestWinRecord);
+        longestWinlessRecord = Math.max(
+          longestWinlessCurrent,
+          longestWinlessRecord
+        );
+
+        // reset
+        longestWinCurrent = 0;
+        longesLosslessCurrent = 0;
       } else {
         ptnml[0] += 1;
+        longestWinlessCurrent += 1;
+
+        longesLosslessRecord = Math.max(
+          longesLosslessCurrent,
+          longesLosslessRecord
+        );
+        longestWinRecord = Math.max(longestWinCurrent, longestWinRecord);
+        longestWinlessRecord = Math.max(
+          longestWinlessCurrent,
+          longestWinlessRecord
+        );
+
+        // reset
+        longestWinCurrent = 0;
+        longesLosslessCurrent = 0;
       }
     }
 
-    return [ptnml, wdlArray];
+    stats.longestLossless = longesLosslessRecord;
+    stats.longestWinStreak = longestWinRecord;
+    stats.longestWinless = longestWinlessRecord;
+    stats.performancePercent =
+      ((wdlArray[0] + wdlArray[1] / 2) /
+        (wdlArray[0] + wdlArray[1] + wdlArray[2])) *
+      100;
+
+    stats.pairsRatio = (ptnml[4] + ptnml[3]) / Math.max(ptnml[1] + ptnml[0], 0);
+
+    return [ptnml, wdlArray, stats];
   } catch (e: any) {
     console.log(e.message);
   }
@@ -377,7 +531,6 @@ function handleCustomStat(
 ): void {
   const ptnmlElement = cellHeader.querySelector(".ccc-ptnml");
   const eloElement = cellHeader.querySelector(".ccc-wdl-container");
-
   const statWrappers = cellHeader.querySelectorAll(".ccc-stat-wrapper");
 
   if (userCustomOptions.elo && !eloElement) {
@@ -427,7 +580,7 @@ function createOptionInputs(): void {
   eloLabel.addEventListener("change", () => {
     userCustomOptions.elo = !userCustomOptions.elo;
 
-    prefix.storage.local
+    browserPrefix.storage.local
       .set({ elo: userCustomOptions.elo })
       .then(convertCrossTable);
   });
@@ -435,12 +588,11 @@ function createOptionInputs(): void {
   ptnmlLabel.addEventListener("change", () => {
     userCustomOptions.ptnml = !userCustomOptions.ptnml;
 
-    prefix.storage.local
+    browserPrefix.storage.local
       .set({ ptnml: userCustomOptions.ptnml })
       .then(convertCrossTable);
   });
 
-  console.log("PREFIX IN ACTION");
   crossTableModal.append(wrapper);
 }
 
@@ -493,7 +645,10 @@ function createRowsForm(): HTMLFormElement {
     e.preventDefault();
     const value = rowAmountInput.valueAsNumber;
 
-    chrome.storage.local.set({ pairPerRow: value || "" });
+    browserPrefix.storage.local.set({ pairPerRow: value || "" });
+
+    userCustomOptions.pairPerRow = value;
+
     document.body.style.setProperty(
       "--custom-column-amount",
       `${value ? value * 2 : ""}`
@@ -521,6 +676,53 @@ function createSwitchLabel(
   label.append(switchInput);
 
   return label;
+}
+
+// ! not in release
+function createAdvancedStats(stats: AdditionalStats) {
+  const additionalStatsWrapper = document.createElement("div");
+
+  const icon =
+    '<svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 320 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z"/></svg>';
+  additionalStatsWrapper.innerHTML = icon;
+
+  additionalStatsWrapper.classList.add("ccc-info-button");
+
+  additionalStatsWrapper.addEventListener("click", (e) => {
+    e.stopPropagation();
+
+    const statsElementBackdrop = document.createElement("div");
+    statsElementBackdrop.classList.add("ccc-info-backdrop");
+
+    statsElementBackdrop.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (e.target !== statsElementBackdrop) return;
+      additionalStatsWrapper.removeChild(statsElementBackdrop);
+    });
+
+    const infoElement = document.createElement("div");
+    infoElement.classList.add("ccc-info-panel");
+
+    infoElement.innerHTML = "";
+    const p1 = document.createElement("p");
+    p1.textContent = `Longest lossless streak: ${stats.longestLossless} pairs`;
+    const p2 = document.createElement("p");
+    p2.textContent = `Longest win streak: ${stats.longestWinStreak} pairs`;
+    const p3 = document.createElement("p");
+    p3.textContent = `Longest winless streak: ${stats.longestWinless} pairs`;
+    const p4 = document.createElement("p");
+    p4.textContent = `Pairs Ratio: ${formatter.format(stats.pairsRatio)}`;
+    const p5 = document.createElement("p");
+    p5.textContent = `Performance: ${formatter.format(
+      stats.performancePercent
+    )}%`;
+
+    infoElement.append(p1, p2, p3, p5);
+    statsElementBackdrop.append(infoElement);
+    additionalStatsWrapper.append(statsElementBackdrop);
+  });
+
+  return additionalStatsWrapper;
 }
 
 function addClassNamesCrossTable(crossTableCell: HTMLDivElement): void {
@@ -568,6 +770,20 @@ function calculateScores(crossTableCell: HTMLDivElement): ResultAsScore[] {
   return scoresArray;
 }
 
+function applyStylesToEmptyCells() {
+  document.body.style.setProperty(
+    "--ccc-pattern-bg-3",
+    userCustomOptions.drawBgOnEmptyCells ? "transparent" : ""
+  );
+}
+
+function applyStylesToGrid() {
+  document.body.style.setProperty(
+    "--custom-column-amount",
+    `${userCustomOptions.pairPerRow ? userCustomOptions.pairPerRow * 2 : ""}`
+  );
+}
+
 // * ----------------------------
 // * event handlers and listeners
 
@@ -575,27 +791,53 @@ window.addEventListener("keydown", keydownHandler);
 
 // close modals on ESC
 function keydownHandler(e: KeyboardEvent): void {
-  if (e.code !== "Escape") return;
+  if (e.code !== "Escape" && e.code !== "KeyG") return;
 
-  handleCloseModalOnKeydown();
+  if (e.code === "KeyG" && e.shiftKey) {
+    toggleBgOfEmptyCells();
+    return;
+  }
+  if (e.code === "Escape") {
+    handleCloseModalOnKeydown();
+    return;
+  }
+}
+
+function toggleBgOfEmptyCells() {
+  const crossTable = document.getElementById("crosstable-crosstableModal");
+  if (!crossTable) return;
+
+  userCustomOptions.drawBgOnEmptyCells = !userCustomOptions.drawBgOnEmptyCells;
+
+  browserPrefix.storage.local
+    .set({
+      drawBgOnEmptyCells: userCustomOptions.drawBgOnEmptyCells,
+    })
+    .then(applyStylesToEmptyCells);
 }
 
 function handleCloseModalOnKeydown(): void {
+  const statsModal = document.querySelector(".ccc-info-backdrop");
   const crossTableModal = document.querySelector(".modal-vue-modal-content");
   const tournamentsList = document.querySelector(".bottomtable-resultspopup");
   const engineDetailsPanel = document.querySelector(".enginedetails-panel");
 
+  if (statsModal) {
+    const infoBtn = statsModal.parentNode;
+    infoBtn?.removeChild(statsModal);
+    return;
+  }
   if (crossTableModal) {
     const closeBtn: HTMLButtonElement =
       crossTableModal.querySelector(".modal-close");
-    closeBtn.click();
+    closeBtn?.click();
     return;
   }
   if (tournamentsList) {
     const closeDiv: HTMLDivElement = document.querySelector(
       ".bottomtable-event-name-wrapper"
     );
-    closeDiv.click();
+    closeDiv?.click();
     return;
   }
   if (engineDetailsPanel) {

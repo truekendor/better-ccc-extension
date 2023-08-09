@@ -27,9 +27,17 @@
   width: min-content !important;
 }
 
+.crosstable-results-cell {
+  position: relative;
+
+  border: 1px solid hsla(0, 0%, 100%, 0.14) !important;
+  border-top: transparent;
+}
+
 .crosstable-result-wrapper.ccc-cell-grid {
   display: grid;
   justify-content: center;
+  min-width: 100% !important;
 
   grid-template-columns: repeat(
     var(--custom-column-amount, var(--column-amount)),
@@ -38,16 +46,37 @@
 }
 
 .crosstable-results-cell.crosstable-empty {
-  /* contain: content;
+  /* position: relative;
+  contain: strict;
 
   --ccc-pattern-bg-1: transparent;
-  --ccc-pattern-bg-2: rgba(92, 92, 92, 0.6);
+  --ccc-pattern-bg-2: var(--ccc-pattern-bg-3, rgba(92, 92, 92, 0.6));
   --ccc-line-spacing: 16px;
 
   background-color: var(--ccc-pattern-bg-1);
   background-size: var(--ccc-line-spacing) var(--ccc-line-spacing);
   background-image: repeating-linear-gradient(
     45deg,
+    var(--ccc-pattern-bg-2) 0,
+    var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
+    var(--ccc-pattern-bg-1) 0,
+    var(--ccc-pattern-bg-1) 50%
+  ); */
+}
+
+.crosstable-results-cell.crosstable-empty:nth-of-type(2n) {
+  /* --ccc-pattern-bg-2: var(--ccc-pattern-bg-3, rgba(92, 92, 92, 0.7)); */
+}
+
+.crosstable-results-cell.crosstable-empty::before {
+  /* content: "";
+  position: absolute;
+  inset: 0;
+
+  background-color: var(--ccc-pattern-bg-1);
+  background-size: var(--ccc-line-spacing) var(--ccc-line-spacing);
+  background-image: repeating-linear-gradient(
+    135deg,
     var(--ccc-pattern-bg-2) 0,
     var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
     var(--ccc-pattern-bg-1) 0,
@@ -70,9 +99,11 @@ score, wdl etc...
   flex-wrap: wrap;
 
   margin-block-end: 0.6rem;
+
+  position: relative;
 }
 
-/* make every non default element wrap */
+/* makes every non default element to be on a new line  */
 #ccc-cell-header :nth-child(1n + 5) {
   width: 100%;
 }
@@ -172,8 +203,8 @@ result table section
 
 /* WDL */
 .ccc-stat-wrapper.ccc-wdl-wrapper {
-  font-size: var(--wdl-font-size);
-  line-height: var(--wdl-line-height);
+  row-gap: 0.4rem;
+  margin-block: 0.2rem !important;
 }
 
 .ccc-wdl-container {
@@ -181,12 +212,11 @@ result table section
   border-radius: 2px;
 
   padding-inline: 0.5rem;
-  margin-block: 0.2rem;
 }
 
 .ccc-elo-wrapper {
   display: flex;
-  margin-inline: 0.6rem;
+  margin-inline-start: 0.4rem;
 }
 
 .ccc-wdl-container > p,
@@ -197,10 +227,6 @@ result table section
 
 .ccc-wdl-container > :nth-child(2) {
   margin-inline: 0.4rem;
-}
-
-.ccc-wdl-container > :last-child {
-  margin-inline-start: 0.6rem;
 }
 
 /* 
@@ -513,4 +539,80 @@ button.modal-close > i {
   right: 0 !important;
 
   font-size: 2.2rem !important;
+}
+
+/* !
+!   MORE INFO STYLES DEV
+*/
+
+.ccc-info-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin: 0 !important;
+  width: 20px;
+  height: 20px;
+
+  position: absolute;
+
+  top: 0;
+  right: 0;
+
+  cursor: pointer;
+}
+
+.ccc-info-button > svg {
+  fill: rgb(107, 107, 107);
+  width: 15px;
+  height: 15px;
+}
+
+.ccc-info-backdrop {
+  position: fixed;
+  inset: 0;
+
+  background-color: rgba(0, 0, 0, 0.4);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+  z-index: 100;
+}
+
+.ccc-info-panel {
+  position: fixed;
+  width: 270px;
+  height: 400px;
+
+  inset: 0;
+  margin: auto;
+
+  background-color: hsl(32, 13%, 20%);
+  color: rgb(185, 185, 185);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex-direction: column;
+
+  font-size: 20px;
+
+  cursor: auto;
+
+  border-radius: 0.5rem;
+}
+
+tr.font-faded-white > td:nth-child(2) > div {
+  width: max-content;
+}
+
+tr.font-faded-white > :nth-child(2) {
+  /* position: sticky;
+  position: -webkit-sticky;
+
+  left: 0; */
 }
