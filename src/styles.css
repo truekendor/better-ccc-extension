@@ -120,6 +120,12 @@ div.schedule-container > div:nth-child(4n + 2) {
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+.highcharts-axis-labels.highcharts-yaxis-labels {
+  color: red !important;
+  max-height: 95% !important;
+  height: 95% !important;
+}
+
 /* 
 ---------------
 header section of the h2h 
