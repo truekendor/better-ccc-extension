@@ -29,6 +29,7 @@ const userCustomOptions: Options = {
   elo: true,
   pairPerRow: undefined,
   drawBgOnEmptyCells: false,
+  allowHotkeys: true,
 };
 
 const userCustomOptionsDefault: Options = {
@@ -36,6 +37,7 @@ const userCustomOptionsDefault: Options = {
   elo: true,
   pairPerRow: undefined,
   drawBgOnEmptyCells: false,
+  allowHotkeys: true,
 } as const;
 
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
@@ -45,19 +47,21 @@ function loadUserSettings(): void {
     browserPrefix.storage.local
       .get("elo" as keyof Options)
       .then(({ elo }: Partial<Options>) => {
-        userCustomOptions.elo = elo ?? true;
+        userCustomOptions.elo = elo ?? userCustomOptionsDefault.elo;
       });
 
     browserPrefix.storage.local
       .get("ptnml" as keyof Options)
       .then((result: Partial<Options>) => {
-        userCustomOptions.ptnml = result.ptnml ?? true;
+        userCustomOptions.ptnml =
+          result.ptnml ?? userCustomOptionsDefault.ptnml;
       });
 
     browserPrefix.storage.local
       .get("pairPerRow" as keyof Options)
       .then((result: Partial<Options>) => {
-        userCustomOptions.pairPerRow = result.pairPerRow ?? undefined;
+        userCustomOptions.pairPerRow =
+          result.pairPerRow ?? userCustomOptionsDefault.pairPerRow;
         applyStylesToGrid();
       });
 
@@ -65,9 +69,17 @@ function loadUserSettings(): void {
       .get("drawBgOnEmptyCells" as keyof Options)
       .then((result: Partial<Options>) => {
         userCustomOptions.drawBgOnEmptyCells =
-          result.drawBgOnEmptyCells ?? false;
+          result.drawBgOnEmptyCells ??
+          userCustomOptionsDefault.drawBgOnEmptyCells;
 
         applyStylesToEmptyCells();
+      });
+
+    browserPrefix.storage.local
+      .get("allowHotkeys" as keyof Options)
+      .then((result: Partial<Options>) => {
+        userCustomOptions.allowHotkeys =
+          result.allowHotkeys ?? userCustomOptionsDefault.allowHotkeys;
       });
   } catch (e: any) {
     console.log(e.message);
@@ -101,6 +113,7 @@ interface Options {
   elo: boolean;
   pairPerRow: number | undefined;
   drawBgOnEmptyCells: boolean;
+  allowHotkeys: boolean;
 }
 
 interface AdditionalStats {
@@ -481,9 +494,6 @@ function createWLDEloElement(
   const points = wdl[0] + wdl[1] / 2;
 
   const percent = formatter.format((points / numberOfGames) * 100);
-  // const winrateElement = document.createElement("p");
-  // winrateElement.classList.add("ccc-winrate-percentage");
-  // winrateElement.textContent = ` ${percent}%`;
 
   let elo;
   let margin;
@@ -814,12 +824,27 @@ function keydownHandler(e: KeyboardEvent): void {
     e.code !== "Escape" &&
     e.code !== "KeyG" &&
     e.code !== "KeyC" &&
-    e.code !== "KeyS"
+    e.code !== "KeyS" &&
+    e.code !== "KeyU"
   ) {
     return;
   }
 
-  if (e.code === "KeyC") {
+  // enable/disable hotkeys
+  if (e.code === "KeyU" && e.shiftKey && e.ctrlKey) {
+    browserPrefix.storage.local
+      .set({
+        allowHotkeys: !userCustomOptions.allowHotkeys,
+      })
+      .then(() => {
+        userCustomOptions.allowHotkeys = !userCustomOptions.allowHotkeys;
+      });
+
+    return;
+  }
+
+  // open crosstable
+  if (userCustomOptions.allowHotkeys && e.code === "KeyC") {
     if (e.target !== document.body || !standingsBtn) return;
     e.stopPropagation();
 
@@ -836,7 +861,8 @@ function keydownHandler(e: KeyboardEvent): void {
     return;
   }
 
-  if (e.code === "KeyS") {
+  // open schedule
+  if (userCustomOptions.allowHotkeys && e.code === "KeyS") {
     if (e.target !== document.body) return;
     e.stopPropagation();
 
@@ -850,10 +876,12 @@ function keydownHandler(e: KeyboardEvent): void {
     return;
   }
 
-  if (e.code === "KeyG" && e.shiftKey) {
+  // will add later
+  if (userCustomOptions.allowHotkeys && e.code === "KeyG" && e.shiftKey) {
     toggleBgOfEmptyCells();
     return;
   }
+
   if (e.code === "Escape") {
     handleCloseModalOnKeydown();
     return;
@@ -874,7 +902,7 @@ function openCrossTableFromOtherTab() {
     ".selection-panel-container + div"
   )[2];
 
-  divWithBtn.classList.add("tomato");
+  // divWithBtn.classList.add("tomato");
 
   if (!divWithBtn) return;
 

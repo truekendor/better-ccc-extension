@@ -411,11 +411,6 @@ media queries
   }
 }
 
-/* 
-! __________________________
-! test features 
-*/
-
 /* * ------------------------
 * Peregrine suggested styles
 */
@@ -436,32 +431,9 @@ media queries
 
 /* moves in movelist */
 .movetable-movetable table tr td {
-  min-width: unset !important;
   padding-left: 0 !important;
-  /* min-width: 4.5ch !important; */
-  /* padding-left: 0.5rem !important; */
+  min-width: 4.5ch !important;
 }
-
-/* .movetable-movetable table tr td:not(:only-of-type):last-child {
-  padding-left: 0.25rem !important;
-}
-
-.movetable-movetable table tr th {
-  min-width: unset !important;
-  padding-left: 0 !important;
-} */
-
-/* .movetable-movetable table tr:nth-child(2n) {
-  min-width: 100% !important;
-  background-color: rgba(0, 0, 0, 0.2);
-} */
-
-/* .movetable-movetable table {
-  max-width: 100%;
-  width: 100%;
-  border-collapse: collapse !important;
-  border-style: hidden;
-} */
 
 /* ! charts --- */
 /* ! ----------- */
@@ -632,10 +604,6 @@ button.modal-close > i {
 
   font-size: 2.2rem !important;
 }
-
-/* !
-!   MORE INFO STYLES DEV
-*/
 
 .ccc-info-button {
   display: flex;
