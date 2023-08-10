@@ -1,18 +1,18 @@
-const standingsDiv = document.getElementById("bottomtable-bottomtable");
+const standingsDiv = document.getElementById("bottomtable-bottomtable")!;
 
 const content = document.getElementById("righttable-content");
 const chat = document.querySelector("chat-chat");
 
 // panel with vote/standings/schedule buttons
-const btnPanel = standingsDiv.querySelector(".selection-panel-container");
+const btnPanel = standingsDiv.querySelector(".selection-panel-container")!;
 // button with text "Standings"
 const standingsBtn = btnPanel.querySelectorAll("span")[1];
 
-let crossTableBtn: HTMLButtonElement;
+let crossTableBtn: HTMLButtonElement | null;
 let crossTableElements: NodeListOf<HTMLTableCellElement>;
 
-let crossTableModal: HTMLDivElement;
-let crossTableWithScroll: HTMLDivElement = undefined;
+let crossTableModal: HTMLDivElement | null;
+let crossTableWithScroll: HTMLDivElement | null;
 
 standingsBtn.addEventListener("click", standingsBtnClickHandler);
 
@@ -99,7 +99,7 @@ type Browsers = TChrome | TFirefox;
 interface Options {
   ptnml: boolean;
   elo: boolean;
-  pairPerRow: number;
+  pairPerRow: number | undefined;
   drawBgOnEmptyCells: boolean;
 }
 
@@ -141,11 +141,12 @@ function convertCrossTable(): void {
     if (engines && enginesAmount >= 6) {
       const enginesNames: string[] = [];
       engines.forEach((engine) => {
-        enginesNames.push(engine.textContent.replace("\n", "").trim());
+        enginesNames.push(engine.textContent!.replace("\n", "").trim());
       });
 
-      const crossTable = document.querySelector(".crosstable-crosstable");
-      const standingsRow = crossTable.querySelector("tr");
+      // since we're in convert crosstable() crossTable is not null
+      const crossTable = document.querySelector(".crosstable-crosstable")!;
+      const standingsRow = crossTable.querySelector("tr")!;
       const enginesRows = standingsRow.querySelectorAll(
         ".font-extra-faded-white"
       );
@@ -188,7 +189,6 @@ function observeEmpty(cell: HTMLTableCellElement): void {
     const observer = new MutationObserver(() => {
       observer.disconnect();
 
-      // convertCrossTable()
       convertCell(cell);
     });
 
@@ -203,7 +203,7 @@ function observeEmpty(cell: HTMLTableCellElement): void {
 function convertCell(cell: HTMLTableCellElement): void {
   try {
     // header with result -->       205 - 195 [+10]
-    const cellHeader: HTMLDivElement = cell.querySelector(
+    const cellHeader: HTMLDivElement | null = cell.querySelector(
       ".crosstable-head-to-head"
     );
 
@@ -217,7 +217,7 @@ function convertCell(cell: HTMLTableCellElement): void {
     // result table for h2h vs one opponent
     const crossTableCell: HTMLDivElement = cell.querySelector(
       ".crosstable-result-wrapper"
-    );
+    )!;
 
     addClassNamesCrossTable(crossTableCell);
     const scoresArray = calculateScores(crossTableCell);
@@ -251,6 +251,7 @@ function convertCell(cell: HTMLTableCellElement): void {
 // updates stats with each new game result
 function liveUpdate(): void {
   try {
+    // @ts-ignore
     const activeCells = [...crossTableElements].filter((el) => {
       if (el.classList.contains("crosstable-empty")) {
         enginesAmount++;
@@ -282,6 +283,7 @@ function liveUpdate(): void {
 
 // * -------------
 // * utils
+// @ts-ignore
 function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
   try {
     const wdlArray: WDL = [0, 0, 0]; // W D L in that order
@@ -556,7 +558,7 @@ function handleCustomStat(
 
 // handles creation of switch inputs for custom stats
 function createOptionInputs(): void {
-  const crossTableModal: HTMLDivElement = document.querySelector(
+  const crossTableModal: HTMLDivElement | null = document.querySelector(
     ".modal-vue-modal-content"
   );
 
@@ -757,7 +759,7 @@ function calculateScores(crossTableCell: HTMLDivElement): ResultAsScore[] {
     crossTableCell.querySelectorAll(".crosstable-result");
 
   const scoresArray: ResultAsScore[] = [];
-  let lastResult: ResultAsScore = undefined;
+  let lastResult: ResultAsScore;
 
   gameResultsDivs.forEach((result, index) => {
     // ID needed to overwrite default CCC styles
@@ -807,9 +809,46 @@ function applyStylesToGrid() {
 
 window.addEventListener("keydown", keydownHandler);
 
-// close modals on ESC
 function keydownHandler(e: KeyboardEvent): void {
-  if (e.code !== "Escape" && e.code !== "KeyG") return;
+  if (
+    e.code !== "Escape" &&
+    e.code !== "KeyG" &&
+    e.code !== "KeyC" &&
+    e.code !== "KeyS"
+  ) {
+    return;
+  }
+
+  if (e.code === "KeyC") {
+    if (e.target !== document.body || !standingsBtn) return;
+    e.stopPropagation();
+
+    standingsBtn.click();
+
+    const container = document.getElementById("standings-standings");
+
+    if (container) {
+      handleOpenCrossTableKeyboard(container);
+    } else {
+      openCrossTableFromOtherTab();
+    }
+
+    return;
+  }
+
+  if (e.code === "KeyS") {
+    if (e.target !== document.body) return;
+    e.stopPropagation();
+
+    const scheduleBtn = btnPanel.querySelectorAll("span")[2];
+    if (!scheduleBtn) return;
+
+    queueMicrotask(() => {
+      scheduleBtn?.click();
+    });
+
+    return;
+  }
 
   if (e.code === "KeyG" && e.shiftKey) {
     toggleBgOfEmptyCells();
@@ -819,6 +858,37 @@ function keydownHandler(e: KeyboardEvent): void {
     handleCloseModalOnKeydown();
     return;
   }
+}
+
+function handleOpenCrossTableKeyboard(container: HTMLElement) {
+  crossTableBtn = container?.querySelector("button");
+  if (!crossTableBtn) return;
+
+  crossTableBtn?.click();
+
+  queueMicrotask(crossTableBtnClickHandler);
+}
+
+function openCrossTableFromOtherTab() {
+  const divWithBtn = document.querySelectorAll(
+    ".selection-panel-container + div"
+  )[2];
+
+  divWithBtn.classList.add("tomato");
+
+  if (!divWithBtn) return;
+
+  const observer = new MutationObserver(() => {
+    observer.disconnect();
+    const container = document.getElementById("standings-standings");
+    if (!container) return;
+
+    handleOpenCrossTableKeyboard(container);
+  });
+
+  observer.observe(divWithBtn, {
+    childList: true,
+  });
 }
 
 function toggleBgOfEmptyCells() {
@@ -846,20 +916,20 @@ function handleCloseModalOnKeydown(): void {
     return;
   }
   if (crossTableModal) {
-    const closeBtn: HTMLButtonElement =
+    const closeBtn: HTMLButtonElement | null =
       crossTableModal.querySelector(".modal-close");
     closeBtn?.click();
     return;
   }
   if (tournamentsList) {
-    const closeDiv: HTMLDivElement = document.querySelector(
+    const closeDiv: HTMLDivElement | null = document.querySelector(
       ".bottomtable-event-name-wrapper"
     );
     closeDiv?.click();
     return;
   }
   if (engineDetailsPanel) {
-    const closeBtn: HTMLIFrameElement = document.querySelector(
+    const closeBtn: HTMLIFrameElement | null = document.querySelector(
       "#enginedetails-close"
     );
 
@@ -870,11 +940,10 @@ function handleCloseModalOnKeydown(): void {
 
 function standingsBtnClickHandler(): void {
   try {
-    crossTableBtn = document
-      .getElementById("standings-standings")
-      .querySelector("button");
+    const container = document.getElementById("standings-standings")!;
 
-    crossTableBtn.addEventListener("click", crossTableBtnClickHandler);
+    crossTableBtn = container?.querySelector("button");
+    crossTableBtn?.addEventListener("click", crossTableBtnClickHandler);
   } catch (e: any) {
     console.log(e.message);
   }
