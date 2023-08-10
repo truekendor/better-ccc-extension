@@ -28,9 +28,11 @@ You can close `cross table`/`engine info` modals by pressing `Esc`
 
 `Ctrl` + `Shift` + `U` to disable/enable shortcuts 
 
-`C` to open `Cross table`
+Press `C` to open `Cross table`
 
-`S` to open `Schedule`
+Press `S` to open `Schedule`
+
+TBA
 
 # Acknowledgements
 
