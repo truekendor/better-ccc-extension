@@ -22,6 +22,10 @@
   - Grant permissions if needed
   - ![Grant permissions](https://github.com/truekendor/better-ccc-extension/blob/main/img/grant%20permissions.webp)
 
+## Hotkeys 
+
+TBA
+
 # Acknowledgements
 
 The idea and design are inspired by [David's](https://github.com/dav1312) custom extension
