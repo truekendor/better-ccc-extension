@@ -22,7 +22,15 @@
   - Grant permissions if needed
   - ![Grant permissions](https://github.com/truekendor/better-ccc-extension/blob/main/img/grant%20permissions.webp)
 
-## Hotkeys 
+## Hotkeys TBA
+
+You can close `cross table`/`engine info` modals by pressing `Esc`
+
+`Ctrl` + `Shift` + `U` to disable/enable shortcuts 
+
+Press `C` to open `Cross table`
+
+Press `S` to open `Schedule`
 
 TBA
 
