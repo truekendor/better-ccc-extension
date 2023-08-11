@@ -111,11 +111,14 @@ div.schedule-container > div.schedule-gameLink:hover,
   background-color: rgba(255, 255, 255, 0.07);
 }
 
+/* 
+TODO fix this 
+*/
 div.schedule-container > div.schedule-gameLink:nth-child(4n + 1):hover,
 div.schedule-container > div.schedule-gameLink:nth-child(4n + 2):hover,
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 1):hover,
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 2):hover {
-  background-color: rgba(0, 0, 0, 0.09);
+  /* background-color: rgba(0, 0, 0, 0.09); */
 }
 
 /* current game in schedule */
