@@ -14,6 +14,9 @@
   - Click `Load unpacked` button
   - Select the `chrome` folder from this repo
 ### Firefox
+  
+  ## Download the extension [here](https://addons.mozilla.org/en-US/firefox/addon/better-ccc/) or alternatively follow the instructions below
+
   - Open `about:addons` page
   - Click on this button
   - ![](https://github.com/truekendor/better-ccc-extension/blob/main/img/firefox_where.webp)
