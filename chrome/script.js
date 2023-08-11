@@ -17,7 +17,7 @@ var standingsBtn = btnPanel.querySelectorAll("span")[1];
 var crossTableBtn;
 var crossTableElements;
 var crossTableModal;
-var crossTableWithScroll = undefined;
+var crossTableWithScroll;
 standingsBtn.addEventListener("click", standingsBtnClickHandler);
 // need this for @media queries
 var enginesAmount = 0;
@@ -30,12 +30,14 @@ var userCustomOptions = {
     elo: true,
     pairPerRow: undefined,
     drawBgOnEmptyCells: false,
+    allowHotkeys: true,
 };
 var userCustomOptionsDefault = {
     ptnml: true,
     elo: true,
     pairPerRow: undefined,
     drawBgOnEmptyCells: false,
+    allowHotkeys: true,
 };
 var browserPrefix = (chrome === null || chrome === void 0 ? void 0 : chrome.storage) ? chrome : browser;
 function loadUserSettings() {
@@ -44,19 +46,21 @@ function loadUserSettings() {
             .get("elo")
             .then(function (_a) {
             var elo = _a.elo;
-            userCustomOptions.elo = elo !== null && elo !== void 0 ? elo : true;
+            userCustomOptions.elo = elo !== null && elo !== void 0 ? elo : userCustomOptionsDefault.elo;
         });
         browserPrefix.storage.local
             .get("ptnml")
             .then(function (result) {
             var _a;
-            userCustomOptions.ptnml = (_a = result.ptnml) !== null && _a !== void 0 ? _a : true;
+            userCustomOptions.ptnml =
+                (_a = result.ptnml) !== null && _a !== void 0 ? _a : userCustomOptionsDefault.ptnml;
         });
         browserPrefix.storage.local
             .get("pairPerRow")
             .then(function (result) {
             var _a;
-            userCustomOptions.pairPerRow = (_a = result.pairPerRow) !== null && _a !== void 0 ? _a : undefined;
+            userCustomOptions.pairPerRow =
+                (_a = result.pairPerRow) !== null && _a !== void 0 ? _a : userCustomOptionsDefault.pairPerRow;
             applyStylesToGrid();
         });
         browserPrefix.storage.local
@@ -64,8 +68,15 @@ function loadUserSettings() {
             .then(function (result) {
             var _a;
             userCustomOptions.drawBgOnEmptyCells =
-                (_a = result.drawBgOnEmptyCells) !== null && _a !== void 0 ? _a : false;
+                (_a = result.drawBgOnEmptyCells) !== null && _a !== void 0 ? _a : userCustomOptionsDefault.drawBgOnEmptyCells;
             applyStylesToEmptyCells();
+        });
+        browserPrefix.storage.local
+            .get("allowHotkeys")
+            .then(function (result) {
+            var _a;
+            userCustomOptions.allowHotkeys =
+                (_a = result.allowHotkeys) !== null && _a !== void 0 ? _a : userCustomOptionsDefault.allowHotkeys;
         });
     }
     catch (e) {
@@ -112,6 +123,7 @@ function convertCrossTable() {
             engines.forEach(function (engine) {
                 enginesNames_1.push(engine.textContent.replace("\n", "").trim());
             });
+            // since we're in convert crosstable() crossTable is not null
             var crossTable = document.querySelector(".crosstable-crosstable");
             var standingsRow = crossTable.querySelector("tr");
             var enginesRows = standingsRow.querySelectorAll(".font-extra-faded-white");
@@ -149,7 +161,6 @@ function observeEmpty(cell) {
     try {
         var observer_1 = new MutationObserver(function () {
             observer_1.disconnect();
-            // convertCrossTable()
             convertCell(cell);
         });
         observer_1.observe(cell, {
@@ -196,6 +207,7 @@ function convertCell(cell) {
 // updates stats with each new game result
 function liveUpdate() {
     try {
+        // @ts-ignore
         var activeCells = __spreadArray([], crossTableElements, true).filter(function (el) {
             if (el.classList.contains("crosstable-empty")) {
                 enginesAmount++;
@@ -225,6 +237,7 @@ function liveUpdate() {
 }
 // * -------------
 // * utils
+// @ts-ignore
 function getStats(arr) {
     try {
         var wdlArray_1 = [0, 0, 0]; // W D L in that order
@@ -365,9 +378,6 @@ function createWLDEloElement(wdl) {
     l.classList.add("ccc-margin-right");
     var points = wdl[0] + wdl[1] / 2;
     var percent = formatter.format((points / numberOfGames) * 100);
-    // const winrateElement = document.createElement("p");
-    // winrateElement.classList.add("ccc-winrate-percentage");
-    // winrateElement.textContent = ` ${percent}%`;
     var elo;
     var margin;
     var eloWrapper;
@@ -558,7 +568,7 @@ function addClassNamesCrossTable(crossTableCell) {
 function calculateScores(crossTableCell) {
     var gameResultsDivs = crossTableCell.querySelectorAll(".crosstable-result");
     var scoresArray = [];
-    var lastResult = undefined;
+    var lastResult;
     gameResultsDivs.forEach(function (result, index) {
         // ID needed to overwrite default CCC styles
         if (result) {
@@ -591,11 +601,55 @@ function applyStylesToGrid() {
 // * ----------------------------
 // * event handlers and listeners
 window.addEventListener("keydown", keydownHandler);
-// close modals on ESC
 function keydownHandler(e) {
-    if (e.code !== "Escape" && e.code !== "KeyG")
+    if (e.code !== "Escape" &&
+        e.code !== "KeyG" &&
+        e.code !== "KeyC" &&
+        e.code !== "KeyS" &&
+        e.code !== "KeyU") {
         return;
-    if (e.code === "KeyG" && e.shiftKey) {
+    }
+    // enable/disable hotkeys
+    if (e.code === "KeyU" && e.shiftKey && e.ctrlKey) {
+        browserPrefix.storage.local
+            .set({
+            allowHotkeys: !userCustomOptions.allowHotkeys,
+        })
+            .then(function () {
+            userCustomOptions.allowHotkeys = !userCustomOptions.allowHotkeys;
+        });
+        return;
+    }
+    // open crosstable
+    if (userCustomOptions.allowHotkeys && e.code === "KeyC") {
+        if (e.target !== document.body || !standingsBtn)
+            return;
+        e.stopPropagation();
+        standingsBtn.click();
+        var container = document.getElementById("standings-standings");
+        if (container) {
+            handleOpenCrossTableKeyboard(container);
+        }
+        else {
+            openCrossTableFromOtherTab();
+        }
+        return;
+    }
+    // open schedule
+    if (userCustomOptions.allowHotkeys && e.code === "KeyS") {
+        if (e.target !== document.body)
+            return;
+        e.stopPropagation();
+        var scheduleBtn_1 = btnPanel.querySelectorAll("span")[2];
+        if (!scheduleBtn_1)
+            return;
+        queueMicrotask(function () {
+            scheduleBtn_1 === null || scheduleBtn_1 === void 0 ? void 0 : scheduleBtn_1.click();
+        });
+        return;
+    }
+    // will add later
+    if (userCustomOptions.allowHotkeys && e.code === "KeyG" && e.shiftKey) {
         toggleBgOfEmptyCells();
         return;
     }
@@ -603,6 +657,29 @@ function keydownHandler(e) {
         handleCloseModalOnKeydown();
         return;
     }
+}
+function handleOpenCrossTableKeyboard(container) {
+    crossTableBtn = container === null || container === void 0 ? void 0 : container.querySelector("button");
+    if (!crossTableBtn)
+        return;
+    crossTableBtn === null || crossTableBtn === void 0 ? void 0 : crossTableBtn.click();
+    queueMicrotask(crossTableBtnClickHandler);
+}
+function openCrossTableFromOtherTab() {
+    var divWithBtn = document.querySelectorAll(".selection-panel-container + div")[2];
+    // divWithBtn.classList.add("tomato");
+    if (!divWithBtn)
+        return;
+    var observer = new MutationObserver(function () {
+        observer.disconnect();
+        var container = document.getElementById("standings-standings");
+        if (!container)
+            return;
+        handleOpenCrossTableKeyboard(container);
+    });
+    observer.observe(divWithBtn, {
+        childList: true,
+    });
 }
 function toggleBgOfEmptyCells() {
     var crossTable = document.getElementById("crosstable-crosstableModal");
@@ -643,10 +720,9 @@ function handleCloseModalOnKeydown() {
 }
 function standingsBtnClickHandler() {
     try {
-        crossTableBtn = document
-            .getElementById("standings-standings")
-            .querySelector("button");
-        crossTableBtn.addEventListener("click", crossTableBtnClickHandler);
+        var container = document.getElementById("standings-standings");
+        crossTableBtn = container === null || container === void 0 ? void 0 : container.querySelector("button");
+        crossTableBtn === null || crossTableBtn === void 0 ? void 0 : crossTableBtn.addEventListener("click", crossTableBtnClickHandler);
     }
     catch (e) {
         console.log(e.message);
