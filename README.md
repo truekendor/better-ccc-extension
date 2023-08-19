@@ -1,4 +1,4 @@
-# Chrome/Firefox extension for [CCC](https://www.chess.com/computer-chess-championship#)
+# Chrome/Firefox/Edge extension for [CCC](https://www.chess.com/computer-chess-championship#)
 
 ![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview.webp)
 
