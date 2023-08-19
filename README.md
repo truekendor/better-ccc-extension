@@ -8,8 +8,8 @@
 
   - ![Download helper](https://github.com/truekendor/better-ccc-extension/blob/main/img/download.webp)
  
-## Google Chrome
-  - Open `chrome://extensions/` page
+## Google Chrome / Edge / Other `Chromium` based browsers 
+  - Open `chrome://extensions/` or `browser://extensions/` page
   - Enable developer mode
   - Click `Load unpacked` button
   - Select the `chrome` folder from this repo
