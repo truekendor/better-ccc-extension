@@ -34,7 +34,11 @@
 
 /* tomato */
 .tomato {
-  background-color: rgba(255, 99, 71, 0.313);
+  background-color: rgba(255, 99, 71, 0.3);
+}
+
+.tomato-i {
+  background-color: rgba(255, 99, 71, 0.3) !important;
 }
 
 .crosstable-results-cell {
@@ -99,6 +103,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* pair bg alternation */
 div.schedule-container > div:nth-child(4n + 1),
 div.schedule-container > div:nth-child(4n + 2),
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 1),
@@ -106,20 +111,27 @@ div.schedule-container > div:nth-child(4n + 2),
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+/* 
+TODO fix this =========================
+*/
+/* div.schedule-container > div.schedule-gameLink:hover * {
+text-decoration: underline;
+} */
+
+/* div.schedule-container > div.schedule-gameLink:hover,
 div.schedule-container > div.schedule-gameLink:hover,
+#resultstable-resultstable div:last-child > table > tr:hover,
 #resultstable-resultstable div:last-child > table > tr:hover {
-  background-color: rgba(255, 255, 255, 0.07);
+  background-color: unset;
 }
 
-/* 
-TODO fix this 
-*/
 div.schedule-container > div.schedule-gameLink:nth-child(4n + 1):hover,
 div.schedule-container > div.schedule-gameLink:nth-child(4n + 2):hover,
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 1):hover,
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 2):hover {
-  /* background-color: rgba(0, 0, 0, 0.09); */
-}
+  background-color: rgba(0, 0, 0, 0.3);
+} */
+/* TODO FIX END ---------------- */
 
 /* current game in schedule */
 .schedule-container > div.schedule-inProgress {
@@ -128,8 +140,27 @@ div.schedule-container > div.schedule-gameLink:nth-child(4n + 2):hover,
   background-color: unset;
 }
 
-.schedule-container .schedule-inProgress * {
-  color: var(--ccc-blue-light-hsl);
+.schedule-container div.schedule-inProgress {
+  position: relative;
+  isolation: isolate;
+}
+
+.schedule-container div.schedule-inProgress > * {
+  color: var(--ccc-blue-light-hsl) !important;
+}
+
+.schedule-container div.schedule-inProgress::before {
+  content: "";
+  position: absolute;
+
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  background-color: hsla(var(--ccc-blue-light-raw), 0.05) !important;
+
+  z-index: -1;
 }
 
 /* cursed tooltip line break fix */
@@ -414,32 +445,19 @@ media queries
   }
 }
 
-/* * ------------------------
-* Peregrine suggested styles
-*/
-#righttable-content,
-.chat-chat {
-  height: 100vh !important;
+div.movetable-tablewrapper {
+  scrollbar-gutter: stable !important;
 }
 
-/* * ------------------------
-* David suggested styles
-*/
-
-/* * center the game number in Schedule */
-.schedule-container > div :first-child {
-  justify-content: center;
-  text-align: center;
-}
-
-/* moves in movelist */
-.movetable-movetable table tr td {
-  padding-left: 0 !important;
-  min-width: 4.5ch !important;
+.movetable-tablewrapper table {
+  /* max-width: 100%; */
+  /* width: 100%; */
+  /* background-color: rgba(255, 99, 71, 0.234); */
 }
 
 /* ! charts --- */
 /* ! ----------- */
+
 .cpu-champs-page-graph {
   /*  */
 }
@@ -678,4 +696,57 @@ tr.font-faded-white > :nth-child(2) {
   position: -webkit-sticky;
 
   left: 0; */
+}
+
+/* * ------------------------
+* Peregrine suggested styles
+*/
+#righttable-content,
+.chat-chat {
+  height: 100vh !important;
+}
+
+/* * ------------------------
+* David suggested styles
+*/
+
+.movetable-movetable table {
+  margin-left: unset !important;
+  width: 100% !important;
+}
+
+/* * center the game number in Schedule */
+.schedule-container > div :first-child {
+  justify-content: center;
+  text-align: center;
+}
+
+/* moves in movelist */
+.movetable-movetable table tr td {
+  contain: content;
+  padding-left: 0 !important;
+  min-width: unset !important;
+
+  min-width: 50% !important;
+  width: max-content !important;
+  max-width: 50% !important;
+
+  word-break: break-all;
+}
+
+.movetable-movetable table tr td.movetable-highlighted {
+  /* background-color: hsla(var(--ccc-blue-light-raw), 0.1) !important; */
+}
+
+.movetable-movetable table tr:last-child td:only-of-type {
+  /* background-color: rgba(106, 142, 35, 0.153) !important; */
+}
+
+.movetable-movetable table tr th {
+  min-width: unset !important;
+
+  width: 3ch !important;
+  max-width: 4ch !important;
+
+  /* background-color: rgba(255, 99, 71, 0.145); */
 }
