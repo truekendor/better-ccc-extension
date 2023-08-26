@@ -445,6 +445,13 @@ media queries
   }
 }
 
+/* larger crosstable btn on mobile */
+@media (max-width: 969px) {
+  #standings-standings > button {
+    height: 3.3rem !important;
+  }
+}
+
 div.movetable-tablewrapper {
   scrollbar-gutter: stable !important;
 }
@@ -475,16 +482,6 @@ div.movetable-tablewrapper {
 }
 /* ! charts --- */
 
-.movetable-highlighted {
-  color: var(--ccc-blue-light-hsl);
-}
-
-/* fck you, specificity */
-/* current move in movelist */
-.movetable-highlighted:is(td.movetable-highlighted.movetable-hoverable):hover {
-  color: #80c5e5;
-}
-
 /* * wrapper for stat customization inputs
 */
 .ccc-options-wrapper {
@@ -503,6 +500,102 @@ div.movetable-tablewrapper {
   margin-inline-start: 3rem;
 
   color: rgb(199, 199, 199);
+
+  max-width: 500px;
+
+  z-index: -1;
+}
+
+.ccc-info-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin: 0 !important;
+  width: 20px;
+  height: 20px;
+
+  position: absolute;
+
+  top: 0;
+  right: 0;
+
+  cursor: pointer;
+}
+
+.ccc-info-button > svg {
+  fill: rgb(107, 107, 107);
+  width: 15px;
+  height: 15px;
+}
+
+.ccc-info-backdrop {
+  position: fixed;
+  inset: 0;
+
+  background-color: rgba(0, 0, 0, 0.4);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+  z-index: 100;
+}
+
+.ccc-info-panel {
+  position: fixed;
+  width: 270px;
+  height: 400px;
+
+  inset: 0;
+  margin: auto;
+
+  background-color: hsl(32, 13%, 20%);
+  color: rgb(185, 185, 185);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex-direction: column;
+
+  font-size: 20px;
+
+  cursor: auto;
+
+  border-radius: 0.5rem;
+}
+
+.modal-vue-modal-content {
+  isolation: isolate;
+}
+
+/* add css only dropdown menu */
+@media (max-width: 450px) {
+  .ccc-options-wrapper {
+    display: flex;
+    /* flex-direction: column; */
+    overflow-x: scroll;
+  }
+
+  .modal-vue-modal-content {
+    --ccc-modal-pd-top: 4rem;
+    padding-top: var(max-content, 3rem) !important;
+  }
+
+  .ccc-options-wrapper > * {
+    flex-shrink: 0;
+  }
+
+  .ccc-options-wrapper > :last-child {
+    min-width: 150px;
+  }
+
+  button.modal-close {
+    background-color: #312e2b !important;
+    height: var(--ccc-modal-pd-top);
+  }
 }
 
 .ccc-label {
@@ -626,67 +719,6 @@ button.modal-close > i {
   font-size: 2.2rem !important;
 }
 
-.ccc-info-button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  margin: 0 !important;
-  width: 20px;
-  height: 20px;
-
-  position: absolute;
-
-  top: 0;
-  right: 0;
-
-  cursor: pointer;
-}
-
-.ccc-info-button > svg {
-  fill: rgb(107, 107, 107);
-  width: 15px;
-  height: 15px;
-}
-
-.ccc-info-backdrop {
-  position: fixed;
-  inset: 0;
-
-  background-color: rgba(0, 0, 0, 0.4);
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  cursor: pointer;
-  z-index: 100;
-}
-
-.ccc-info-panel {
-  position: fixed;
-  width: 270px;
-  height: 400px;
-
-  inset: 0;
-  margin: auto;
-
-  background-color: hsl(32, 13%, 20%);
-  color: rgb(185, 185, 185);
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  flex-direction: column;
-
-  font-size: 20px;
-
-  cursor: auto;
-
-  border-radius: 0.5rem;
-}
-
 tr.font-faded-white > td:nth-child(2) > div {
   width: max-content;
 }
@@ -699,16 +731,31 @@ tr.font-faded-white > :nth-child(2) {
 }
 
 /* * ------------------------
-* Peregrine suggested styles
+* Peregrine suggested styles in media queries
 */
-#righttable-content,
-.chat-chat {
-  height: 100vh !important;
+
+@media (min-width: 970px) {
+  #righttable-content,
+  .chat-chat {
+    height: 100vh !important;
+  }
 }
 
 /* * ------------------------
 * David suggested styles
 */
+
+.movetable-highlighted:not(.movetable-book-ply) {
+  color: var(--ccc-blue-light-hsl);
+}
+
+/* fck you, specificity */
+/* current move in movelist */
+.movetable-highlighted:not(.movetable-book-ply):is(
+    td.movetable-highlighted.movetable-hoverable
+  ):hover {
+  color: #80c5e5;
+}
 
 .movetable-movetable table {
   margin-left: unset !important;
