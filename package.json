@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "build": "tsc src/script.ts"
+  },
   "devDependencies": {
     "@types/chrome": "^0.0.241",
     "@types/firefox-webext-browser": "^111.0.1"

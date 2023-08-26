@@ -37,6 +37,10 @@
   background-color: rgba(255, 99, 71, 0.313);
 }
 
+.tomato-i {
+  background-color: rgba(255, 99, 71, 0.313) !important;
+}
+
 .crosstable-results-cell {
   position: relative;
 

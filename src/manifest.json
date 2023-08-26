@@ -10,10 +10,13 @@
       "run_at": "document_end"
     }
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "icons": {
     "128": "icons/icon_128.png",
     "48": "icons/icon_48.png",
     "32": "icons/icon_32.png"
   },
-  "permissions": ["scripting", "storage"]
+  "permissions": ["scripting", "storage", "tabs"]
 }

@@ -1,12 +1,21 @@
-const standingsDiv = document.getElementById("bottomtable-bottomtable")!;
+// div with main tabs: vote / standings / schedule / match / info
+let standingsDiv = document.getElementById("bottomtable-bottomtable")!;
 
-const content = document.getElementById("righttable-content");
+// twitch chat div
 const chat = document.querySelector("chat-chat");
 
+// list of vote / standings / schedule / match / info buttons
+const buttons: NodeListOf<HTMLSpanElement> = standingsDiv.querySelectorAll(
+  ".selection-panel-item"
+)!;
+
+let scheduleBtn: HTMLSpanElement = buttons[2];
+
 // panel with vote/standings/schedule buttons
-const btnPanel = standingsDiv.querySelector(".selection-panel-container")!;
+let btnPanel = standingsDiv.querySelector(".selection-panel-container")!;
 // button with text "Standings"
-const standingsBtn = btnPanel.querySelectorAll("span")[1];
+let standingsBtn = btnPanel.querySelectorAll("span")[1];
+standingsBtn.addEventListener("click", standingsBtnClickHandler);
 
 let crossTableBtn: HTMLButtonElement | null;
 let crossTableElements: NodeListOf<HTMLTableCellElement>;
@@ -14,10 +23,14 @@ let crossTableElements: NodeListOf<HTMLTableCellElement>;
 let crossTableModal: HTMLDivElement | null;
 let crossTableWithScroll: HTMLDivElement | null;
 
-standingsBtn.addEventListener("click", standingsBtnClickHandler);
+const movesDiv = document.querySelector(".movetable-tablewrapper")!;
+const movesTable = movesDiv.querySelector("table");
 
 // need this for @media queries
 let enginesAmount = 0;
+
+let currentGameNumber = -1;
+let savedPGN: string[] = [];
 
 const formatter = Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
@@ -38,6 +51,14 @@ const userCustomOptionsDefault: Options = {
   pairPerRow: undefined,
   drawBgOnEmptyCells: false,
   allowHotkeys: true,
+} as const;
+
+const PairsObj = {
+  DoubleWin: "ccc-double-win",
+  Win: "ccc-win",
+  Draw: "ccc-draw",
+  Loss: "ccc-loss",
+  DoubleLoss: "ccc-double-loss",
 } as const;
 
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
@@ -86,18 +107,21 @@ function loadUserSettings(): void {
   }
 }
 
+onloadObserver();
+observeGameEnd();
+observeMovePlayed();
+
 loadUserSettings();
+// TODO ======
+// getCurrentGameNumber();
 
 let spaceKeyPressed = false;
 
 // * typescript
-enum Pairs {
-  DoubleWin = "ccc-double-win",
-  Win = "ccc-win",
-  Draw = "ccc-draw",
-  Loss = "ccc-loss",
-  DoubleLoss = "ccc-double-loss",
-}
+
+// prettier-ignore
+type BooleanKeys<T> = { [k in keyof T]: T[k] extends boolean ? k : never}[keyof T];
+type OnlyBoolean<T> = { [k in BooleanKeys<T>]: boolean };
 
 type ResultAsScore = 1 | 0 | -1;
 type WDL = [number, number, number];
@@ -107,6 +131,9 @@ type LabelForField = keyof Omit<Options, "pairPerRow">;
 type TChrome = typeof chrome;
 type TFirefox = typeof browser;
 type Browsers = TChrome | TFirefox;
+
+type ValuesOfObject<T> = T[keyof T];
+type PairValues = ValuesOfObject<typeof PairsObj>;
 
 interface Options {
   ptnml: boolean;
@@ -150,24 +177,7 @@ function convertCrossTable(): void {
       observeInitial();
     }
 
-    const engines = document.querySelectorAll(".crosstable-name");
-    if (engines && enginesAmount >= 6) {
-      const enginesNames: string[] = [];
-      engines.forEach((engine) => {
-        enginesNames.push(engine.textContent!.replace("\n", "").trim());
-      });
-
-      // since we're in convert crosstable() crossTable is not null
-      const crossTable = document.querySelector(".crosstable-crosstable")!;
-      const standingsRow = crossTable.querySelector("tr")!;
-      const enginesRows = standingsRow.querySelectorAll(
-        ".font-extra-faded-white"
-      );
-
-      enginesRows.forEach((row, index) => {
-        row.textContent = `${index + 1} ${enginesNames[index]}`;
-      });
-    }
+    createEnginesNames();
 
     activeCells.forEach(convertCell);
   } catch (e: any) {
@@ -451,14 +461,14 @@ function getResultFromNode(node: HTMLDivElement): ResultAsScore {
 function getClassNameForPair(
   lastResult: ResultAsScore,
   currentResult: ResultAsScore
-): Pairs {
+): PairValues {
   const pairScore = lastResult + currentResult;
 
-  if (pairScore === 2) return Pairs.DoubleWin;
-  if (pairScore === 1) return Pairs.Win;
-  if (pairScore === 0) return Pairs.Draw;
-  if (pairScore === -1) return Pairs.Loss;
-  return Pairs.DoubleLoss;
+  if (pairScore === 2) return PairsObj.DoubleWin;
+  if (pairScore === 1) return PairsObj.Win;
+  if (pairScore === 0) return PairsObj.Draw;
+  if (pairScore === -1) return PairsObj.Loss;
+  return PairsObj.DoubleLoss;
 }
 
 function createStatWrapperElement(): HTMLDivElement {
@@ -572,9 +582,7 @@ function createOptionInputs(): void {
     ".modal-vue-modal-content"
   );
 
-  if (!crossTableModal) {
-    return;
-  }
+  if (!crossTableModal) return;
   const { width } = crossTableModal.getBoundingClientRect();
   if (width < 220) return;
 
@@ -590,19 +598,25 @@ function createOptionInputs(): void {
   wrapper.append(formElement, eloLabel, ptnmlLabel);
 
   eloLabel.addEventListener("change", () => {
-    userCustomOptions.elo = !userCustomOptions.elo;
+    switchLabelHandler("elo");
+  });
 
-    browserPrefix.storage.local
-      .set({ elo: userCustomOptions.elo })
-      .then(convertCrossTable);
+  eloLabel.addEventListener("keydown", (e) => {
+    if (e.code !== "Enter") return;
+
+    eloLabel.querySelector("input")!.checked = !userCustomOptions.elo;
+    switchLabelHandler("elo");
   });
 
   ptnmlLabel.addEventListener("change", () => {
-    userCustomOptions.ptnml = !userCustomOptions.ptnml;
+    switchLabelHandler("ptnml");
+  });
 
-    browserPrefix.storage.local
-      .set({ ptnml: userCustomOptions.ptnml })
-      .then(convertCrossTable);
+  ptnmlLabel.addEventListener("keydown", (e) => {
+    if (e.code !== "Enter") return;
+
+    ptnmlLabel.querySelector("input")!.checked = !userCustomOptions.ptnml;
+    switchLabelHandler("ptnml");
   });
 
   crossTableModal.append(wrapper);
@@ -755,6 +769,42 @@ function createAdvancedStats(stats: AdditionalStats) {
   return additionalStatsWrapper;
 }
 
+function createEnginesNames() {
+  try {
+    const engines = document.querySelectorAll(".crosstable-name");
+
+    if (!engines) return;
+
+    const enginesNames: string[] = [];
+    engines.forEach((engine) => {
+      enginesNames.push(engine.textContent!.replace("\n", "").trim());
+    });
+
+    const crossTable = document.querySelector(".crosstable-crosstable");
+    if (!crossTable) return;
+    crossTable.classList.add("tomato");
+
+    const standingsRow = crossTable.querySelector("tr")!;
+    const enginesRows = standingsRow.querySelectorAll(
+      ".font-extra-faded-white"
+    );
+
+    enginesRows.forEach((row, index) => {
+      row.textContent = `${index + 1} ${enginesNames[index]}`;
+    });
+  } catch (e: any) {
+    console.log(e?.message);
+  }
+}
+
+function switchLabelHandler(field: keyof OnlyBoolean<Options>) {
+  userCustomOptions[field] = !userCustomOptions[field];
+
+  browserPrefix.storage.local
+    .set({ [field]: userCustomOptions[field] })
+    .then(convertCrossTable);
+}
+
 function addClassNamesCrossTable(crossTableCell: HTMLDivElement): void {
   crossTableCell.classList.add("ccc-cell-grid");
   if (enginesAmount === 2) {
@@ -813,6 +863,221 @@ function applyStylesToGrid() {
     `${userCustomOptions.pairPerRow ? userCustomOptions.pairPerRow * 2 : ""}`
   );
 }
+
+// observes initial loader backdrop
+function onloadObserver() {
+  const mainContentContainer = document.querySelector(".cpu-champs-page-main");
+  const loader: HTMLDivElement | null = document.querySelector(
+    ".cpu-champs-page-loader-wrapper"
+  );
+
+  if (!loader || !mainContentContainer) return;
+
+  const o = new MutationObserver(() => {
+    o.disconnect();
+
+    setTimeout(() => {
+      requestPreviousPGN();
+      getCurrentPGN();
+    }, 100);
+  });
+
+  o.observe(mainContentContainer, {
+    childList: true,
+  });
+}
+
+let agree = true;
+
+function observeGameEnd() {
+  const observer = new MutationObserver(() => {
+    const clockDiv = movesDiv.querySelector(".next-game-clock-wrapper");
+    console.log("game number", getGameNumberFromStandings());
+
+    // it will work when a new game starts
+    if (!clockDiv) {
+      // TODO save game PGN
+
+      agree = true;
+      currentGameNumber++;
+      return;
+    }
+
+    if (currentGameNumber % 2 === 1) {
+      saveCurrentPGN();
+    }
+  });
+
+  observer.observe(movesDiv, {
+    childList: true,
+  });
+}
+
+function observeMovePlayed() {
+  if (!movesTable) return;
+
+  const observer = new MutationObserver((e) => {
+    if (e.length > 3) {
+      console.log("NEW GAME FROM MOVES DETECTED");
+      return;
+    }
+    if (currentGameNumber % 2 === 1) return;
+
+    if (currentGameNumber === -1) {
+      getGameNumberFromStandings();
+      return;
+    }
+
+    console.log("cur game number", currentGameNumber);
+
+    if (!agree) return;
+    const pgn = getCurrentPGN();
+
+    if (!pgn) return;
+
+    let agreeLen = 0;
+
+    for (let i = 0; i < Math.min(savedPGN.length, pgn?.length); i++) {
+      const saved = savedPGN[i];
+      const cur = pgn[i];
+
+      console.log(saved === cur, "IS EQUAL?", cur, saved);
+      if (saved === cur) {
+        agreeLen++;
+      } else {
+        agree = false;
+        break;
+      }
+    }
+    console.log("agree len", agreeLen);
+
+    const nodes = movesTable.querySelectorAll("th,td");
+    console.log("NODES", nodes);
+
+    for (let i = 0; i < agreeLen; i++) {
+      const cur = nodes[i];
+
+      if (!cur) continue;
+      cur?.classList.add("tomato-i");
+    }
+
+    console.log("NEW MOVE", e);
+  });
+
+  observer.observe(movesTable, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+// ! ================
+// ! test features
+function requestPreviousPGN() {
+  standingsBtn.click();
+
+  setTimeout(() => {
+    let gameNumber = getGameNumberFromStandings();
+    if (!gameNumber) return;
+    if (currentGameNumber === -1) {
+      currentGameNumber = gameNumber;
+    }
+    gameNumber -= 1;
+
+    if (gameNumber % 2 === 0) return;
+
+    chrome.runtime.sendMessage(
+      {
+        type: "game",
+        payload: {
+          gameNumber,
+        },
+      },
+      (res) => {
+        savedPGN = res;
+
+        const pgn = getCurrentPGN();
+
+        if (!pgn || !movesTable) return;
+
+        let agreeLen = 0;
+        agree = true;
+
+        for (let i = 0; i < Math.min(savedPGN.length, pgn?.length); i++) {
+          const saved = savedPGN[i];
+          const cur = pgn[i];
+
+          console.log(saved === cur, "IS EQUAL?", cur, saved);
+          if (saved === cur) {
+            agreeLen++;
+          } else {
+            agree = false;
+            break;
+          }
+        }
+        console.log("agree len", agreeLen);
+
+        const nodes = movesTable.querySelectorAll("th,td");
+        console.log("NODES", nodes);
+
+        for (let i = 0; i < agreeLen; i++) {
+          const cur = nodes[i];
+
+          if (!cur) continue;
+          cur?.classList.add("tomato-i");
+        }
+      }
+    );
+  });
+}
+
+function getGameNumberFromStandings(): number | undefined {
+  try {
+    const engineScores = standingsDiv.querySelectorAll(".engineitem-score");
+
+    let gameNumber = 0;
+
+    for (let i = 0; i < engineScores.length; i++) {
+      // score in 'a/b' format
+      const scoreText = engineScores[i].textContent;
+
+      const score = scoreText
+        ?.split("/")[1]
+        .replace("\n", "")
+        .replace(" ", "")
+        .trim()!;
+      gameNumber += parseInt(score);
+    }
+
+    gameNumber /= 2;
+    gameNumber += 1;
+
+    return gameNumber;
+  } catch (e: any) {
+    console.log(e.message);
+  }
+}
+
+function saveCurrentPGN() {
+  const pgn = getCurrentPGN();
+
+  if (!pgn) return;
+
+  savedPGN.length = 0;
+  savedPGN.push(...pgn);
+}
+
+function getCurrentPGN() {
+  const pgnArr = movesTable?.textContent
+    ?.split("\n")
+    .join("")
+    .split(" ")
+    .filter((el) => el !== "" && el !== " ");
+
+  return pgnArr;
+}
+
+// ! ================
+// ! ================
 
 // * ----------------------------
 // * event handlers and listeners
@@ -892,7 +1157,7 @@ function handleOpenCrossTableKeyboard(container: HTMLElement) {
   crossTableBtn = container?.querySelector("button");
   if (!crossTableBtn) return;
 
-  crossTableBtn?.click();
+  crossTableBtn.click();
 
   queueMicrotask(crossTableBtnClickHandler);
 }
@@ -979,7 +1244,9 @@ function standingsBtnClickHandler(): void {
 
 function crossTableBtnClickHandler(): void {
   try {
-    const crossTableModal = document.querySelector(".modal-vue-modal-content");
+    const crossTableModal: HTMLDivElement | null = document.querySelector(
+      ".modal-vue-modal-content"
+    );
 
     if (!crossTableModal) return;
     crossTableElements = crossTableModal.querySelectorAll(
@@ -996,10 +1263,10 @@ function crossTableBtnClickHandler(): void {
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
 function calculateEloFromPercent(percent: number): string {
-  var percentage = percent / 100;
-  var eloDiff = (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
+  const percentage = percent / 100;
+  const eloDiff = (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
 
-  var Sign = "";
+  let Sign = "";
   if (eloDiff > 0) {
     Sign = "+";
   }
@@ -1014,12 +1281,11 @@ function calculateEloDifference(percentage: number): number {
 }
 
 function CalculateInverseErrorFunction(x: number): number {
-  var pi = Math.PI;
-  var a = (8 * (pi - 3)) / (3 * pi * (4 - pi));
-  var y = Math.log(1 - x * x);
-  var z = 2 / (pi * a) + y / 2;
+  const a: number = (8 * (Math.PI - 3)) / (3 * Math.PI * (4 - Math.PI));
+  const y: number = Math.log(1 - x * x);
+  const z: number = 2 / (Math.PI * a) + y / 2;
 
-  var ret = Math.sqrt(Math.sqrt(z * z - y / a) - z);
+  const ret = Math.sqrt(Math.sqrt(z * z - y / a) - z);
 
   if (x < 0) return -ret;
 
