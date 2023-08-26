@@ -46,7 +46,7 @@
   color: gray;
 }
 
-.movetable-book-ply.ccc-move-agree {
+.ccc-move-agree:not(.movetable-book-ply) {
   text-decoration: underline !important;
   border-radius: 4px;
 }

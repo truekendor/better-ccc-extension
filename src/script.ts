@@ -947,14 +947,17 @@ function highlightAgreement() {
   const pgn = getCurrentPGN();
   if (!pgn || !movesTable) return;
 
-  const moveNodes = movesTable.querySelectorAll("th,td");
+  const moveNodes: NodeListOf<HTMLTableElement> =
+    movesTable.querySelectorAll("th,td");
   let agreeLen = 0;
 
   for (let i = 0; i < Math.min(savedPGN.length, pgn?.length); i++) {
+    const parent = moveNodes[i];
+    const p = document.createElement("p");
+
     const saved = savedPGN[i];
     const cur = pgn[i];
 
-    console.log(saved === cur, "IS EQUAL?", cur, saved);
     if (saved === cur) {
       agreeLen++;
 
@@ -963,15 +966,13 @@ function highlightAgreement() {
 
     agree = false;
 
-    const p = document.createElement("p");
     p.classList.add("ccc-stroke");
     p.classList.add("ccc-agree-end");
-
-    p.title = `The move played in the last game - ${saved}`;
-
     p.textContent = `(${saved})`;
 
-    moveNodes[i].append(p);
+    parent.title = `The move played in the last game - ${saved}`;
+
+    parent.append(p);
 
     break;
   }
@@ -981,8 +982,9 @@ function highlightAgreement() {
 
     if (!cur) break;
     if (cur.nodeName === "TH") continue;
-    // cur?.classList.add("tomato-i");
+
     cur?.classList.add("ccc-move-agree");
+    cur.title = "The same move as in the last game";
   }
 }
 
