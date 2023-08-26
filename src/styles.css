@@ -41,6 +41,25 @@
   background-color: rgba(255, 99, 71, 0.313) !important;
 }
 
+.ccc-stroke {
+  font-size: 1rem;
+  color: gray;
+}
+
+.movetable-book-ply.ccc-move-agree {
+  text-decoration: underline !important;
+  border-radius: 4px;
+}
+
+/* TODO edit this */
+/* .ccc-agree-end {
+  position: relative;
+}
+
+.ccc-agree-end::before {
+  content: "";
+} */
+
 .crosstable-results-cell {
   position: relative;
 

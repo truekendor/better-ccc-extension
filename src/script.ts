@@ -782,7 +782,6 @@ function createEnginesNames() {
 
     const crossTable = document.querySelector(".crosstable-crosstable");
     if (!crossTable) return;
-    crossTable.classList.add("tomato");
 
     const standingsRow = crossTable.querySelector("tr")!;
     const enginesRows = standingsRow.querySelectorAll(
@@ -917,11 +916,12 @@ function observeMovePlayed() {
   if (!movesTable) return;
 
   const observer = new MutationObserver((e) => {
+    if (currentGameNumber % 2 === 1) return;
     if (e.length > 3) {
       console.log("NEW GAME FROM MOVES DETECTED");
+      console.log(savedPGN);
       return;
     }
-    if (currentGameNumber % 2 === 1) return;
 
     if (currentGameNumber === -1) {
       getGameNumberFromStandings();
@@ -931,43 +931,59 @@ function observeMovePlayed() {
     console.log("cur game number", currentGameNumber);
 
     if (!agree) return;
-    const pgn = getCurrentPGN();
 
-    if (!pgn) return;
-
-    let agreeLen = 0;
-
-    for (let i = 0; i < Math.min(savedPGN.length, pgn?.length); i++) {
-      const saved = savedPGN[i];
-      const cur = pgn[i];
-
-      console.log(saved === cur, "IS EQUAL?", cur, saved);
-      if (saved === cur) {
-        agreeLen++;
-      } else {
-        agree = false;
-        break;
-      }
-    }
-    console.log("agree len", agreeLen);
-
-    const nodes = movesTable.querySelectorAll("th,td");
-    console.log("NODES", nodes);
-
-    for (let i = 0; i < agreeLen; i++) {
-      const cur = nodes[i];
-
-      if (!cur) continue;
-      cur?.classList.add("tomato-i");
-    }
-
-    console.log("NEW MOVE", e);
+    highlightAgreement();
   });
 
   observer.observe(movesTable, {
     childList: true,
     subtree: true,
   });
+}
+
+function highlightAgreement() {
+  console.log("HIGHLIGHT");
+
+  const pgn = getCurrentPGN();
+  if (!pgn || !movesTable) return;
+
+  const moveNodes = movesTable.querySelectorAll("th,td");
+  let agreeLen = 0;
+
+  for (let i = 0; i < Math.min(savedPGN.length, pgn?.length); i++) {
+    const saved = savedPGN[i];
+    const cur = pgn[i];
+
+    console.log(saved === cur, "IS EQUAL?", cur, saved);
+    if (saved === cur) {
+      agreeLen++;
+
+      continue;
+    }
+
+    agree = false;
+
+    const p = document.createElement("p");
+    p.classList.add("ccc-stroke");
+    p.classList.add("ccc-agree-end");
+
+    p.title = `The move played in the last game - ${saved}`;
+
+    p.textContent = `(${saved})`;
+
+    moveNodes[i].append(p);
+
+    break;
+  }
+
+  for (let i = 0; i < agreeLen; i++) {
+    const cur = moveNodes[i];
+
+    if (!cur) break;
+    if (cur.nodeName === "TH") continue;
+    // cur?.classList.add("tomato-i");
+    cur?.classList.add("ccc-move-agree");
+  }
 }
 
 // ! ================
@@ -994,41 +1010,32 @@ function requestPreviousPGN() {
       },
       (res) => {
         savedPGN = res;
-
-        const pgn = getCurrentPGN();
-
-        if (!pgn || !movesTable) return;
-
-        let agreeLen = 0;
-        agree = true;
-
-        for (let i = 0; i < Math.min(savedPGN.length, pgn?.length); i++) {
-          const saved = savedPGN[i];
-          const cur = pgn[i];
-
-          console.log(saved === cur, "IS EQUAL?", cur, saved);
-          if (saved === cur) {
-            agreeLen++;
-          } else {
-            agree = false;
-            break;
-          }
-        }
-        console.log("agree len", agreeLen);
-
-        const nodes = movesTable.querySelectorAll("th,td");
-        console.log("NODES", nodes);
-
-        for (let i = 0; i < agreeLen; i++) {
-          const cur = nodes[i];
-
-          if (!cur) continue;
-          cur?.classList.add("tomato-i");
-        }
+        highlightAgreement();
       }
     );
   });
 }
+
+chrome.runtime.onMessage.addListener(function (
+  message,
+  sender,
+  senderResponse
+) {
+  try {
+    const { type, payload } = message;
+    if (type === "pgn" && payload.pgn) {
+      savedPGN = payload.pgn;
+
+      highlightAgreement();
+    }
+
+    senderResponse(true);
+
+    return true;
+  } catch (e: any) {
+    console.log(e?.message);
+  }
+});
 
 function getGameNumberFromStandings(): number | undefined {
   try {
@@ -1166,8 +1173,6 @@ function openCrossTableFromOtherTab() {
   const divWithBtn = document.querySelectorAll(
     ".selection-panel-container + div"
   )[2];
-
-  // divWithBtn.classList.add("tomato");
 
   if (!divWithBtn) return;
 
