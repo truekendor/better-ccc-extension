@@ -863,6 +863,15 @@ function applyStylesToGrid() {
   );
 }
 
+// ! --
+setInterval(() => {
+  console.log("current game number", currentGameNumber);
+}, 1500);
+
+// TODO
+// for move agreement
+let agree = true;
+
 // observes initial loader backdrop
 function onloadObserver() {
   const mainContentContainer = document.querySelector(".cpu-champs-page-main");
@@ -885,8 +894,6 @@ function onloadObserver() {
     childList: true,
   });
 }
-
-let agree = true;
 
 function observeGameEnd() {
   const observer = new MutationObserver(() => {
@@ -923,6 +930,8 @@ function observeMovePlayed() {
       return;
     }
 
+    console.log("change", e);
+
     if (currentGameNumber === -1) {
       getGameNumberFromStandings();
       return;
@@ -930,7 +939,7 @@ function observeMovePlayed() {
 
     console.log("cur game number", currentGameNumber);
 
-    if (!agree) return;
+    // if (!agree) return;
 
     highlightAgreement();
   });
@@ -938,13 +947,15 @@ function observeMovePlayed() {
   observer.observe(movesTable, {
     childList: true,
     subtree: true,
+    // CCC rebuilds all moves list from scratch on each iteration
+    attributes: true,
+    attributeFilter: ["class"],
   });
 }
 
 function highlightAgreement() {
-  console.log("HIGHLIGHT");
-
   const pgn = getCurrentPGN();
+
   if (!pgn || !movesTable) return;
 
   const moveNodes: NodeListOf<HTMLTableElement> =
@@ -958,21 +969,25 @@ function highlightAgreement() {
     const saved = savedPGN[i];
     const cur = pgn[i];
 
+    const pPresent = parent.querySelector("p");
+
     if (saved === cur) {
       agreeLen++;
 
       continue;
     }
 
-    agree = false;
+    // agree = false;
 
     p.classList.add("ccc-stroke");
     p.classList.add("ccc-agree-end");
     p.textContent = `(${saved})`;
 
-    parent.title = `The move played in the last game - ${saved}`;
+    if (!pPresent) {
+      parent.append(p);
+    }
 
-    parent.append(p);
+    parent.title = `The move played in the last game - ${saved}`;
 
     break;
   }

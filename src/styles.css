@@ -43,22 +43,27 @@
 
 .ccc-stroke {
   font-size: 1rem;
-  color: gray;
+  color: rgb(146, 146, 146);
 }
 
-.ccc-move-agree:not(.movetable-book-ply) {
-  text-decoration: underline !important;
+.ccc-move-agree {
+  text-decoration: underline;
   border-radius: 4px;
 }
+
+/* 
+.movetable-hoverable
+
+.ccc-agree-end ~ {
+  text-decoration: unset !important;
+  background-color: rgba(255, 99, 71, 0.252) !important;
+} */
 
 /* TODO edit this */
 /* .ccc-agree-end {
   position: relative;
 }
-
-.ccc-agree-end::before {
-  content: "";
-} */
+*/
 
 .crosstable-results-cell {
   position: relative;
