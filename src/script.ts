@@ -45,6 +45,12 @@ const userCustomOptions: Options = {
   allowHotkeys: true,
 };
 
+const moveListObserverOptions: Readonly<MutationObserverInit> = {
+  subtree: true,
+  attributes: true,
+  attributeFilter: ["class"],
+};
+
 const userCustomOptionsDefault: Options = {
   ptnml: true,
   elo: true,
@@ -107,9 +113,11 @@ function loadUserSettings(): void {
   }
 }
 
+// * observers
 onloadObserver();
 observeGameEnd();
 observeMovePlayed();
+observeMoveListTraversal();
 
 loadUserSettings();
 // TODO ======
@@ -878,6 +886,8 @@ function onloadObserver() {
   const loader: HTMLDivElement | null = document.querySelector(
     ".cpu-champs-page-loader-wrapper"
   );
+  // TODO
+  sendReadyToBg();
 
   if (!loader || !mainContentContainer) return;
 
@@ -885,8 +895,11 @@ function onloadObserver() {
     o.disconnect();
 
     setTimeout(() => {
+      // queueMicrotask(() => {
       requestPreviousPGN();
+
       getCurrentPGN();
+      // });
     }, 100);
   });
 
@@ -923,20 +936,19 @@ function observeMovePlayed() {
   if (!movesTable) return;
 
   const observer = new MutationObserver((e) => {
-    if (currentGameNumber % 2 === 1) return;
-    if (e.length > 3) {
-      console.log("NEW GAME FROM MOVES DETECTED");
-      console.log(savedPGN);
-      return;
-    }
-
-    console.log("change", e);
-
+    console.log("mutation");
     if (currentGameNumber === -1) {
       getGameNumberFromStandings();
       return;
     }
+    if (currentGameNumber % 2 === 1) return;
+    if (e.length > 6) {
+      console.log("NEW GAME FROM MOVES DETECTED");
+      // console.log("saved PGN", savedPGN);
+      return;
+    }
 
+    console.log("change", e);
     console.log("cur game number", currentGameNumber);
 
     // if (!agree) return;
@@ -947,10 +959,24 @@ function observeMovePlayed() {
   observer.observe(movesTable, {
     childList: true,
     subtree: true,
-    // CCC rebuilds all moves list from scratch on each iteration
-    attributes: true,
-    attributeFilter: ["class"],
   });
+}
+
+function observeMoveListTraversal() {
+  if (!movesTable) return;
+
+  const observer = new MutationObserver((e) => {
+    console.log("movelist traversal");
+    observer.disconnect();
+
+    highlightAgreement();
+
+    setTimeout(() => {
+      observer.observe(movesTable, moveListObserverOptions);
+    });
+  });
+
+  observer.observe(movesTable, moveListObserverOptions);
 }
 
 function highlightAgreement() {
@@ -977,7 +1003,7 @@ function highlightAgreement() {
       continue;
     }
 
-    // agree = false;
+    agree = false;
 
     p.classList.add("ccc-stroke");
     p.classList.add("ccc-agree-end");
@@ -1053,6 +1079,19 @@ chrome.runtime.onMessage.addListener(function (
     console.log(e?.message);
   }
 });
+
+function sendReadyToBg() {
+  chrome.runtime.sendMessage(
+    {
+      type: "load",
+      payload: null,
+    },
+    (res) => {
+      savedPGN = res;
+      highlightAgreement();
+    }
+  );
+}
 
 function getGameNumberFromStandings(): number | undefined {
   try {

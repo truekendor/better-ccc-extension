@@ -3,15 +3,19 @@ const eventList = [];
 
 getEventList();
 function getEventList() {
-  return fetch("https://cccc.chess.com/event-list")
-    .then((res) => {
-      return res.json();
-    })
-    .then((res) => {
-      eventList.length = 0;
-      eventList.push(...res);
-    })
-    .catch((e) => console.log(e.message));
+  try {
+    return fetch("https://cccc.chess.com/event-list")
+      .then((res) => {
+        return res.json();
+      })
+      .then((res) => {
+        eventList.length = 0;
+        eventList.push(...res);
+      })
+      .catch((e) => console.log(e.message));
+  } catch (e) {
+    console.log(e?.message);
+  }
 }
 
 chrome.runtime.onMessage.addListener(function (
@@ -19,32 +23,38 @@ chrome.runtime.onMessage.addListener(function (
   sender,
   senderResponse
 ) {
-  if (eventList.length === 0) {
-    console.log("no event list!");
+  try {
+    if (eventList.length === 0) {
+      console.log("no event list!");
+
+      return true;
+    }
+    const { type, payload } = message;
+
+    // if (payload.gameNumber % 2 === 1) return true;
+
+    if (type === "game") {
+      fetch(getGameUrl(eventList[0]?.id, payload.gameNumber))
+        .then((res) => {
+          return res.json();
+        })
+        .then((res) => {
+          let pgn = getMovesFromPgn(res.pgn);
+          pgn = pgn.split(" ").filter((el) => el !== "" && el !== " ");
+
+          if (!pgn) return true;
+
+          senderResponse(pgn ?? null);
+        });
+    }
+    if (type === "load") {
+      onLoadHandler();
+    }
 
     return true;
+  } catch (e) {
+    console.log(e?.message);
   }
-  const { type, payload } = message;
-
-  // if (payload.gameNumber % 2 === 1) return true;
-
-  if (type === "game") {
-    fetch(getGameUrl(eventList[0]?.id, payload.gameNumber))
-      .then((res) => {
-        return res.json();
-      })
-      .then((res) => {
-        let pgn = getMovesFromPgn(res.pgn);
-        pgn = pgn.split(" ").filter((el) => el !== "" && el !== " ");
-
-        if (!pgn) return true;
-
-        senderResponse(pgn ?? null);
-      })
-      .catch((err) => console.log("Error at bg: ", err.message));
-  }
-
-  return true;
 });
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -71,6 +81,7 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
       .then((pgn) => {
         chrome.tabs.query(
           { active: true, currentWindow: true },
+
           function (tabs) {
             chrome.tabs.sendMessage(tabs[0].id, {
               type: "pgn",
@@ -90,10 +101,43 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 });
 
 async function getCurrentTab() {
-  const queryOptions = { active: true, currentWindow: true };
-  const [tab] = await chrome.tabs.query(queryOptions);
+  try {
+    const queryOptions = { active: true, currentWindow: true };
+    const [tab] = await chrome.tabs.query(queryOptions);
 
-  return tab;
+    return tab;
+  } catch (e) {
+    console.log(e?.message);
+  }
+}
+
+async function onLoadHandler() {
+  try {
+    const tab = await getCurrentTab();
+
+    let { event, game } = getEventAndGame(tab) ?? { event: "", game: "" };
+    console.log("game", game);
+    if (!event || !game || parseInt(game) % 2 === 1) return;
+
+    const gameLogsRaw = await fetch(getGameUrl(event, game - 1));
+    const gameLogs = await gameLogsRaw.json();
+
+    let pgn = getMovesFromPgn(gameLogs.pgn);
+    pgn = pgn.split(" ").filter((el) => el !== "" && el !== " ");
+
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+      console.log("PGN TO SEND ", pgn);
+
+      chrome.tabs.sendMessage(tabs[0].id, {
+        type: "pgn",
+        payload: {
+          pgn,
+        },
+      });
+    });
+  } catch (e) {
+    console.log(e?.message);
+  }
 }
 
 function getEventAndGame(tab) {
