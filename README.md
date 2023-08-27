@@ -1,4 +1,4 @@
-# Chrome/Firefox extension for [CCC](https://www.chess.com/computer-chess-championship#)
+# Chrome/Firefox/Edge extension for [CCC](https://www.chess.com/computer-chess-championship#)
 
 ![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview.webp)
 
@@ -8,14 +8,14 @@
 
   - ![Download helper](https://github.com/truekendor/better-ccc-extension/blob/main/img/download.webp)
  
-### Google Chrome
+## Google Chrome / Edge / Other Chromium based browsers 
   - Open `chrome://extensions/` page
   - Enable developer mode
   - Click `Load unpacked` button
   - Select the `chrome` folder from this repo
-### Firefox
+## Firefox
   
-  ## Download the extension [here](https://addons.mozilla.org/en-US/firefox/addon/better-ccc/) or alternatively follow the instructions below
+  ### Download the extension [here](https://addons.mozilla.org/en-US/firefox/addon/better-ccc/) or alternatively follow the instructions below
 
   - Open `about:addons` page
   - Click on this button
@@ -24,6 +24,9 @@
   - Select `.xpi` file from `firefox` folder
   - Grant permissions if needed
   - ![Grant permissions](https://github.com/truekendor/better-ccc-extension/blob/main/img/grant%20permissions.webp)
+
+## Android TBA
+  - TBA
 
 ## Hotkeys TBA
 
