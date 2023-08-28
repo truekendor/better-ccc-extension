@@ -1,12 +1,25 @@
-const standingsDiv = document.getElementById("bottomtable-bottomtable")!;
+const mainContainer: HTMLDivElement = document.querySelector(
+  ".cpu-champs-page-ccc"
+)!;
 
-const content = document.getElementById("righttable-content");
+// div with main tabs: vote / standings / schedule / match / info
+let standingsDiv = document.getElementById("bottomtable-bottomtable")!;
+
+// twitch chat div
 const chat = document.querySelector("chat-chat");
 
+// list of vote / standings / schedule / match / info buttons
+const buttons: NodeListOf<HTMLSpanElement> = standingsDiv.querySelectorAll(
+  ".selection-panel-item"
+)!;
+
+let scheduleBtn: HTMLSpanElement = buttons[2];
+
 // panel with vote/standings/schedule buttons
-const btnPanel = standingsDiv.querySelector(".selection-panel-container")!;
+let btnPanel = standingsDiv.querySelector(".selection-panel-container")!;
 // button with text "Standings"
-const standingsBtn = btnPanel.querySelectorAll("span")[1];
+let standingsBtn = btnPanel.querySelectorAll("span")[1];
+standingsBtn.addEventListener("click", standingsBtnClickHandler);
 
 let crossTableBtn: HTMLButtonElement | null;
 let crossTableElements: NodeListOf<HTMLTableCellElement>;
@@ -14,10 +27,14 @@ let crossTableElements: NodeListOf<HTMLTableCellElement>;
 let crossTableModal: HTMLDivElement | null;
 let crossTableWithScroll: HTMLDivElement | null;
 
-standingsBtn.addEventListener("click", standingsBtnClickHandler);
+const movesDiv = document.querySelector(".movetable-tablewrapper")!;
+const movesTable = movesDiv.querySelector("table");
 
 // need this for @media queries
 let enginesAmount = 0;
+
+let currentGameNumber = -1;
+let savedPGN: string[] = [];
 
 const formatter = Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
@@ -32,6 +49,12 @@ const userCustomOptions: Options = {
   allowHotkeys: true,
 };
 
+const moveListObserverOptions: Readonly<MutationObserverInit> = {
+  subtree: true,
+  attributes: true,
+  attributeFilter: ["class"],
+};
+
 const userCustomOptionsDefault: Options = {
   ptnml: true,
   elo: true,
@@ -40,8 +63,17 @@ const userCustomOptionsDefault: Options = {
   allowHotkeys: true,
 } as const;
 
+const PairsObj = {
+  DoubleWin: "ccc-double-win",
+  Win: "ccc-win",
+  Draw: "ccc-draw",
+  Loss: "ccc-loss",
+  DoubleLoss: "ccc-double-loss",
+} as const;
+
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
+loadUserSettings();
 function loadUserSettings(): void {
   try {
     browserPrefix.storage.local
@@ -86,18 +118,23 @@ function loadUserSettings(): void {
   }
 }
 
-loadUserSettings();
+// * observers
+onloadObserver();
+observeOpenCrossTable();
+// observeGameEnd();
+// observeMovePlayed();
+// observeMoveListTraversal();
+
+// TODO ======
+// getCurrentGameNumber();
 
 let spaceKeyPressed = false;
 
 // * typescript
-enum Pairs {
-  DoubleWin = "ccc-double-win",
-  Win = "ccc-win",
-  Draw = "ccc-draw",
-  Loss = "ccc-loss",
-  DoubleLoss = "ccc-double-loss",
-}
+
+// prettier-ignore
+type BooleanKeys<T> = { [k in keyof T]: T[k] extends boolean ? k : never}[keyof T];
+type OnlyBoolean<T> = { [k in BooleanKeys<T>]: boolean };
 
 type ResultAsScore = 1 | 0 | -1;
 type WDL = [number, number, number];
@@ -107,6 +144,9 @@ type LabelForField = keyof Omit<Options, "pairPerRow">;
 type TChrome = typeof chrome;
 type TFirefox = typeof browser;
 type Browsers = TChrome | TFirefox;
+
+type ValuesOfObject<T> = T[keyof T];
+type PairValues = ValuesOfObject<typeof PairsObj>;
 
 interface Options {
   ptnml: boolean;
@@ -122,7 +162,10 @@ interface AdditionalStats {
   longestWinless: number;
   pairsRatio: number;
   performancePercent: number;
+  highestScore: number;
 }
+
+const engineImages: HTMLImageElement[] = [];
 
 // * ---------------
 // * extension logic
@@ -150,24 +193,13 @@ function convertCrossTable(): void {
       observeInitial();
     }
 
-    const engines = document.querySelectorAll(".crosstable-name");
-    if (engines && enginesAmount >= 6) {
-      const enginesNames: string[] = [];
-      engines.forEach((engine) => {
-        enginesNames.push(engine.textContent!.replace("\n", "").trim());
-      });
+    createEnginesNames();
 
-      // since we're in convert crosstable() crossTable is not null
-      const crossTable = document.querySelector(".crosstable-crosstable")!;
-      const standingsRow = crossTable.querySelector("tr")!;
-      const enginesRows = standingsRow.querySelectorAll(
-        ".font-extra-faded-white"
-      );
+    const modal = document.querySelector(".modal-vue-modal-content");
+    const images = modal?.querySelectorAll("img");
 
-      enginesRows.forEach((row, index) => {
-        row.textContent = `${index + 1} ${enginesNames[index]}`;
-      });
-    }
+    // @ts-ignore
+    engineImages.push(...Array.from(images ?? []));
 
     activeCells.forEach(convertCell);
   } catch (e: any) {
@@ -215,6 +247,35 @@ function observeEmpty(cell: HTMLTableCellElement): void {
 
 function convertCell(cell: HTMLTableCellElement): void {
   try {
+    let index_1: number = -1;
+    let index_2: number = -1;
+
+    const parent = cell.parentNode;
+    const grandParent = cell?.parentNode?.parentNode;
+
+    if (parent && grandParent) {
+      // @ts-ignore
+      for (let i = 0; i < parent?.childNodes?.length ?? 0; i++) {
+        const current = parent?.childNodes[i];
+        if (current !== cell) continue;
+        index_1 = i;
+        break;
+      }
+
+      // @ts-ignore
+      for (let i = 0; i < grandParent?.childNodes?.length ?? 0; i++) {
+        const current = grandParent?.childNodes[i];
+        // @ts-ignore
+        if (current !== cell?.parentNode) continue;
+        index_2 = i;
+        break;
+      }
+    }
+
+    index_1 -= 6;
+    index_2 -= 2;
+    console.log(index_1, index_2);
+
     // header with result -->       205 - 195 [+10]
     const cellHeader: HTMLDivElement | null = cell.querySelector(
       ".crosstable-head-to-head"
@@ -241,8 +302,8 @@ function convertCell(cell: HTMLTableCellElement): void {
     const ptnmlWrapper = createPTNMLStatHeader(ptnml);
     const wdlWrapper = createWDLStatHeader(wdlArray);
 
-    // const additionalInfoWrapper = createAdvancedStats(stats);
-    // cell.append(additionalInfoWrapper);
+    const additionalInfoWrapper = createAdvancedStats(stats, index_1, index_2);
+    cell.append(additionalInfoWrapper);
 
     // * adds/removes user chosen stats to the header
     handleCustomStat(cellHeader, wdlWrapper, ptnmlWrapper);
@@ -297,10 +358,10 @@ function liveUpdate(): void {
 // * -------------
 // * utils
 // @ts-ignore
-function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
+function getStats(scoresArray: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
   try {
     const wdlArray: WDL = [0, 0, 0]; // W D L in that order
-    arr.forEach((score) => {
+    scoresArray.forEach((score) => {
       // score is either 1 0 -1
       // so by doing this we automatically
       // increment correct value
@@ -308,7 +369,7 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
     });
 
     // to get rid of an unfinished pair
-    if (arr.length % 2 === 1) arr.pop();
+    if (scoresArray.length % 2 === 1) scoresArray.pop();
     const ptnml: PTNML = [0, 0, 0, 0, 0]; // ptnml(0-2)
 
     const stats: AdditionalStats = {
@@ -317,7 +378,21 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
       pairsRatio: 0,
       performancePercent: 0,
       longestWinless: 0,
+      highestScore: 0,
     };
+
+    let highestScore = 0;
+    let currentScore = 0;
+
+    for (let i = 0; i < scoresArray.length; i++) {
+      const cur = scoresArray[i];
+
+      currentScore += cur;
+      // update after finished pair
+      if (i % 2 === 1) {
+        highestScore = Math.max(currentScore, highestScore);
+      }
+    }
 
     // lossless
     let longesLosslessRecord = 0;
@@ -331,9 +406,9 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
     let longestWinlessRecord = 0;
     let longestWinlessCurrent = 0;
 
-    for (let i = 0; i < arr.length; i += 2) {
-      const first = arr[i];
-      const second = arr[i + 1];
+    for (let i = 0; i < scoresArray.length; i += 2) {
+      const first = scoresArray[i];
+      const second = scoresArray[i + 1];
       const res = first + second;
 
       if (res === 2) {
@@ -435,6 +510,7 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
       100;
 
     stats.pairsRatio = (ptnml[4] + ptnml[3]) / Math.max(ptnml[1] + ptnml[0], 0);
+    stats.highestScore = highestScore;
 
     return [ptnml, wdlArray, stats];
   } catch (e: any) {
@@ -451,14 +527,14 @@ function getResultFromNode(node: HTMLDivElement): ResultAsScore {
 function getClassNameForPair(
   lastResult: ResultAsScore,
   currentResult: ResultAsScore
-): Pairs {
+): PairValues {
   const pairScore = lastResult + currentResult;
 
-  if (pairScore === 2) return Pairs.DoubleWin;
-  if (pairScore === 1) return Pairs.Win;
-  if (pairScore === 0) return Pairs.Draw;
-  if (pairScore === -1) return Pairs.Loss;
-  return Pairs.DoubleLoss;
+  if (pairScore === 2) return PairsObj.DoubleWin;
+  if (pairScore === 1) return PairsObj.Win;
+  if (pairScore === 0) return PairsObj.Draw;
+  if (pairScore === -1) return PairsObj.Loss;
+  return PairsObj.DoubleLoss;
 }
 
 function createStatWrapperElement(): HTMLDivElement {
@@ -488,7 +564,9 @@ function createWLDEloElement(
   w.classList.add("win");
   d.classList.add("draw");
   // custom style for more contrast
-  l.classList.add("ccc-loss-font");
+
+  // l.classList.add("ccc-loss-font");
+  l.classList.add("loss");
   l.classList.add("ccc-margin-right");
 
   const points = wdl[0] + wdl[1] / 2;
@@ -572,9 +650,7 @@ function createOptionInputs(): void {
     ".modal-vue-modal-content"
   );
 
-  if (!crossTableModal) {
-    return;
-  }
+  if (!crossTableModal) return;
   const { width } = crossTableModal.getBoundingClientRect();
   if (width < 220) return;
 
@@ -590,19 +666,25 @@ function createOptionInputs(): void {
   wrapper.append(formElement, eloLabel, ptnmlLabel);
 
   eloLabel.addEventListener("change", () => {
-    userCustomOptions.elo = !userCustomOptions.elo;
+    switchLabelHandler("elo");
+  });
 
-    browserPrefix.storage.local
-      .set({ elo: userCustomOptions.elo })
-      .then(convertCrossTable);
+  eloLabel.addEventListener("keydown", (e) => {
+    if (e.code !== "Enter") return;
+
+    eloLabel.querySelector("input")!.checked = !userCustomOptions.elo;
+    switchLabelHandler("elo");
   });
 
   ptnmlLabel.addEventListener("change", () => {
-    userCustomOptions.ptnml = !userCustomOptions.ptnml;
+    switchLabelHandler("ptnml");
+  });
 
-    browserPrefix.storage.local
-      .set({ ptnml: userCustomOptions.ptnml })
-      .then(convertCrossTable);
+  ptnmlLabel.addEventListener("keydown", (e) => {
+    if (e.code !== "Enter") return;
+
+    ptnmlLabel.querySelector("input")!.checked = !userCustomOptions.ptnml;
+    switchLabelHandler("ptnml");
   });
 
   crossTableModal.append(wrapper);
@@ -691,9 +773,39 @@ function createSwitchLabel(
 }
 
 // ! not in release
-function createAdvancedStats(stats: AdditionalStats) {
+function createAdvancedStats(
+  stats: AdditionalStats,
+  index_1: number,
+  index_2: number
+) {
   const additionalStatsWrapper = document.createElement("div");
+  additionalStatsWrapper.classList.add("ccc-info-button");
 
+  const svg = createSVGCaret();
+  additionalStatsWrapper.append(svg);
+
+  additionalStatsWrapper.addEventListener("click", (e) => {
+    e.stopPropagation();
+
+    const statsElementBackdrop = document.createElement("div");
+    statsElementBackdrop.classList.add("ccc-info-backdrop");
+
+    statsElementBackdrop.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (e.target !== statsElementBackdrop) return;
+      additionalStatsWrapper.removeChild(statsElementBackdrop);
+    });
+
+    const infoElement = handleStatElementCreation(stats, index_1, index_2);
+
+    statsElementBackdrop.append(infoElement);
+    additionalStatsWrapper.append(statsElementBackdrop);
+  });
+
+  return additionalStatsWrapper;
+}
+
+function createSVGCaret() {
   const iconSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const iconPath = document.createElementNS(
     "http://www.w3.org/2000/svg",
@@ -714,45 +826,125 @@ function createAdvancedStats(stats: AdditionalStats) {
   iconPath.setAttribute("stroke-width", "2");
 
   iconSvg.appendChild(iconPath);
-  additionalStatsWrapper.append(iconSvg);
+  return iconSvg;
+}
 
-  additionalStatsWrapper.classList.add("ccc-info-button");
+function handleStatElementCreation(
+  stats: AdditionalStats,
+  index_1: number,
+  index_2: number
+) {
+  const infoElement = document.createElement("div");
+  infoElement.classList.add("ccc-info-panel");
 
-  additionalStatsWrapper.addEventListener("click", (e) => {
-    e.stopPropagation();
+  infoElement.innerHTML = "";
 
-    const statsElementBackdrop = document.createElement("div");
-    statsElementBackdrop.classList.add("ccc-info-backdrop");
+  const p1 = createAdditionalStatRow(
+    "Longest lossless streak: ",
+    `${stats.longestLossless} pairs`
+  );
+  const p2 = createAdditionalStatRow(
+    "Longest win streak: ",
+    `${stats.longestWinStreak} pairs`
+  );
+  const p3 = createAdditionalStatRow(
+    "Longest winless streak: ",
+    `${stats.longestWinless} pairs`
+  );
 
-    statsElementBackdrop.addEventListener("click", function (e) {
-      e.stopPropagation();
-      if (e.target !== statsElementBackdrop) return;
-      additionalStatsWrapper.removeChild(statsElementBackdrop);
+  const p4 = createAdditionalStatRow(
+    "Performance: ",
+    `${formatter.format(stats.performancePercent)}%`
+  );
+  const p5 = createAdditionalStatRow(
+    "Pairs Ratio: ",
+    `${formatter.format(stats.pairsRatio)}`
+  );
+
+  const p6 = createAdditionalStatRow(
+    "Highest score: ",
+    `[+${stats.highestScore}]`
+  );
+
+  const opponentsDiv = document.createElement("div");
+  opponentsDiv.classList.add("ccc-opponents-div");
+
+  const pVs = document.createElement("p");
+  pVs.textContent = "vs";
+
+  const img_1 = document.createElement("img");
+  const img_2 = document.createElement("img");
+
+  img_1.src = engineImages[index_1].src;
+  img_1.alt = engineImages[index_1].alt;
+
+  img_2.src = engineImages[index_2].src;
+  img_2.alt = engineImages[index_2].alt;
+
+  opponentsDiv.append(img_2, pVs, img_1);
+
+  infoElement.append(opponentsDiv);
+  infoElement.append(
+    p1,
+    p2,
+    p3,
+    p5,
+    p4
+    //  p6
+  );
+
+  return infoElement;
+}
+
+function createAdditionalStatRow(info: string, stat: string) {
+  const row = document.createElement("div");
+  const pInfo = document.createElement("p");
+  const pStat = document.createElement("p");
+
+  row.classList.add("ccc-stat-row");
+  pInfo.classList.add("ccc-stat-info-text");
+  pStat.classList.add("ccc-stat-info-stat");
+
+  pInfo.textContent = info;
+  pStat.textContent = stat;
+
+  row.append(pInfo, pStat);
+  return row;
+}
+
+function createEnginesNames() {
+  try {
+    const engines = document.querySelectorAll(".crosstable-name");
+
+    if (!engines) return;
+
+    const enginesNames: string[] = [];
+    engines.forEach((engine) => {
+      enginesNames.push(engine.textContent!.replace("\n", "").trim());
     });
 
-    const infoElement = document.createElement("div");
-    infoElement.classList.add("ccc-info-panel");
+    const crossTable = document.querySelector(".crosstable-crosstable");
+    if (!crossTable) return;
 
-    infoElement.innerHTML = "";
-    const p1 = document.createElement("p");
-    p1.textContent = `Longest lossless streak: ${stats.longestLossless} pairs`;
-    const p2 = document.createElement("p");
-    p2.textContent = `Longest win streak: ${stats.longestWinStreak} pairs`;
-    const p3 = document.createElement("p");
-    p3.textContent = `Longest winless streak: ${stats.longestWinless} pairs`;
-    const p4 = document.createElement("p");
-    p4.textContent = `Pairs Ratio: ${formatter.format(stats.pairsRatio)}`;
-    const p5 = document.createElement("p");
-    p5.textContent = `Performance: ${formatter.format(
-      stats.performancePercent
-    )}%`;
+    const standingsRow = crossTable.querySelector("tr")!;
+    const enginesRows = standingsRow.querySelectorAll(
+      ".font-extra-faded-white"
+    );
 
-    infoElement.append(p1, p2, p3, p5);
-    statsElementBackdrop.append(infoElement);
-    additionalStatsWrapper.append(statsElementBackdrop);
-  });
+    enginesRows.forEach((row, index) => {
+      row.textContent = `${index + 1} ${enginesNames[index]}`;
+    });
+  } catch (e: any) {
+    console.log(e?.message);
+  }
+}
 
-  return additionalStatsWrapper;
+function switchLabelHandler(field: keyof OnlyBoolean<Options>) {
+  userCustomOptions[field] = !userCustomOptions[field];
+
+  browserPrefix.storage.local
+    .set({ [field]: userCustomOptions[field] })
+    .then(convertCrossTable);
 }
 
 function addClassNamesCrossTable(crossTableCell: HTMLDivElement): void {
@@ -813,6 +1005,272 @@ function applyStylesToGrid() {
     `${userCustomOptions.pairPerRow ? userCustomOptions.pairPerRow * 2 : ""}`
   );
 }
+
+// ! -----------------
+// ! -----------------
+// ! -----------------
+
+// TODO
+// for move agreement
+let agree = true;
+
+// observes initial loader backdrop
+function onloadObserver() {
+  const mainContentContainer = document.querySelector(".cpu-champs-page-main");
+  const loader: HTMLDivElement | null = document.querySelector(
+    ".cpu-champs-page-loader-wrapper"
+  );
+  // TODO
+  // sendReadyToBg();
+
+  if (!loader || !mainContentContainer) return;
+
+  const o = new MutationObserver(() => {
+    o.disconnect();
+
+    // TODO
+    queueMicrotask(() => {
+      // requestPreviousPGN();
+      // getCurrentPGN();
+    });
+  });
+
+  o.observe(mainContentContainer, {
+    childList: true,
+  });
+}
+
+function observeGameEnd() {
+  const observer = new MutationObserver(() => {
+    const clockDiv = movesDiv.querySelector(".next-game-clock-wrapper");
+
+    // it will fire when a new game starts
+    if (!clockDiv) {
+      agree = true;
+      currentGameNumber++;
+    }
+
+    if (currentGameNumber % 2 === 1) {
+      saveCurrentPGN();
+    }
+  });
+
+  observer.observe(movesDiv, {
+    childList: true,
+  });
+}
+
+function observeMovePlayed() {
+  if (!movesTable) return;
+
+  const observer = new MutationObserver((e) => {
+    if (currentGameNumber === -1) {
+      getGameNumberFromStandings();
+      return;
+    }
+    if (currentGameNumber % 2 === 1 || e.length > 6 || !agree) return;
+
+    highlightAgreement();
+  });
+
+  observer.observe(movesTable, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+function observeMoveListTraversal() {
+  if (!movesTable) return;
+
+  const observer = new MutationObserver(() => {
+    if (currentGameNumber % 2 === 1) return;
+    observer.disconnect();
+
+    highlightAgreement();
+
+    setTimeout(() => {
+      observer.observe(movesTable, moveListObserverOptions);
+    });
+  });
+
+  observer.observe(movesTable, moveListObserverOptions);
+}
+
+function observeOpenCrossTable() {
+  const observer = new MutationObserver((entries) => {
+    const modal = document.querySelector(".modal-vue-modal");
+    if (!modal) return;
+
+    queueMicrotask(crossTableBtnClickHandler);
+  });
+
+  observer.observe(mainContainer, {
+    childList: true,
+  });
+}
+
+function highlightAgreement() {
+  const pgn = getCurrentPGN();
+
+  if (!pgn || !movesTable || currentGameNumber % 2 === 1) return;
+
+  const moveNodes: NodeListOf<HTMLTableElement> =
+    movesTable.querySelectorAll("th,td");
+  let agreeLen = 0;
+
+  for (let i = 0; i < Math.min(savedPGN.length, pgn?.length); i++) {
+    const parent = moveNodes[i];
+    const p = document.createElement("p");
+
+    const saved = savedPGN[i];
+    const cur = pgn[i];
+
+    const pPresent = parent.querySelector("p");
+
+    if (saved === cur) {
+      agreeLen++;
+
+      continue;
+    }
+
+    agree = false;
+
+    p.classList.add("ccc-stroke");
+    p.classList.add("ccc-agree-end");
+    p.textContent = `(${saved})`;
+
+    if (!pPresent) {
+      parent.append(p);
+    }
+
+    parent.title = `The move played in the last game - ${saved}`;
+
+    break;
+  }
+
+  for (let i = 0; i < agreeLen; i++) {
+    const cur = moveNodes[i];
+
+    if (!cur) break;
+    if (cur.nodeName === "TH") continue;
+
+    cur?.classList.add("ccc-move-agree");
+    cur.title = "The same move as in the last game";
+  }
+}
+
+// ! ================
+// ! test features
+function requestPreviousPGN() {
+  standingsBtn.click();
+
+  setTimeout(() => {
+    let gameNumber = getGameNumberFromStandings();
+    if (!gameNumber) return;
+    if (currentGameNumber === -1) {
+      currentGameNumber = gameNumber;
+    }
+    gameNumber -= 1;
+
+    if (gameNumber % 2 === 0) return;
+
+    chrome.runtime.sendMessage(
+      {
+        type: "game",
+        payload: {
+          gameNumber,
+        },
+      },
+      (res) => {
+        savedPGN = res;
+        highlightAgreement();
+      }
+    );
+  });
+}
+
+chrome.runtime.onMessage.addListener(function (
+  message,
+  sender,
+  senderResponse
+) {
+  try {
+    const { type, payload } = message;
+    if (type === "pgn" && payload.pgn) {
+      savedPGN = payload.pgn;
+
+      highlightAgreement();
+    }
+
+    senderResponse(true);
+
+    return true;
+  } catch (e: any) {
+    console.log(e?.message);
+  }
+});
+
+function sendReadyToBg(): void {
+  chrome.runtime.sendMessage(
+    {
+      type: "load",
+      payload: null,
+    },
+    (res) => {
+      savedPGN = res;
+      highlightAgreement();
+    }
+  );
+}
+
+function getGameNumberFromStandings(): number | undefined {
+  try {
+    const engineScores = standingsDiv.querySelectorAll(".engineitem-score");
+
+    let gameNumber = 0;
+
+    for (let i = 0; i < engineScores.length; i++) {
+      // score in 'a/b' format
+      const scoreText = engineScores[i].textContent;
+
+      const score = scoreText
+        ?.split("/")[1]
+        .replace("\n", "")
+        .replace(" ", "")
+        .trim()!;
+      gameNumber += parseInt(score);
+    }
+
+    gameNumber /= 2;
+    gameNumber += 1;
+
+    return gameNumber;
+  } catch (e: any) {
+    console.log(e.message);
+  }
+}
+
+function saveCurrentPGN() {
+  const pgn = getCurrentPGN();
+
+  if (!pgn) return;
+
+  savedPGN.length = 0;
+  savedPGN.push(...pgn);
+}
+
+function getCurrentPGN() {
+  const pgnArr = movesTable?.textContent
+    ?.split("\n")
+    .join("")
+    .split(" ")
+    .filter((el) => el !== "" && el !== " ");
+
+  return pgnArr;
+}
+
+// ! ================
+// ! ================
 
 // * ----------------------------
 // * event handlers and listeners
@@ -892,7 +1350,7 @@ function handleOpenCrossTableKeyboard(container: HTMLElement) {
   crossTableBtn = container?.querySelector("button");
   if (!crossTableBtn) return;
 
-  crossTableBtn?.click();
+  crossTableBtn.click();
 
   queueMicrotask(crossTableBtnClickHandler);
 }
@@ -901,8 +1359,6 @@ function openCrossTableFromOtherTab() {
   const divWithBtn = document.querySelectorAll(
     ".selection-panel-container + div"
   )[2];
-
-  // divWithBtn.classList.add("tomato");
 
   if (!divWithBtn) return;
 
@@ -979,7 +1435,9 @@ function standingsBtnClickHandler(): void {
 
 function crossTableBtnClickHandler(): void {
   try {
-    const crossTableModal = document.querySelector(".modal-vue-modal-content");
+    const crossTableModal: HTMLDivElement | null = document.querySelector(
+      ".modal-vue-modal-content"
+    );
 
     if (!crossTableModal) return;
     crossTableElements = crossTableModal.querySelectorAll(
@@ -996,10 +1454,10 @@ function crossTableBtnClickHandler(): void {
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
 function calculateEloFromPercent(percent: number): string {
-  var percentage = percent / 100;
-  var eloDiff = (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
+  const percentage = percent / 100;
+  const eloDiff = (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
 
-  var Sign = "";
+  let Sign = "";
   if (eloDiff > 0) {
     Sign = "+";
   }
@@ -1014,12 +1472,11 @@ function calculateEloDifference(percentage: number): number {
 }
 
 function CalculateInverseErrorFunction(x: number): number {
-  var pi = Math.PI;
-  var a = (8 * (pi - 3)) / (3 * pi * (4 - pi));
-  var y = Math.log(1 - x * x);
-  var z = 2 / (pi * a) + y / 2;
+  const a: number = (8 * (Math.PI - 3)) / (3 * Math.PI * (4 - Math.PI));
+  const y: number = Math.log(1 - x * x);
+  const z: number = 2 / (Math.PI * a) + y / 2;
 
-  var ret = Math.sqrt(Math.sqrt(z * z - y / a) - z);
+  const ret = Math.sqrt(Math.sqrt(z * z - y / a) - z);
 
   if (x < 0) return -ret;
 

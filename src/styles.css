@@ -340,6 +340,7 @@ background and font color selectors
 }
 
 .loss.ccc-loss {
+  /* --ccc-color: var(--globalColorLoss) !important; */
   --ccc-color: var(--ccc-loss-font-color);
 }
 
@@ -480,9 +481,9 @@ div.movetable-tablewrapper {
 .highcharts-axis-labels.highcharts-yaxis-labels > :last-child {
   transform: translateY(0.5rem) !important;
 }
-/* ! charts --- */
+/* ! charts end --- */
 
-/* * wrapper for stat customization inputs
+/* * wrapper for stat switches
 */
 .ccc-options-wrapper {
   position: absolute;
@@ -505,6 +506,9 @@ div.movetable-tablewrapper {
 
   z-index: -1;
 }
+
+/* *  additional stats 
+*/
 
 .ccc-info-button {
   display: flex;
@@ -544,15 +548,18 @@ div.movetable-tablewrapper {
 }
 
 .ccc-info-panel {
+  --ccc-info-panel-pd: 2rem;
   position: fixed;
   width: 270px;
-  height: 400px;
+  height: 300px;
 
   inset: 0;
-  margin: auto;
 
-  background-color: hsl(32, 13%, 20%);
-  color: rgb(185, 185, 185);
+  margin: auto;
+  padding: var(--ccc-info-panel-pd);
+  border-radius: 0.5rem;
+
+  background-color: hsl(36, 7%, 24%);
 
   display: flex;
   justify-content: center;
@@ -561,10 +568,51 @@ div.movetable-tablewrapper {
   flex-direction: column;
 
   font-size: 20px;
+  color: rgb(185, 185, 185);
 
   cursor: auto;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.ccc-info-panel::before {
+  position: absolute;
+  inset: calc(var(--ccc-info-panel-pd) / 2);
+
+  content: "";
+  background-color: hsl(36, 7%, 17%);
+
+  z-index: -1;
 
   border-radius: 0.5rem;
+}
+
+.ccc-opponents-div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 100%;
+}
+
+.ccc-opponents-div > img {
+  max-width: 100%;
+  display: block;
+  margin-inline: 5px;
+}
+
+.ccc-stat-row {
+  width: 100%;
+  display: flex;
+}
+
+.ccc-stat-row:last-child,
+.ccc-opponents-div {
+  margin-block-end: auto;
+}
+
+.ccc-stat-row > :first-child {
+  margin-inline-end: auto;
 }
 
 .modal-vue-modal-content {
@@ -579,9 +627,25 @@ div.movetable-tablewrapper {
     overflow-x: scroll;
   }
 
+  ::-webkit-scrollbar-thumb {
+    opacity: 0.3 !important;
+
+    animation: none !important;
+    transition: none !important;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    opacity: 0.3 !important;
+
+    animation: none !important;
+    transition: none !important;
+  }
+
   .modal-vue-modal-content {
     --ccc-modal-pd-top: 4rem;
+
     padding-top: var(max-content, 3rem) !important;
+    padding-inline: 8px !important;
   }
 
   .ccc-options-wrapper > * {
@@ -595,6 +659,7 @@ div.movetable-tablewrapper {
   button.modal-close {
     background-color: #312e2b !important;
     height: var(--ccc-modal-pd-top);
+    width: var(--ccc-modal-pd-top);
   }
 }
 
@@ -739,6 +804,11 @@ tr.font-faded-white > :nth-child(2) {
   .chat-chat {
     height: 100vh !important;
   }
+}
+
+.movetable-highlighted.movetable-book-ply:hover,
+.movetable-book-ply:hover {
+  color: hsl(41, 100%, 66%) !important;
 }
 
 /* * ------------------------
