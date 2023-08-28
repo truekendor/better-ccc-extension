@@ -1189,6 +1189,25 @@ function requestPreviousPGN() {
   });
 }
 
+const runtimeOnMessage = (function () {
+  if (chrome.runtime) {
+    chrome.runtime.sendMessage(
+      {
+        type: "load",
+        payload: null,
+      },
+      (res) => {
+        savedPGN = res;
+        highlightAgreement();
+      }
+    );
+
+    return true;
+  }
+
+  browser.runtime.sendMessage({ type: "load", payload: null });
+})();
+
 chrome.runtime.onMessage.addListener(function (
   message,
   sender,
