@@ -34,7 +34,11 @@
 
 /* tomato */
 .tomato {
-  background-color: rgba(255, 99, 71, 0.313);
+  background-color: rgba(255, 99, 71, 0.3);
+}
+
+.tomato-i {
+  background-color: rgba(255, 99, 71, 0.3) !important;
 }
 
 .tomato-i {
@@ -127,6 +131,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* pair bg alternation */
 div.schedule-container > div:nth-child(4n + 1),
 div.schedule-container > div:nth-child(4n + 2),
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 1),
@@ -134,20 +139,27 @@ div.schedule-container > div:nth-child(4n + 2),
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+/* 
+TODO fix this =========================
+*/
+/* div.schedule-container > div.schedule-gameLink:hover * {
+text-decoration: underline;
+} */
+
+/* div.schedule-container > div.schedule-gameLink:hover,
 div.schedule-container > div.schedule-gameLink:hover,
+#resultstable-resultstable div:last-child > table > tr:hover,
 #resultstable-resultstable div:last-child > table > tr:hover {
-  background-color: rgba(255, 255, 255, 0.07);
+  background-color: unset;
 }
 
-/* 
-TODO fix this 
-*/
 div.schedule-container > div.schedule-gameLink:nth-child(4n + 1):hover,
 div.schedule-container > div.schedule-gameLink:nth-child(4n + 2):hover,
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 1):hover,
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 2):hover {
-  /* background-color: rgba(0, 0, 0, 0.09); */
-}
+  background-color: rgba(0, 0, 0, 0.3);
+} */
+/* TODO FIX END ---------------- */
 
 /* current game in schedule */
 .schedule-container > div.schedule-inProgress {
@@ -156,8 +168,27 @@ div.schedule-container > div.schedule-gameLink:nth-child(4n + 2):hover,
   background-color: unset;
 }
 
-.schedule-container .schedule-inProgress * {
-  color: var(--ccc-blue-light-hsl);
+.schedule-container div.schedule-inProgress {
+  position: relative;
+  isolation: isolate;
+}
+
+.schedule-container div.schedule-inProgress > * {
+  color: var(--ccc-blue-light-hsl) !important;
+}
+
+.schedule-container div.schedule-inProgress::before {
+  content: "";
+  position: absolute;
+
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  background-color: hsla(var(--ccc-blue-light-raw), 0.05) !important;
+
+  z-index: -1;
 }
 
 /* cursed tooltip line break fix */
@@ -337,6 +368,7 @@ background and font color selectors
 }
 
 .loss.ccc-loss {
+  /* --ccc-color: var(--globalColorLoss) !important; */
   --ccc-color: var(--ccc-loss-font-color);
 }
 
@@ -442,32 +474,26 @@ media queries
   }
 }
 
-/* * ------------------------
-* Peregrine suggested styles
-*/
-#righttable-content,
-.chat-chat {
-  height: 100vh !important;
+/* larger crosstable btn on mobile */
+@media (max-width: 969px) {
+  #standings-standings > button {
+    height: 3.3rem !important;
+  }
 }
 
-/* * ------------------------
-* David suggested styles
-*/
-
-/* * center the game number in Schedule */
-.schedule-container > div :first-child {
-  justify-content: center;
-  text-align: center;
+div.movetable-tablewrapper {
+  scrollbar-gutter: stable !important;
 }
 
-/* moves in movelist */
-.movetable-movetable table tr td {
-  padding-left: 0 !important;
-  min-width: 4.5ch !important;
+.movetable-tablewrapper table {
+  /* max-width: 100%; */
+  /* width: 100%; */
+  /* background-color: rgba(255, 99, 71, 0.234); */
 }
 
 /* ! charts --- */
 /* ! ----------- */
+
 .cpu-champs-page-graph {
   /*  */
 }
@@ -483,19 +509,9 @@ media queries
 .highcharts-axis-labels.highcharts-yaxis-labels > :last-child {
   transform: translateY(0.5rem) !important;
 }
-/* ! charts --- */
+/* ! charts end --- */
 
-.movetable-highlighted {
-  color: var(--ccc-blue-light-hsl);
-}
-
-/* fck you, specificity */
-/* current move in movelist */
-.movetable-highlighted:is(td.movetable-highlighted.movetable-hoverable):hover {
-  color: #80c5e5;
-}
-
-/* * wrapper for stat customization inputs
+/* * wrapper for stat switches
 */
 .ccc-options-wrapper {
   position: absolute;
@@ -513,6 +529,166 @@ media queries
   margin-inline-start: 3rem;
 
   color: rgb(199, 199, 199);
+
+  max-width: 500px;
+
+  z-index: -1;
+}
+
+/* *  additional stats 
+*/
+
+.ccc-info-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin: 0 !important;
+  width: 20px;
+  height: 20px;
+
+  position: absolute;
+
+  top: 0;
+  right: 0;
+
+  cursor: pointer;
+}
+
+.ccc-info-button > svg {
+  fill: rgb(107, 107, 107);
+  width: 15px;
+  height: 15px;
+}
+
+.ccc-info-backdrop {
+  position: fixed;
+  inset: 0;
+
+  background-color: rgba(0, 0, 0, 0.4);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  cursor: pointer;
+  z-index: 100;
+}
+
+.ccc-info-panel {
+  --ccc-info-panel-pd: 2rem;
+  position: fixed;
+  width: 270px;
+  height: 300px;
+
+  inset: 0;
+
+  margin: auto;
+  padding: var(--ccc-info-panel-pd);
+  border-radius: 0.5rem;
+
+  background-color: hsl(36, 7%, 24%);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  flex-direction: column;
+
+  font-size: 20px;
+  color: rgb(185, 185, 185);
+
+  cursor: auto;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.ccc-info-panel::before {
+  position: absolute;
+  inset: calc(var(--ccc-info-panel-pd) / 2);
+
+  content: "";
+  background-color: hsl(36, 7%, 17%);
+
+  z-index: -1;
+
+  border-radius: 0.5rem;
+}
+
+.ccc-opponents-div {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 100%;
+}
+
+.ccc-opponents-div > img {
+  max-width: 100%;
+  display: block;
+  margin-inline: 5px;
+}
+
+.ccc-stat-row {
+  width: 100%;
+  display: flex;
+}
+
+.ccc-stat-row:last-child,
+.ccc-opponents-div {
+  margin-block-end: auto;
+}
+
+.ccc-stat-row > :first-child {
+  margin-inline-end: auto;
+}
+
+.modal-vue-modal-content {
+  isolation: isolate;
+}
+
+/* add css only dropdown menu */
+@media (max-width: 450px) {
+  .ccc-options-wrapper {
+    display: flex;
+    /* flex-direction: column; */
+    overflow-x: scroll;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    opacity: 0.3 !important;
+
+    animation: none !important;
+    transition: none !important;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    opacity: 0.3 !important;
+
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .modal-vue-modal-content {
+    --ccc-modal-pd-top: 4rem;
+
+    padding-top: var(max-content, 3rem) !important;
+    padding-inline: 8px !important;
+  }
+
+  .ccc-options-wrapper > * {
+    flex-shrink: 0;
+  }
+
+  .ccc-options-wrapper > :last-child {
+    min-width: 150px;
+  }
+
+  button.modal-close {
+    background-color: #312e2b !important;
+    height: var(--ccc-modal-pd-top);
+    width: var(--ccc-modal-pd-top);
+  }
 }
 
 .ccc-label {
@@ -636,67 +812,6 @@ button.modal-close > i {
   font-size: 2.2rem !important;
 }
 
-.ccc-info-button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  margin: 0 !important;
-  width: 20px;
-  height: 20px;
-
-  position: absolute;
-
-  top: 0;
-  right: 0;
-
-  cursor: pointer;
-}
-
-.ccc-info-button > svg {
-  fill: rgb(107, 107, 107);
-  width: 15px;
-  height: 15px;
-}
-
-.ccc-info-backdrop {
-  position: fixed;
-  inset: 0;
-
-  background-color: rgba(0, 0, 0, 0.4);
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  cursor: pointer;
-  z-index: 100;
-}
-
-.ccc-info-panel {
-  position: fixed;
-  width: 270px;
-  height: 400px;
-
-  inset: 0;
-  margin: auto;
-
-  background-color: hsl(32, 13%, 20%);
-  color: rgb(185, 185, 185);
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  flex-direction: column;
-
-  font-size: 20px;
-
-  cursor: auto;
-
-  border-radius: 0.5rem;
-}
-
 tr.font-faded-white > td:nth-child(2) > div {
   width: max-content;
 }
@@ -706,4 +821,77 @@ tr.font-faded-white > :nth-child(2) {
   position: -webkit-sticky;
 
   left: 0; */
+}
+
+/* * ------------------------
+* Peregrine suggested styles in media queries
+*/
+
+@media (min-width: 970px) {
+  #righttable-content,
+  .chat-chat {
+    height: 100vh !important;
+  }
+}
+
+.movetable-highlighted.movetable-book-ply:hover,
+.movetable-book-ply:hover {
+  color: hsl(41, 100%, 66%) !important;
+}
+
+/* * ------------------------
+* David suggested styles
+*/
+
+.movetable-highlighted:not(.movetable-book-ply) {
+  color: var(--ccc-blue-light-hsl);
+}
+
+/* fck you, specificity */
+/* current move in movelist */
+.movetable-highlighted:not(.movetable-book-ply):is(
+    td.movetable-highlighted.movetable-hoverable
+  ):hover {
+  color: #80c5e5;
+}
+
+.movetable-movetable table {
+  margin-left: unset !important;
+  width: 100% !important;
+}
+
+/* * center the game number in Schedule */
+.schedule-container > div :first-child {
+  justify-content: center;
+  text-align: center;
+}
+
+/* moves in movelist */
+.movetable-movetable table tr td {
+  contain: content;
+  padding-left: 0 !important;
+  min-width: unset !important;
+
+  min-width: 50% !important;
+  width: max-content !important;
+  max-width: 50% !important;
+
+  word-break: break-all;
+}
+
+.movetable-movetable table tr td.movetable-highlighted {
+  /* background-color: hsla(var(--ccc-blue-light-raw), 0.1) !important; */
+}
+
+.movetable-movetable table tr:last-child td:only-of-type {
+  /* background-color: rgba(106, 142, 35, 0.153) !important; */
+}
+
+.movetable-movetable table tr th {
+  min-width: unset !important;
+
+  width: 3ch !important;
+  max-width: 4ch !important;
+
+  /* background-color: rgba(255, 99, 71, 0.145); */
 }

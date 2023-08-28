@@ -1,3 +1,7 @@
+const mainContainer: HTMLDivElement = document.querySelector(
+  ".cpu-champs-page-ccc"
+)!;
+
 // div with main tabs: vote / standings / schedule / match / info
 let standingsDiv = document.getElementById("bottomtable-bottomtable")!;
 
@@ -69,6 +73,7 @@ const PairsObj = {
 
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
+loadUserSettings();
 function loadUserSettings(): void {
   try {
     browserPrefix.storage.local
@@ -115,11 +120,12 @@ function loadUserSettings(): void {
 
 // * observers
 onloadObserver();
-observeGameEnd();
-observeMovePlayed();
-observeMoveListTraversal();
 
-loadUserSettings();
+observeOpenCrossTable();
+// observeGameEnd();
+// observeMovePlayed();
+// observeMoveListTraversal();
+
 // TODO ======
 // getCurrentGameNumber();
 
@@ -157,7 +163,10 @@ interface AdditionalStats {
   longestWinless: number;
   pairsRatio: number;
   performancePercent: number;
+  highestScore: number;
 }
+
+const engineImages: HTMLImageElement[] = [];
 
 // * ---------------
 // * extension logic
@@ -186,6 +195,12 @@ function convertCrossTable(): void {
     }
 
     createEnginesNames();
+
+    const modal = document.querySelector(".modal-vue-modal-content");
+    const images = modal?.querySelectorAll("img");
+
+    // @ts-ignore
+    engineImages.push(...Array.from(images ?? []));
 
     activeCells.forEach(convertCell);
   } catch (e: any) {
@@ -233,6 +248,35 @@ function observeEmpty(cell: HTMLTableCellElement): void {
 
 function convertCell(cell: HTMLTableCellElement): void {
   try {
+    let index_1: number = -1;
+    let index_2: number = -1;
+
+    const parent = cell.parentNode;
+    const grandParent = cell?.parentNode?.parentNode;
+
+    if (parent && grandParent) {
+      // @ts-ignore
+      for (let i = 0; i < parent?.childNodes?.length ?? 0; i++) {
+        const current = parent?.childNodes[i];
+        if (current !== cell) continue;
+        index_1 = i;
+        break;
+      }
+
+      // @ts-ignore
+      for (let i = 0; i < grandParent?.childNodes?.length ?? 0; i++) {
+        const current = grandParent?.childNodes[i];
+        // @ts-ignore
+        if (current !== cell?.parentNode) continue;
+        index_2 = i;
+        break;
+      }
+    }
+
+    index_1 -= 6;
+    index_2 -= 2;
+    console.log(index_1, index_2);
+
     // header with result -->       205 - 195 [+10]
     const cellHeader: HTMLDivElement | null = cell.querySelector(
       ".crosstable-head-to-head"
@@ -259,8 +303,8 @@ function convertCell(cell: HTMLTableCellElement): void {
     const ptnmlWrapper = createPTNMLStatHeader(ptnml);
     const wdlWrapper = createWDLStatHeader(wdlArray);
 
-    // const additionalInfoWrapper = createAdvancedStats(stats);
-    // cell.append(additionalInfoWrapper);
+    const additionalInfoWrapper = createAdvancedStats(stats, index_1, index_2);
+    cell.append(additionalInfoWrapper);
 
     // * adds/removes user chosen stats to the header
     handleCustomStat(cellHeader, wdlWrapper, ptnmlWrapper);
@@ -315,10 +359,10 @@ function liveUpdate(): void {
 // * -------------
 // * utils
 // @ts-ignore
-function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
+function getStats(scoresArray: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
   try {
     const wdlArray: WDL = [0, 0, 0]; // W D L in that order
-    arr.forEach((score) => {
+    scoresArray.forEach((score) => {
       // score is either 1 0 -1
       // so by doing this we automatically
       // increment correct value
@@ -326,7 +370,7 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
     });
 
     // to get rid of an unfinished pair
-    if (arr.length % 2 === 1) arr.pop();
+    if (scoresArray.length % 2 === 1) scoresArray.pop();
     const ptnml: PTNML = [0, 0, 0, 0, 0]; // ptnml(0-2)
 
     const stats: AdditionalStats = {
@@ -335,7 +379,21 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
       pairsRatio: 0,
       performancePercent: 0,
       longestWinless: 0,
+      highestScore: 0,
     };
+
+    let highestScore = 0;
+    let currentScore = 0;
+
+    for (let i = 0; i < scoresArray.length; i++) {
+      const cur = scoresArray[i];
+
+      currentScore += cur;
+      // update after finished pair
+      if (i % 2 === 1) {
+        highestScore = Math.max(currentScore, highestScore);
+      }
+    }
 
     // lossless
     let longesLosslessRecord = 0;
@@ -349,9 +407,9 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
     let longestWinlessRecord = 0;
     let longestWinlessCurrent = 0;
 
-    for (let i = 0; i < arr.length; i += 2) {
-      const first = arr[i];
-      const second = arr[i + 1];
+    for (let i = 0; i < scoresArray.length; i += 2) {
+      const first = scoresArray[i];
+      const second = scoresArray[i + 1];
       const res = first + second;
 
       if (res === 2) {
@@ -453,6 +511,7 @@ function getStats(arr: ResultAsScore[]): [PTNML, WDL, AdditionalStats] {
       100;
 
     stats.pairsRatio = (ptnml[4] + ptnml[3]) / Math.max(ptnml[1] + ptnml[0], 0);
+    stats.highestScore = highestScore;
 
     return [ptnml, wdlArray, stats];
   } catch (e: any) {
@@ -506,7 +565,9 @@ function createWLDEloElement(
   w.classList.add("win");
   d.classList.add("draw");
   // custom style for more contrast
-  l.classList.add("ccc-loss-font");
+
+  // l.classList.add("ccc-loss-font");
+  l.classList.add("loss");
   l.classList.add("ccc-margin-right");
 
   const points = wdl[0] + wdl[1] / 2;
@@ -713,9 +774,39 @@ function createSwitchLabel(
 }
 
 // ! not in release
-function createAdvancedStats(stats: AdditionalStats) {
+function createAdvancedStats(
+  stats: AdditionalStats,
+  index_1: number,
+  index_2: number
+) {
   const additionalStatsWrapper = document.createElement("div");
+  additionalStatsWrapper.classList.add("ccc-info-button");
 
+  const svg = createSVGCaret();
+  additionalStatsWrapper.append(svg);
+
+  additionalStatsWrapper.addEventListener("click", (e) => {
+    e.stopPropagation();
+
+    const statsElementBackdrop = document.createElement("div");
+    statsElementBackdrop.classList.add("ccc-info-backdrop");
+
+    statsElementBackdrop.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (e.target !== statsElementBackdrop) return;
+      additionalStatsWrapper.removeChild(statsElementBackdrop);
+    });
+
+    const infoElement = handleStatElementCreation(stats, index_1, index_2);
+
+    statsElementBackdrop.append(infoElement);
+    additionalStatsWrapper.append(statsElementBackdrop);
+  });
+
+  return additionalStatsWrapper;
+}
+
+function createSVGCaret() {
   const iconSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const iconPath = document.createElementNS(
     "http://www.w3.org/2000/svg",
@@ -736,45 +827,125 @@ function createAdvancedStats(stats: AdditionalStats) {
   iconPath.setAttribute("stroke-width", "2");
 
   iconSvg.appendChild(iconPath);
-  additionalStatsWrapper.append(iconSvg);
+  return iconSvg;
+}
 
-  additionalStatsWrapper.classList.add("ccc-info-button");
+function handleStatElementCreation(
+  stats: AdditionalStats,
+  index_1: number,
+  index_2: number
+) {
+  const infoElement = document.createElement("div");
+  infoElement.classList.add("ccc-info-panel");
 
-  additionalStatsWrapper.addEventListener("click", (e) => {
-    e.stopPropagation();
+  infoElement.innerHTML = "";
 
-    const statsElementBackdrop = document.createElement("div");
-    statsElementBackdrop.classList.add("ccc-info-backdrop");
+  const p1 = createAdditionalStatRow(
+    "Longest lossless streak: ",
+    `${stats.longestLossless} pairs`
+  );
+  const p2 = createAdditionalStatRow(
+    "Longest win streak: ",
+    `${stats.longestWinStreak} pairs`
+  );
+  const p3 = createAdditionalStatRow(
+    "Longest winless streak: ",
+    `${stats.longestWinless} pairs`
+  );
 
-    statsElementBackdrop.addEventListener("click", function (e) {
-      e.stopPropagation();
-      if (e.target !== statsElementBackdrop) return;
-      additionalStatsWrapper.removeChild(statsElementBackdrop);
+  const p4 = createAdditionalStatRow(
+    "Performance: ",
+    `${formatter.format(stats.performancePercent)}%`
+  );
+  const p5 = createAdditionalStatRow(
+    "Pairs Ratio: ",
+    `${formatter.format(stats.pairsRatio)}`
+  );
+
+  const p6 = createAdditionalStatRow(
+    "Highest score: ",
+    `[+${stats.highestScore}]`
+  );
+
+  const opponentsDiv = document.createElement("div");
+  opponentsDiv.classList.add("ccc-opponents-div");
+
+  const pVs = document.createElement("p");
+  pVs.textContent = "vs";
+
+  const img_1 = document.createElement("img");
+  const img_2 = document.createElement("img");
+
+  img_1.src = engineImages[index_1].src;
+  img_1.alt = engineImages[index_1].alt;
+
+  img_2.src = engineImages[index_2].src;
+  img_2.alt = engineImages[index_2].alt;
+
+  opponentsDiv.append(img_2, pVs, img_1);
+
+  infoElement.append(opponentsDiv);
+  infoElement.append(
+    p1,
+    p2,
+    p3,
+    p5,
+    p4
+    //  p6
+  );
+
+  return infoElement;
+}
+
+function createAdditionalStatRow(info: string, stat: string) {
+  const row = document.createElement("div");
+  const pInfo = document.createElement("p");
+  const pStat = document.createElement("p");
+
+  row.classList.add("ccc-stat-row");
+  pInfo.classList.add("ccc-stat-info-text");
+  pStat.classList.add("ccc-stat-info-stat");
+
+  pInfo.textContent = info;
+  pStat.textContent = stat;
+
+  row.append(pInfo, pStat);
+  return row;
+}
+
+function createEnginesNames() {
+  try {
+    const engines = document.querySelectorAll(".crosstable-name");
+
+    if (!engines) return;
+
+    const enginesNames: string[] = [];
+    engines.forEach((engine) => {
+      enginesNames.push(engine.textContent!.replace("\n", "").trim());
     });
 
-    const infoElement = document.createElement("div");
-    infoElement.classList.add("ccc-info-panel");
+    const crossTable = document.querySelector(".crosstable-crosstable");
+    if (!crossTable) return;
 
-    infoElement.innerHTML = "";
-    const p1 = document.createElement("p");
-    p1.textContent = `Longest lossless streak: ${stats.longestLossless} pairs`;
-    const p2 = document.createElement("p");
-    p2.textContent = `Longest win streak: ${stats.longestWinStreak} pairs`;
-    const p3 = document.createElement("p");
-    p3.textContent = `Longest winless streak: ${stats.longestWinless} pairs`;
-    const p4 = document.createElement("p");
-    p4.textContent = `Pairs Ratio: ${formatter.format(stats.pairsRatio)}`;
-    const p5 = document.createElement("p");
-    p5.textContent = `Performance: ${formatter.format(
-      stats.performancePercent
-    )}%`;
+    const standingsRow = crossTable.querySelector("tr")!;
+    const enginesRows = standingsRow.querySelectorAll(
+      ".font-extra-faded-white"
+    );
 
-    infoElement.append(p1, p2, p3, p5);
-    statsElementBackdrop.append(infoElement);
-    additionalStatsWrapper.append(statsElementBackdrop);
-  });
+    enginesRows.forEach((row, index) => {
+      row.textContent = `${index + 1} ${enginesNames[index]}`;
+    });
+  } catch (e: any) {
+    console.log(e?.message);
+  }
+}
 
-  return additionalStatsWrapper;
+function switchLabelHandler(field: keyof OnlyBoolean<Options>) {
+  userCustomOptions[field] = !userCustomOptions[field];
+
+  browserPrefix.storage.local
+    .set({ [field]: userCustomOptions[field] })
+    .then(convertCrossTable);
 }
 
 function createEnginesNames() {
@@ -871,10 +1042,6 @@ function applyStylesToGrid() {
   );
 }
 
-// ! --
-setInterval(() => {
-  console.log("current game number", currentGameNumber);
-}, 1500);
 
 // TODO
 // for move agreement
@@ -886,21 +1053,22 @@ function onloadObserver() {
   const loader: HTMLDivElement | null = document.querySelector(
     ".cpu-champs-page-loader-wrapper"
   );
+  
   // TODO
-  sendReadyToBg();
+  // sendReadyToBg();
+
 
   if (!loader || !mainContentContainer) return;
 
   const o = new MutationObserver(() => {
     o.disconnect();
 
-    setTimeout(() => {
-      // queueMicrotask(() => {
-      requestPreviousPGN();
+    // TODO
+    queueMicrotask(() => {
+      // requestPreviousPGN();
+      // getCurrentPGN();
+    });
 
-      getCurrentPGN();
-      // });
-    }, 100);
   });
 
   o.observe(mainContentContainer, {
@@ -911,15 +1079,13 @@ function onloadObserver() {
 function observeGameEnd() {
   const observer = new MutationObserver(() => {
     const clockDiv = movesDiv.querySelector(".next-game-clock-wrapper");
-    console.log("game number", getGameNumberFromStandings());
 
-    // it will work when a new game starts
+
+    // it will fire when a new game starts
     if (!clockDiv) {
-      // TODO save game PGN
-
       agree = true;
       currentGameNumber++;
-      return;
+      // return
     }
 
     if (currentGameNumber % 2 === 1) {
@@ -936,23 +1102,13 @@ function observeMovePlayed() {
   if (!movesTable) return;
 
   const observer = new MutationObserver((e) => {
-    console.log("mutation");
     if (currentGameNumber === -1) {
       getGameNumberFromStandings();
       return;
     }
-    if (currentGameNumber % 2 === 1) return;
-    if (e.length > 6) {
-      console.log("NEW GAME FROM MOVES DETECTED");
-      // console.log("saved PGN", savedPGN);
-      return;
-    }
 
-    console.log("change", e);
-    console.log("cur game number", currentGameNumber);
-
-    // if (!agree) return;
-
+    if (currentGameNumber % 2 === 1 || e.length > 6 || !agree) return;
+    
     highlightAgreement();
   });
 
@@ -964,9 +1120,10 @@ function observeMovePlayed() {
 
 function observeMoveListTraversal() {
   if (!movesTable) return;
+  
+  const observer = new MutationObserver(() => {
+    if (currentGameNumber % 2 === 1) return;
 
-  const observer = new MutationObserver((e) => {
-    console.log("movelist traversal");
     observer.disconnect();
 
     highlightAgreement();
@@ -979,10 +1136,25 @@ function observeMoveListTraversal() {
   observer.observe(movesTable, moveListObserverOptions);
 }
 
+
+function observeOpenCrossTable() {
+  const observer = new MutationObserver((entries) => {
+    const modal = document.querySelector(".modal-vue-modal");
+    if (!modal) return;
+
+    queueMicrotask(crossTableBtnClickHandler);
+  });
+
+  observer.observe(mainContainer, {
+    childList: true,
+  });
+}
+
 function highlightAgreement() {
   const pgn = getCurrentPGN();
 
-  if (!pgn || !movesTable) return;
+  if (!pgn || !movesTable || currentGameNumber % 2 === 1) return;
+
 
   const moveNodes: NodeListOf<HTMLTableElement> =
     movesTable.querySelectorAll("th,td");
@@ -1059,6 +1231,27 @@ function requestPreviousPGN() {
   });
 }
 
+
+const runtimeOnMessage = (function () {
+  if (chrome.runtime) {
+    chrome.runtime.sendMessage(
+      {
+        type: "load",
+        payload: null,
+      },
+      (res) => {
+        savedPGN = res;
+        highlightAgreement();
+      }
+    );
+
+    return true;
+  }
+
+  browser.runtime.sendMessage({ type: "load", payload: null });
+})();
+
+
 chrome.runtime.onMessage.addListener(function (
   message,
   sender,
@@ -1080,7 +1273,8 @@ chrome.runtime.onMessage.addListener(function (
   }
 });
 
-function sendReadyToBg() {
+function sendReadyToBg(): void {
+
   chrome.runtime.sendMessage(
     {
       type: "load",
