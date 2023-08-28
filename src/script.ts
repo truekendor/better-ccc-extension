@@ -120,6 +120,7 @@ function loadUserSettings(): void {
 
 // * observers
 onloadObserver();
+
 observeOpenCrossTable();
 // observeGameEnd();
 // observeMovePlayed();
@@ -947,6 +948,41 @@ function switchLabelHandler(field: keyof OnlyBoolean<Options>) {
     .then(convertCrossTable);
 }
 
+function createEnginesNames() {
+  try {
+    const engines = document.querySelectorAll(".crosstable-name");
+
+    if (!engines) return;
+
+    const enginesNames: string[] = [];
+    engines.forEach((engine) => {
+      enginesNames.push(engine.textContent!.replace("\n", "").trim());
+    });
+
+    const crossTable = document.querySelector(".crosstable-crosstable");
+    if (!crossTable) return;
+
+    const standingsRow = crossTable.querySelector("tr")!;
+    const enginesRows = standingsRow.querySelectorAll(
+      ".font-extra-faded-white"
+    );
+
+    enginesRows.forEach((row, index) => {
+      row.textContent = `${index + 1} ${enginesNames[index]}`;
+    });
+  } catch (e: any) {
+    console.log(e?.message);
+  }
+}
+
+function switchLabelHandler(field: keyof OnlyBoolean<Options>) {
+  userCustomOptions[field] = !userCustomOptions[field];
+
+  browserPrefix.storage.local
+    .set({ [field]: userCustomOptions[field] })
+    .then(convertCrossTable);
+}
+
 function addClassNamesCrossTable(crossTableCell: HTMLDivElement): void {
   crossTableCell.classList.add("ccc-cell-grid");
   if (enginesAmount === 2) {
@@ -1006,9 +1042,6 @@ function applyStylesToGrid() {
   );
 }
 
-// ! -----------------
-// ! -----------------
-// ! -----------------
 
 // TODO
 // for move agreement
@@ -1020,8 +1053,10 @@ function onloadObserver() {
   const loader: HTMLDivElement | null = document.querySelector(
     ".cpu-champs-page-loader-wrapper"
   );
+  
   // TODO
   // sendReadyToBg();
+
 
   if (!loader || !mainContentContainer) return;
 
@@ -1033,6 +1068,7 @@ function onloadObserver() {
       // requestPreviousPGN();
       // getCurrentPGN();
     });
+
   });
 
   o.observe(mainContentContainer, {
@@ -1044,10 +1080,12 @@ function observeGameEnd() {
   const observer = new MutationObserver(() => {
     const clockDiv = movesDiv.querySelector(".next-game-clock-wrapper");
 
+
     // it will fire when a new game starts
     if (!clockDiv) {
       agree = true;
       currentGameNumber++;
+      // return
     }
 
     if (currentGameNumber % 2 === 1) {
@@ -1068,8 +1106,9 @@ function observeMovePlayed() {
       getGameNumberFromStandings();
       return;
     }
-    if (currentGameNumber % 2 === 1 || e.length > 6 || !agree) return;
 
+    if (currentGameNumber % 2 === 1 || e.length > 6 || !agree) return;
+    
     highlightAgreement();
   });
 
@@ -1081,9 +1120,10 @@ function observeMovePlayed() {
 
 function observeMoveListTraversal() {
   if (!movesTable) return;
-
+  
   const observer = new MutationObserver(() => {
     if (currentGameNumber % 2 === 1) return;
+
     observer.disconnect();
 
     highlightAgreement();
@@ -1095,6 +1135,7 @@ function observeMoveListTraversal() {
 
   observer.observe(movesTable, moveListObserverOptions);
 }
+
 
 function observeOpenCrossTable() {
   const observer = new MutationObserver((entries) => {
@@ -1113,6 +1154,7 @@ function highlightAgreement() {
   const pgn = getCurrentPGN();
 
   if (!pgn || !movesTable || currentGameNumber % 2 === 1) return;
+
 
   const moveNodes: NodeListOf<HTMLTableElement> =
     movesTable.querySelectorAll("th,td");
@@ -1189,6 +1231,7 @@ function requestPreviousPGN() {
   });
 }
 
+
 const runtimeOnMessage = (function () {
   if (chrome.runtime) {
     chrome.runtime.sendMessage(
@@ -1207,6 +1250,7 @@ const runtimeOnMessage = (function () {
 
   browser.runtime.sendMessage({ type: "load", payload: null });
 })();
+
 
 chrome.runtime.onMessage.addListener(function (
   message,
@@ -1230,6 +1274,7 @@ chrome.runtime.onMessage.addListener(function (
 });
 
 function sendReadyToBg(): void {
+
   chrome.runtime.sendMessage(
     {
       type: "load",

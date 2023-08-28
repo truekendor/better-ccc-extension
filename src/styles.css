@@ -41,6 +41,34 @@
   background-color: rgba(255, 99, 71, 0.3) !important;
 }
 
+.tomato-i {
+  background-color: rgba(255, 99, 71, 0.313) !important;
+}
+
+.ccc-stroke {
+  font-size: 1rem;
+  color: rgb(146, 146, 146);
+}
+
+.ccc-move-agree {
+  text-decoration: underline;
+  border-radius: 4px;
+}
+
+/* 
+.movetable-hoverable
+
+.ccc-agree-end ~ {
+  text-decoration: unset !important;
+  background-color: rgba(255, 99, 71, 0.252) !important;
+} */
+
+/* TODO edit this */
+/* .ccc-agree-end {
+  position: relative;
+}
+*/
+
 .crosstable-results-cell {
   position: relative;
 
