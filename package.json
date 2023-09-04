@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "tsc src/script.ts"
+    "build": "tsc src/script.ts src/background.ts"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.241",

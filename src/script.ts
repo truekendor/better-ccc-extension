@@ -1,3 +1,6 @@
+/// <reference types="./" />
+/// <reference path="./index.d.ts" />
+
 const mainContainer: HTMLDivElement = document.querySelector(
   ".cpu-champs-page-ccc"
 )!;
@@ -34,7 +37,7 @@ const movesTable = movesDiv.querySelector("table");
 let enginesAmount = 0;
 
 let currentGameNumber = -1;
-let savedPGN: string[] = [];
+const savedPGN: string[] = [];
 
 const formatter = Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
@@ -71,10 +74,10 @@ const PairsObj = {
   DoubleLoss: "ccc-double-loss",
 } as const;
 
+// @ts-ignore
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
-loadUserSettings();
-function loadUserSettings(): void {
+const loadUserSettings = (function (): void {
   try {
     browserPrefix.storage.local
       .get("elo" as keyof Options)
@@ -116,55 +119,17 @@ function loadUserSettings(): void {
   } catch (e: any) {
     console.log(e.message);
   }
-}
+})();
 
 // * observers
 onloadObserver();
 
 observeOpenCrossTable();
-// observeGameEnd();
-// observeMovePlayed();
-// observeMoveListTraversal();
-
-// TODO ======
-// getCurrentGameNumber();
+observeGameEnd();
+observeMovePlayed();
+observeMoveListTraversal();
 
 let spaceKeyPressed = false;
-
-// * typescript
-
-// prettier-ignore
-type BooleanKeys<T> = { [k in keyof T]: T[k] extends boolean ? k : never}[keyof T];
-type OnlyBoolean<T> = { [k in BooleanKeys<T>]: boolean };
-
-type ResultAsScore = 1 | 0 | -1;
-type WDL = [number, number, number];
-type PTNML = [number, number, number, number, number];
-type LabelForField = keyof Omit<Options, "pairPerRow">;
-
-type TChrome = typeof chrome;
-type TFirefox = typeof browser;
-type Browsers = TChrome | TFirefox;
-
-type ValuesOfObject<T> = T[keyof T];
-type PairValues = ValuesOfObject<typeof PairsObj>;
-
-interface Options {
-  ptnml: boolean;
-  elo: boolean;
-  pairPerRow: number | undefined;
-  drawBgOnEmptyCells: boolean;
-  allowHotkeys: boolean;
-}
-
-interface AdditionalStats {
-  longestLossless: number;
-  longestWinStreak: number;
-  longestWinless: number;
-  pairsRatio: number;
-  performancePercent: number;
-  highestScore: number;
-}
 
 const engineImages: HTMLImageElement[] = [];
 
@@ -345,7 +310,7 @@ function liveUpdate(): void {
       // wrappers for custom stats
       const wrappers = cell.querySelectorAll(".ccc-stat-wrapper");
 
-      wrappers?.forEach((wrapper) => {
+      wrappers?.forEach((wrapper: Element) => {
         header?.removeChild(wrapper);
       });
     });
@@ -1019,7 +984,7 @@ function onloadObserver() {
   );
 
   // TODO
-  // sendReadyToBg();
+  sendReadyToBg();
 
   if (!loader || !mainContentContainer) return;
 
@@ -1028,8 +993,9 @@ function onloadObserver() {
 
     // TODO
     queueMicrotask(() => {
-      // requestPreviousPGN();
-      // getCurrentPGN();
+      // getFENString();
+      requestPreviousPGN();
+      getCurrentPGN();
     });
   });
 
@@ -1117,9 +1083,21 @@ function highlightAgreement() {
 
   const moveNodes: NodeListOf<HTMLTableElement> =
     movesTable.querySelectorAll("th,td");
+
+  const table = document.querySelector(".movetable-tablewrapper > table")!;
+  console.log("TABLE", table);
+  const peskyP = table.querySelectorAll(".ccc-agree-end");
+
+  peskyP.forEach((p) => {
+    console.log("pesky", p);
+    console.log("pesky parent", p.parentNode);
+    p.parentNode?.removeChild(p);
+    p.parentElement?.removeChild(p);
+  });
+
   let agreeLen = 0;
 
-  for (let i = 0; i < Math.min(savedPGN.length, pgn?.length); i++) {
+  for (let i = 0; i < Math.min(savedPGN?.length ?? 0, pgn?.length ?? 0); i++) {
     const parent = moveNodes[i];
     const p = document.createElement("p");
 
@@ -1174,19 +1152,19 @@ function requestPreviousPGN() {
     gameNumber -= 1;
 
     if (gameNumber % 2 === 0) return;
-
-    chrome.runtime.sendMessage(
-      {
-        type: "game",
-        payload: {
-          gameNumber,
-        },
+    const message: RuntimeMessage = {
+      type: "game",
+      payload: {
+        gameNumber,
       },
-      (res) => {
-        savedPGN = res;
-        highlightAgreement();
-      }
-    );
+    };
+
+    chrome.runtime.sendMessage(message, (res) => {
+      if (!res) return;
+
+      savedPGN.push(res);
+      highlightAgreement();
+    });
   });
 }
 
@@ -1198,7 +1176,9 @@ const runtimeOnMessage = (function () {
         payload: null,
       },
       (res) => {
-        savedPGN = res;
+        if (!res) return;
+
+        savedPGN.push(res);
         highlightAgreement();
       }
     );
@@ -1217,7 +1197,8 @@ chrome.runtime.onMessage.addListener(function (
   try {
     const { type, payload } = message;
     if (type === "pgn" && payload.pgn) {
-      savedPGN = payload.pgn;
+      savedPGN.length = 0;
+      savedPGN.push(payload.pgn);
 
       highlightAgreement();
     }
@@ -1237,7 +1218,9 @@ function sendReadyToBg(): void {
       payload: null,
     },
     (res) => {
-      savedPGN = res;
+      if (!res) return;
+
+      savedPGN.push(res);
       highlightAgreement();
     }
   );
@@ -1273,7 +1256,7 @@ function getGameNumberFromStandings(): number | undefined {
 function saveCurrentPGN() {
   const pgn = getCurrentPGN();
 
-  if (!pgn) return;
+  if (!pgn || !savedPGN) return;
 
   savedPGN.length = 0;
   savedPGN.push(...pgn);
@@ -1288,6 +1271,41 @@ function getCurrentPGN() {
 
   return pgnArr;
 }
+
+// TODO handle already opened download TAB situation
+// TODO handle already opened download TAB situation
+// setTimeout(() => {
+//   getFENString();
+// }, 300);
+// opens "download" tab, gets FEN string
+// and closes it immediately
+// function getFENString() {
+//   // const
+
+//   const controlPanel = document.getElementById("controls-controls");
+//   const downloadBtn = controlPanel?.querySelector(
+//     '[title="download"],[title="Download"]'
+//   );
+
+//   // @ts-ignore
+//   downloadBtn?.click();
+
+//   queueMicrotask(() => {
+//     const modal = document.querySelector(".ui_modal-component");
+
+//     const boardDiv = document.querySelector(".share-menu-tab-pgn-section");
+//     const input = boardDiv?.querySelector("input");
+//     const backdrop = document.querySelector(".ui_modal-backdrop");
+//     const btn = modal?.querySelector("button");
+
+//     console.log(btn);
+
+//     console.log("FEN", input?.value);
+
+//     backdrop?.click();
+//     btn?.click();
+//   });
+// }
 
 // ! ================
 // ! ================
