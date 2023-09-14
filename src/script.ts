@@ -1,6 +1,8 @@
 /// <reference types="./" />
 /// <reference path="./index.d.ts" />
 
+type PairValues = ValuesOfObject<typeof PairsObj>;
+
 const mainContainer: HTMLDivElement = document.querySelector(
   ".cpu-champs-page-ccc"
 )!;
@@ -8,8 +10,8 @@ const mainContainer: HTMLDivElement = document.querySelector(
 // div with main tabs: vote / standings / schedule / match / info
 let standingsDiv = document.getElementById("bottomtable-bottomtable")!;
 
-// twitch chat div
-const chat = document.querySelector("chat-chat");
+// twitch chat container div
+const twitchChat = document.querySelector("chat-chat");
 
 // list of vote / standings / schedule / match / info buttons
 const buttons: NodeListOf<HTMLSpanElement> = standingsDiv.querySelectorAll(
@@ -22,7 +24,6 @@ let scheduleBtn: HTMLSpanElement = buttons[2];
 let btnPanel = standingsDiv.querySelector(".selection-panel-container")!;
 // button with text "Standings"
 let standingsBtn = btnPanel.querySelectorAll("span")[1];
-standingsBtn.addEventListener("click", standingsBtnClickHandler);
 
 let crossTableBtn: HTMLButtonElement | null;
 let crossTableElements: NodeListOf<HTMLTableCellElement>;
@@ -36,9 +37,6 @@ const movesTable = movesDiv.querySelector("table");
 // need this for @media queries
 let enginesAmount = 0;
 
-let currentGameNumber = -1;
-const savedPGN: string[] = [];
-
 const formatter = Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
   maximumFractionDigits: 2,
@@ -50,12 +48,8 @@ const userCustomOptions: Options = {
   pairPerRow: undefined,
   drawBgOnEmptyCells: false,
   allowHotkeys: true,
-};
-
-const moveListObserverOptions: Readonly<MutationObserverInit> = {
-  subtree: true,
-  attributes: true,
-  attributeFilter: ["class"],
+  agreementHighlight: true,
+  pgnFetch: true,
 };
 
 const userCustomOptionsDefault: Options = {
@@ -64,6 +58,8 @@ const userCustomOptionsDefault: Options = {
   pairPerRow: undefined,
   drawBgOnEmptyCells: false,
   allowHotkeys: true,
+  agreementHighlight: true,
+  pgnFetch: true,
 } as const;
 
 const PairsObj = {
@@ -122,12 +118,7 @@ const loadUserSettings = (function (): void {
 })();
 
 // * observers
-onloadObserver();
-
 observeOpenCrossTable();
-observeGameEnd();
-observeMovePlayed();
-observeMoveListTraversal();
 
 let spaceKeyPressed = false;
 
@@ -173,44 +164,6 @@ function convertCrossTable(): void {
   }
 }
 
-// observes prematurely opened cross table
-function observeInitial(): void {
-  try {
-    const initObserver = new MutationObserver(() => {
-      initObserver.disconnect();
-      crossTableBtnClickHandler();
-    });
-
-    const modal = document.querySelector(".modal-vue-modal-container");
-
-    if (modal) {
-      initObserver.observe(modal, {
-        childList: true,
-        subtree: true,
-      });
-    }
-  } catch (e: any) {
-    console.log(e.message);
-  }
-}
-
-// observes cells with no h2h records
-function observeEmpty(cell: HTMLTableCellElement): void {
-  try {
-    const observer = new MutationObserver(() => {
-      observer.disconnect();
-
-      convertCell(cell);
-    });
-
-    observer.observe(cell, {
-      childList: true,
-    });
-  } catch (e: any) {
-    console.log(e.message);
-  }
-}
-
 function convertCell(cell: HTMLTableCellElement): void {
   try {
     let index_1: number = -1;
@@ -220,7 +173,6 @@ function convertCell(cell: HTMLTableCellElement): void {
     const grandParent = cell?.parentNode?.parentNode;
 
     if (parent && grandParent) {
-      // @ts-ignore
       for (let i = 0; i < parent?.childNodes?.length ?? 0; i++) {
         const current = parent?.childNodes[i];
         if (current !== cell) continue;
@@ -228,7 +180,6 @@ function convertCell(cell: HTMLTableCellElement): void {
         break;
       }
 
-      // @ts-ignore
       for (let i = 0; i < grandParent?.childNodes?.length ?? 0; i++) {
         const current = grandParent?.childNodes[i];
         // @ts-ignore
@@ -240,7 +191,6 @@ function convertCell(cell: HTMLTableCellElement): void {
 
     index_1 -= 6;
     index_2 -= 2;
-    console.log(index_1, index_2);
 
     // header with result -->       205 - 195 [+10]
     const cellHeader: HTMLDivElement | null = cell.querySelector(
@@ -288,7 +238,58 @@ function convertCell(cell: HTMLTableCellElement): void {
   }
 }
 
-// updates stats with each new game result
+// observes prematurely opened cross table
+function observeInitial(): void {
+  try {
+    const initObserver = new MutationObserver(() => {
+      initObserver.disconnect();
+      crossTableBtnClickHandler();
+    });
+
+    const modal = document.querySelector(".modal-vue-modal-container");
+
+    if (modal) {
+      initObserver.observe(modal, {
+        childList: true,
+        subtree: true,
+      });
+    }
+  } catch (e: any) {
+    console.log(e.message);
+  }
+}
+
+// observes cells with no h2h records
+function observeEmpty(cell: HTMLTableCellElement): void {
+  try {
+    const observer = new MutationObserver(() => {
+      observer.disconnect();
+
+      convertCell(cell);
+    });
+
+    observer.observe(cell, {
+      childList: true,
+    });
+  } catch (e: any) {
+    console.log(e.message);
+  }
+}
+
+function observeOpenCrossTable(): void {
+  const observer = new MutationObserver((entries) => {
+    const modal = document.querySelector(".modal-vue-modal");
+    if (!modal) return;
+
+    queueMicrotask(crossTableBtnClickHandler);
+  });
+
+  observer.observe(mainContainer, {
+    childList: true,
+  });
+}
+
+// live cross table update
 function liveUpdate(): void {
   try {
     // @ts-ignore
@@ -666,12 +667,40 @@ function createPTNMLStatHeader(ptnml: PTNML): HTMLDivElement {
   ptnmlHeader.id = "ptnml-header";
   ptnmlHeader.textContent = "Ptnml(0-2)";
 
-  ptnmlElement.textContent = `${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]}`;
+  // ptnmlElement.textContent = `${ptnml[0]}, ${ptnml[1]}, ${ptnml[2]}, ${ptnml[3]}, ${ptnml[4]}`;
+  ptnmlHeader.title = " LL, LD, WL/DD, WD, WW ";
+  createPTNMLEntries(ptnmlElement, ptnml);
+
   ptnmlElement.classList.add("ccc-ptnml");
 
   ptnmlWrapper.append(ptnmlHeader, ptnmlElement);
 
   return ptnmlWrapper;
+}
+
+function createPTNMLEntries(element: HTMLDivElement, ptnml: PTNML): void {
+  const ll = document.createElement("p");
+  const ld = document.createElement("p");
+  const wldd = document.createElement("p");
+  const wd = document.createElement("p");
+  const ww = document.createElement("p");
+
+  ll.textContent = `${ptnml[0]},`;
+  ll.title = "L+L";
+
+  ld.textContent = `${ptnml[1]},`;
+  ld.title = "L+D";
+
+  wldd.textContent = `${ptnml[2]},`;
+  wldd.title = "W+L / D+D";
+
+  wd.textContent = `${ptnml[3]},`;
+  wd.title = "W+D";
+
+  ww.textContent = `${ptnml[4]}`;
+  ww.title = "W+W";
+
+  element.append(ll, ld, wldd, wd, ww);
 }
 
 function createWDLStatHeader(wdlArray: WDL): HTMLDivElement {
@@ -744,13 +773,13 @@ function createAdvancedStats(
   index_1: number,
   index_2: number
 ) {
-  const additionalStatsWrapper = document.createElement("div");
-  additionalStatsWrapper.classList.add("ccc-info-button");
+  const additionalStatsBtn = document.createElement("div");
+  additionalStatsBtn.classList.add("ccc-info-button");
 
   const svg = createSVGCaret();
-  additionalStatsWrapper.append(svg);
+  additionalStatsBtn.append(svg);
 
-  additionalStatsWrapper.addEventListener("click", (e) => {
+  additionalStatsBtn.addEventListener("click", (e) => {
     e.stopPropagation();
 
     const statsElementBackdrop = document.createElement("div");
@@ -759,16 +788,17 @@ function createAdvancedStats(
     statsElementBackdrop.addEventListener("click", function (e) {
       e.stopPropagation();
       if (e.target !== statsElementBackdrop) return;
-      additionalStatsWrapper.removeChild(statsElementBackdrop);
+      additionalStatsBtn.removeChild(statsElementBackdrop);
     });
 
     const infoElement = handleStatElementCreation(stats, index_1, index_2);
 
     statsElementBackdrop.append(infoElement);
-    additionalStatsWrapper.append(statsElementBackdrop);
+
+    additionalStatsBtn.append(statsElementBackdrop);
   });
 
-  return additionalStatsWrapper;
+  return additionalStatsBtn;
 }
 
 function createSVGCaret() {
@@ -802,8 +832,10 @@ function handleStatElementCreation(
 ) {
   const infoElement = document.createElement("div");
   infoElement.classList.add("ccc-info-panel");
-
   infoElement.innerHTML = "";
+
+  const waveContainer = createWaveContainer();
+  infoElement.append(waveContainer);
 
   const p1 = createAdditionalStatRow(
     "Longest lossless streak: ",
@@ -849,8 +881,11 @@ function handleStatElementCreation(
 
   opponentsDiv.append(img_2, pVs, img_1);
 
-  infoElement.append(opponentsDiv);
-  infoElement.append(
+  const wrapper = document.createElement("div");
+  wrapper.classList.add("ccc-info-main");
+
+  wrapper.append(opponentsDiv);
+  wrapper.append(
     p1,
     p2,
     p3,
@@ -858,8 +893,42 @@ function handleStatElementCreation(
     p4
     //  p6
   );
+  infoElement.append(wrapper);
 
   return infoElement;
+}
+
+function createWaveContainer() {
+  const waveContainer = document.createElement("div");
+  const waveFiller = document.createElement("div");
+  const wave = document.createElement("div");
+
+  const xMark = document.createElement("button");
+  xMark.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="1em" viewBox="0 0 384 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>`;
+  xMark.classList.add("ccc-x-mark");
+
+  waveFiller.append(xMark);
+
+  xMark.addEventListener("click", (e) => {
+    e.stopPropagation();
+
+    const statsModal = document.querySelector(".ccc-info-backdrop");
+    if (!statsModal) return;
+    const infoBtn = statsModal.parentNode;
+    infoBtn?.removeChild(statsModal);
+  });
+
+  waveContainer.classList.add("ccc-wave-container");
+  waveFiller.classList.add("ccc-wave-filler");
+  wave.classList.add("ccc-wave");
+
+  wave.innerHTML = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+    <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" class="shape-fill"></path>
+  </svg>`;
+
+  waveContainer.append(waveFiller, wave);
+  return waveContainer;
 }
 
 function createAdditionalStatRow(info: string, stat: string) {
@@ -972,346 +1041,24 @@ function applyStylesToGrid() {
   );
 }
 
-// TODO
-// for move agreement
-let agree = true;
-
-// observes initial loader backdrop
-function onloadObserver() {
-  const mainContentContainer = document.querySelector(".cpu-champs-page-main");
-  const loader: HTMLDivElement | null = document.querySelector(
-    ".cpu-champs-page-loader-wrapper"
-  );
-
-  // TODO
-  sendReadyToBg();
-
-  if (!loader || !mainContentContainer) return;
-
-  const o = new MutationObserver(() => {
-    o.disconnect();
-
-    // TODO
-    queueMicrotask(() => {
-      // getFENString();
-      requestPreviousPGN();
-      getCurrentPGN();
-    });
-  });
-
-  o.observe(mainContentContainer, {
-    childList: true,
-  });
-}
-
-function observeGameEnd() {
-  const observer = new MutationObserver(() => {
-    const clockDiv = movesDiv.querySelector(".next-game-clock-wrapper");
-
-    // it will fire when a new game starts
-    if (!clockDiv) {
-      agree = true;
-      currentGameNumber++;
-      // return
-    }
-
-    if (currentGameNumber % 2 === 1) {
-      saveCurrentPGN();
-    }
-  });
-
-  observer.observe(movesDiv, {
-    childList: true,
-  });
-}
-
-function observeMovePlayed() {
-  if (!movesTable) return;
-
-  const observer = new MutationObserver((e) => {
-    if (currentGameNumber === -1) {
-      getGameNumberFromStandings();
-      return;
-    }
-
-    if (currentGameNumber % 2 === 1 || e.length > 6 || !agree) return;
-
-    highlightAgreement();
-  });
-
-  observer.observe(movesTable, {
-    childList: true,
-    subtree: true,
-  });
-}
-
-function observeMoveListTraversal() {
-  if (!movesTable) return;
-
-  const observer = new MutationObserver(() => {
-    if (currentGameNumber % 2 === 1) return;
-
-    observer.disconnect();
-
-    highlightAgreement();
-
-    setTimeout(() => {
-      observer.observe(movesTable, moveListObserverOptions);
-    });
-  });
-
-  observer.observe(movesTable, moveListObserverOptions);
-}
-
-function observeOpenCrossTable() {
-  const observer = new MutationObserver((entries) => {
-    const modal = document.querySelector(".modal-vue-modal");
-    if (!modal) return;
-
-    queueMicrotask(crossTableBtnClickHandler);
-  });
-
-  observer.observe(mainContainer, {
-    childList: true,
-  });
-}
-
-function highlightAgreement() {
-  const pgn = getCurrentPGN();
-
-  if (!pgn || !movesTable || currentGameNumber % 2 === 1) return;
-
-  const moveNodes: NodeListOf<HTMLTableElement> =
-    movesTable.querySelectorAll("th,td");
-
-  const table = document.querySelector(".movetable-tablewrapper > table")!;
-  console.log("TABLE", table);
-  const peskyP = table.querySelectorAll(".ccc-agree-end");
-
-  peskyP.forEach((p) => {
-    console.log("pesky", p);
-    console.log("pesky parent", p.parentNode);
-    p.parentNode?.removeChild(p);
-    p.parentElement?.removeChild(p);
-  });
-
-  let agreeLen = 0;
-
-  for (let i = 0; i < Math.min(savedPGN?.length ?? 0, pgn?.length ?? 0); i++) {
-    const parent = moveNodes[i];
-    const p = document.createElement("p");
-
-    const saved = savedPGN[i];
-    const cur = pgn[i];
-
-    const pPresent = parent.querySelector("p");
-
-    if (saved === cur) {
-      agreeLen++;
-
-      continue;
-    }
-
-    agree = false;
-
-    p.classList.add("ccc-stroke");
-    p.classList.add("ccc-agree-end");
-    p.textContent = `(${saved})`;
-
-    if (!pPresent) {
-      parent.append(p);
-    }
-
-    parent.title = `The move played in the last game - ${saved}`;
-
-    break;
-  }
-
-  for (let i = 0; i < agreeLen; i++) {
-    const cur = moveNodes[i];
-
-    if (!cur) break;
-    if (cur.nodeName === "TH") continue;
-
-    cur?.classList.add("ccc-move-agree");
-    cur.title = "The same move as in the last game";
+// @ts-ignore
+function removeChildNodes(
+  parentNode: Element | HTMLElement | ParentNode | ChildNode
+): void {
+  while (parentNode.firstChild) {
+    parentNode.removeChild(parentNode.firstChild);
   }
 }
 
-// ! ================
-// ! test features
-function requestPreviousPGN() {
-  standingsBtn.click();
-
-  setTimeout(() => {
-    let gameNumber = getGameNumberFromStandings();
-    if (!gameNumber) return;
-    if (currentGameNumber === -1) {
-      currentGameNumber = gameNumber;
-    }
-    gameNumber -= 1;
-
-    if (gameNumber % 2 === 0) return;
-    const message: RuntimeMessage = {
-      type: "game",
-      payload: {
-        gameNumber,
-      },
-    };
-
-    chrome.runtime.sendMessage(message, (res) => {
-      if (!res) return;
-
-      savedPGN.push(res);
-      highlightAgreement();
-    });
-  });
+// @ts-ignore
+function removeNode(
+  childNode: Element | HTMLElement | ParentNode | ChildNode
+): void {
+  childNode.parentNode?.removeChild(childNode);
 }
-
-const runtimeOnMessage = (function () {
-  if (chrome.runtime) {
-    chrome.runtime.sendMessage(
-      {
-        type: "load",
-        payload: null,
-      },
-      (res) => {
-        if (!res) return;
-
-        savedPGN.push(res);
-        highlightAgreement();
-      }
-    );
-
-    return true;
-  }
-
-  browser.runtime.sendMessage({ type: "load", payload: null });
-})();
-
-chrome.runtime.onMessage.addListener(function (
-  message,
-  sender,
-  senderResponse
-) {
-  try {
-    const { type, payload } = message;
-    if (type === "pgn" && payload.pgn) {
-      savedPGN.length = 0;
-      savedPGN.push(payload.pgn);
-
-      highlightAgreement();
-    }
-
-    senderResponse(true);
-
-    return true;
-  } catch (e: any) {
-    console.log(e?.message);
-  }
-});
-
-function sendReadyToBg(): void {
-  chrome.runtime.sendMessage(
-    {
-      type: "load",
-      payload: null,
-    },
-    (res) => {
-      if (!res) return;
-
-      savedPGN.push(res);
-      highlightAgreement();
-    }
-  );
-}
-
-function getGameNumberFromStandings(): number | undefined {
-  try {
-    const engineScores = standingsDiv.querySelectorAll(".engineitem-score");
-
-    let gameNumber = 0;
-
-    for (let i = 0; i < engineScores.length; i++) {
-      // score in 'a/b' format
-      const scoreText = engineScores[i].textContent;
-
-      const score = scoreText
-        ?.split("/")[1]
-        .replace("\n", "")
-        .replace(" ", "")
-        .trim()!;
-      gameNumber += parseInt(score);
-    }
-
-    gameNumber /= 2;
-    gameNumber += 1;
-
-    return gameNumber;
-  } catch (e: any) {
-    console.log(e.message);
-  }
-}
-
-function saveCurrentPGN() {
-  const pgn = getCurrentPGN();
-
-  if (!pgn || !savedPGN) return;
-
-  savedPGN.length = 0;
-  savedPGN.push(...pgn);
-}
-
-function getCurrentPGN() {
-  const pgnArr = movesTable?.textContent
-    ?.split("\n")
-    .join("")
-    .split(" ")
-    .filter((el) => el !== "" && el !== " ");
-
-  return pgnArr;
-}
-
-// TODO handle already opened download TAB situation
-// TODO handle already opened download TAB situation
-// setTimeout(() => {
-//   getFENString();
-// }, 300);
-// opens "download" tab, gets FEN string
-// and closes it immediately
-// function getFENString() {
-//   // const
-
-//   const controlPanel = document.getElementById("controls-controls");
-//   const downloadBtn = controlPanel?.querySelector(
-//     '[title="download"],[title="Download"]'
-//   );
-
-//   // @ts-ignore
-//   downloadBtn?.click();
-
-//   queueMicrotask(() => {
-//     const modal = document.querySelector(".ui_modal-component");
-
-//     const boardDiv = document.querySelector(".share-menu-tab-pgn-section");
-//     const input = boardDiv?.querySelector("input");
-//     const backdrop = document.querySelector(".ui_modal-backdrop");
-//     const btn = modal?.querySelector("button");
-
-//     console.log(btn);
-
-//     console.log("FEN", input?.value);
-
-//     backdrop?.click();
-//     btn?.click();
-//   });
-// }
-
-// ! ================
-// ! ================
 
 // * ----------------------------
-// * event handlers and listeners
+// * event handlers && event listeners
 
 window.addEventListener("keydown", keydownHandler);
 
@@ -1460,17 +1207,6 @@ function handleCloseModalOnKeydown(): void {
   }
 }
 
-function standingsBtnClickHandler(): void {
-  try {
-    const container = document.getElementById("standings-standings")!;
-
-    crossTableBtn = container?.querySelector("button");
-    crossTableBtn?.addEventListener("click", crossTableBtnClickHandler);
-  } catch (e: any) {
-    console.log(e.message);
-  }
-}
-
 function crossTableBtnClickHandler(): void {
   try {
     const crossTableModal: HTMLDivElement | null = document.querySelector(
@@ -1530,24 +1266,24 @@ function calculateErrorMargin(
   draws: number,
   losses: number
 ): string {
-  var total = wins + draws + losses;
-  var winP = wins / total;
-  var drawP = draws / total;
-  var lossP = losses / total;
-  var percentage = (wins + draws * 0.5) / total;
-  var winsDev = winP * Math.pow(1 - percentage, 2);
-  var drawsDev = drawP * Math.pow(0.5 - percentage, 2);
-  var lossesDev = lossP * Math.pow(0 - percentage, 2);
-  var stdDeviation =
+  const total = wins + draws + losses;
+  const winP = wins / total;
+  const drawP = draws / total;
+  const lossP = losses / total;
+  const percentage = (wins + draws * 0.5) / total;
+  const winsDev = winP * Math.pow(1 - percentage, 2);
+  const drawsDev = drawP * Math.pow(0.5 - percentage, 2);
+  const lossesDev = lossP * Math.pow(0 - percentage, 2);
+  const stdDeviation =
     Math.sqrt(winsDev + drawsDev + lossesDev) / Math.sqrt(total);
 
-  var confidenceP = 0.95;
-  var minConfidenceP = (1 - confidenceP) / 2;
-  var maxConfidenceP = 1 - minConfidenceP;
-  var devMin = percentage + phiInv(minConfidenceP) * stdDeviation;
-  var devMax = percentage + phiInv(maxConfidenceP) * stdDeviation;
+  const confidenceP = 0.95;
+  const minConfidenceP = (1 - confidenceP) / 2;
+  const maxConfidenceP = 1 - minConfidenceP;
+  const devMin = percentage + phiInv(minConfidenceP) * stdDeviation;
+  const devMax = percentage + phiInv(maxConfidenceP) * stdDeviation;
 
-  var difference =
+  const difference =
     calculateEloDifference(devMax) - calculateEloDifference(devMin);
 
   const errorMargin = formatter.format(difference / 2);

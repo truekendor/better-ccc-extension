@@ -1,6 +1,10 @@
 src/script.js
 src/backgroud.js
 
+src/highlight.js
+src/highlight.ts
+
+src/chess.*
 
 firefox_dev_v2
 firefox_dev_v3

@@ -5,23 +5,19 @@
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
 let allowFetching = true;
-const eventList: EventItem[] = [];
+const eventList: EventListItem[] = [];
 
 getEventList();
 function getEventList() {
-  try {
-    return fetch("https://cccc.chess.com/event-list")
-      .then((res) => {
-        return res.json();
-      })
-      .then((res: EventItem[]) => {
-        eventList.length = 0;
-        eventList.push(...res);
-      })
-      .catch((e: any) => console.log(e?.message));
-  } catch (e: any) {
-    console.log(e?.message);
-  }
+  return fetch("https://cccc.chess.com/event-list")
+    .then((res) => {
+      return res.json();
+    })
+    .then((res: EventListItem[]) => {
+      eventList.length = 0;
+      eventList.push(...res);
+    })
+    .catch((e: any) => console.log(e?.message));
 }
 
 chrome.runtime.onMessage.addListener(function (
@@ -33,26 +29,47 @@ chrome.runtime.onMessage.addListener(function (
     if (eventList.length === 0) {
       return true;
     }
+    console.log("MESSAGE", message);
     const { type, payload } = message;
 
-    if (type === "game") {
+    if (type === "get_pgn") {
+      // TODO decompose to its own function
+      // TODO uncomment
       if (!payload?.gameNumber || payload.gameNumber % 2 === 1) return true;
+      console.log(
+        "fetch this ",
+        getGameUrl(eventList[0].id, payload.gameNumber)
+      );
 
       fetch(getGameUrl(eventList[0].id, payload.gameNumber))
         .then((res) => {
+          console.log("response 1", res);
           return res.json();
         })
         .then((res: ChessComGameResponse) => {
+          console.log("response full", res);
+          if (!res) {
+            throw new Error("No response");
+          }
+
           const pgn = getMovesFromPgn(res.pgn);
+          console.log("prev game PGN", pgn);
+
           const movesArray: string[] = pgn
             .split(" ")
             .filter((el) => el !== "" && el !== " ");
 
           if (!movesArray.length) return true;
+          const message: RuntimeMessage = {
+            type: "response_pgn",
+            payload: {
+              pgn: movesArray ?? null,
+            },
+          };
 
-          senderResponse(movesArray ?? null);
+          senderResponse(message);
         });
-    } else if (type === "load") {
+    } else if (type === "onload") {
       onLoadHandler();
     }
 
@@ -64,51 +81,52 @@ chrome.runtime.onMessage.addListener(function (
 
 // to request agreement from random CCC games
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-  try {
-    if (!changeInfo.url) return;
+  if (!changeInfo.url) return;
 
-    const info = getEventAndGame(tab);
-    if (!info) return;
+  const info = getEventAndGame(tab);
+  if (!info) return;
 
-    const { event, game } = info;
+  const { event, game } = info;
 
-    if (!event || !game || game % 2 === 1) return;
+  if (!event || !game || game % 2 === 1) return;
 
-    fetch(getGameUrl(event, game - 1))
-      .then((res) => {
-        return res.json();
-      })
-      .then((res: ChessComGameResponse) => {
-        let pgn = getMovesFromPgn(res.pgn);
+  fetch(getGameUrl(event, game - 1))
+    .then((res) => {
+      return res.json();
+    })
+    .then((res: ChessComGameResponse) => {
+      if (!res) {
+        throw new Error("No response");
+      }
+      let pgn = getMovesFromPgn(res.pgn);
 
-        return pgn.split(" ").filter((el) => el !== "" && el !== " ");
-      })
-      .then((pgn) => {
-        const data: RuntimeMessage = {
-          type: "pgn",
-          payload: {
-            pgn,
-          },
-        };
+      return pgn.split(" ").filter((el) => el !== "" && el !== " ");
+    })
+    .then((pgn) => {
+      console.log("prev game PGN", pgn);
 
-        chrome.tabs.query(
-          { active: true, currentWindow: true },
+      const data: RuntimeMessage = {
+        type: "response_pgn",
+        payload: {
+          pgn,
+          gameNumber: game,
+        },
+      };
 
-          function (tabs) {
-            if (!tabs[0].id) return;
-            chrome.tabs.sendMessage(tabs[0].id, data);
-          }
-        );
-      })
-      .catch((err) => console.log("Error at bg: ", err.message));
+      chrome.tabs.query(
+        { active: true, currentWindow: true },
 
-    // return true;
-  } catch (e: any) {
-    console.log(e?.message);
-  }
+        function (tabs) {
+          if (!tabs[0].id) return;
+          chrome.tabs.sendMessage(tabs[0].id, data);
+        }
+      );
+    })
+    .catch((err) => console.log("Error at bg: ", err.message));
+
+  // return true;
 });
 
-// @ts-ignore
 async function getCurrentTab() {
   try {
     const queryOptions = { active: true, currentWindow: true };
@@ -120,7 +138,9 @@ async function getCurrentTab() {
   }
 }
 
-// @ts-ignore
+// gets CCC tab queries
+// such as name of the event
+// and game number
 async function onLoadHandler() {
   try {
     const tab = await getCurrentTab();
@@ -144,9 +164,10 @@ async function onLoadHandler() {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
       if (!tabs[0].id) return;
       const message: RuntimeMessage = {
-        type: "pgn",
+        type: "response_pgn",
         payload: {
           pgn,
+          gameNumber: game,
         },
       };
 
@@ -197,8 +218,8 @@ function getGameUrl(eventId: string, gameNumber: number): string {
 }
 
 /**
- * @returns Moves string in a format like this:
- *  "1. e4 e5 2. Nf3 Nf6 3. ... ..."
+ * @returns Moves string in this format:
+ *  "1. e4 e5 2. Nf3 Nf6 3. d4 d5 4. ..."
  */
 function getMovesFromPgn(pgn: string): string {
   const data: string[] = pgn.split("\n");
@@ -206,8 +227,3 @@ function getMovesFromPgn(pgn: string): string {
 
   return pgnString;
 }
-
-// @ts-ignore
-// chrome.runtime.onInstalled.addListener(async () => {
-//
-// });

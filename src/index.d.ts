@@ -13,7 +13,6 @@ type Browsers = TChrome | TFirefox;
 type Tab = chrome.tabs.Tab | browser.tabs.Tab;
 
 type ValuesOfObject<T> = T[keyof T];
-type PairValues = ValuesOfObject<typeof PairsObj>;
 
 type Options = {
   ptnml: boolean;
@@ -21,6 +20,8 @@ type Options = {
   pairPerRow: number | undefined;
   drawBgOnEmptyCells: boolean;
   allowHotkeys: boolean;
+  agreementHighlight: boolean;
+  pgnFetch: boolean;
 };
 
 type AdditionalStats = {
@@ -32,6 +33,9 @@ type AdditionalStats = {
   highestScore: number;
 };
 
+// * ===================
+// * chess com response types
+
 type ChessComGameResponse = {
   end: "checkmate" | "adjudication" | "3fold";
   res: "1/2-1/2" | "1-0" | "0-1";
@@ -39,7 +43,7 @@ type ChessComGameResponse = {
   pgn: string;
   info: InfoEntry[];
   kibitzerHistory: KibitzerEntry[];
-};
+} | null;
 
 type KibitzerHistoryLog = {
   color: "white" | "black";
@@ -70,10 +74,10 @@ type InfoEntry =
 
 // * ===================
 // * message passing types
-type RuntimeMessageType = "game" | "load" | "pgn";
+type RuntimeMessageType = "get_pgn" | "onload" | "response_pgn";
 
 type RuntimeMessagePayload = {
-  gameNumber: number;
+  gameNumber: number | null;
   pgn: string[];
 } | null;
 
@@ -84,12 +88,12 @@ type RuntimeMessage = {
 
 // * ===================
 // * background.ts types
-type EventItem = {
+type EventListItem = {
   id: string;
   name: string;
 };
 
-interface EventAndGame {
+type EventAndGame = {
   event: string;
   game: number;
-}
+};
