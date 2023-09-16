@@ -12,7 +12,7 @@
   --ccc-double-win-font-color: hsl(102, 61%, 50%);
   --ccc-double-loss-font-color: hsl(0, 100%, 63%);
 
-  --border-color-ccc: hsl(0, 0%, 45%);
+  --ccc-border-color: hsl(0, 0%, 45%);
 
   --won-bg: hsla(81, 63%, 62%, 0.17);
   --loss-bg: hsla(9, 86%, 61%, 0.17);
@@ -20,8 +20,8 @@
   --double-loss-bg: hsla(0, 90%, 36%, 0.36);
   --draw-bg: transparent;
 
-  --wdl-font-size: 1.15rem;
-  --wdl-line-height: 1.2rem;
+  --ccc-wdl-font-size: 1.15rem;
+  --ccc-wdl-line-height: 1.2rem;
 
   --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
@@ -312,7 +312,7 @@ result table section
   width: 1px;
   height: 100%;
 
-  background-color: var(--border-color-ccc);
+  background-color: var(--ccc-border-color);
 }
 
 #ccc-result.ccc-border-left::before {
@@ -345,8 +345,8 @@ result table section
 
 .ccc-wdl-container > p,
 .ccc-elo-wrapper > p {
-  font-size: var(--wdl-font-size);
-  line-height: var(--wdl-line-height);
+  font-size: var(--ccc-wdl-font-size);
+  line-height: var(--ccc-wdl-line-height);
 }
 
 .ccc-wdl-container > :nth-child(2) {
@@ -983,3 +983,31 @@ svg#Layer_1 {
 .ccc-x-mark > svg {
   pointer-events: none;
 }
+
+/* 
+#crosstable-crosstableModal {
+  height: 90vh !important;
+
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+#crosstable-crosstableModal > table.crosstable-crosstable > tr:first-child {
+  background-color: #272522 !important;
+
+  position: -webkit-sticky !important;
+  position: sticky !important;
+
+  top: 0;
+
+  z-index: 9999;
+}
+
+.crosstable-crosstable > tr:not(:first-child) > :nth-child(2) {
+  position: -webkit-sticky;
+  position: sticky;
+
+  left: 0;
+
+  z-index: 9998;
+} */

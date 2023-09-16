@@ -29,7 +29,6 @@ chrome.runtime.onMessage.addListener(function (
     if (eventList.length === 0) {
       return true;
     }
-    console.log("MESSAGE", message);
     const { type, payload } = message;
 
     if (type === "get_pgn") {
