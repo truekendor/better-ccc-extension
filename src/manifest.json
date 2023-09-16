@@ -6,7 +6,7 @@
     {
       "matches": ["*://www.chess.com/*computer-chess-championship*"],
       "css": ["styles.css"],
-      "js": ["script.js", "highlight.js"],
+      "js": ["script.js", "highlight.js", "popup.js"],
       "run_at": "document_end"
     }
   ],
@@ -18,5 +18,8 @@
     "48": "icons/icon_48.png",
     "32": "icons/icon_32.png"
   },
-  "permissions": ["scripting", "storage", "tabs"]
+  "permissions": ["scripting", "storage", "tabs", "activeTab"],
+  "action": {
+    "default_popup": "popup.html"
+  }
 }
