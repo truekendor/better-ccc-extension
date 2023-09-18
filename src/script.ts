@@ -42,7 +42,7 @@ const formatter = Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 });
 
-const userCustomOptions: Options = {
+const userCustomOptions: UserOptions = {
   ptnml: true,
   elo: true,
   pairPerRow: undefined,
@@ -52,7 +52,7 @@ const userCustomOptions: Options = {
   pgnFetch: true,
 };
 
-const userCustomOptionsDefault: Options = {
+const userCustomOptionsDefault: UserOptions = {
   ptnml: true,
   elo: true,
   pairPerRow: undefined,
@@ -76,29 +76,29 @@ const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 const loadUserSettings = (function (): void {
   try {
     browserPrefix.storage.local
-      .get("elo" as keyof Options)
-      .then(({ elo }: Partial<Options>) => {
+      .get("elo" as keyof UserOptions)
+      .then(({ elo }: Partial<UserOptions>) => {
         userCustomOptions.elo = elo ?? userCustomOptionsDefault.elo;
       });
 
     browserPrefix.storage.local
-      .get("ptnml" as keyof Options)
-      .then((result: Partial<Options>) => {
+      .get("ptnml" as keyof UserOptions)
+      .then((result: Partial<UserOptions>) => {
         userCustomOptions.ptnml =
           result.ptnml ?? userCustomOptionsDefault.ptnml;
       });
 
     browserPrefix.storage.local
-      .get("pairPerRow" as keyof Options)
-      .then((result: Partial<Options>) => {
+      .get("pairPerRow" as keyof UserOptions)
+      .then((result: Partial<UserOptions>) => {
         userCustomOptions.pairPerRow =
           result.pairPerRow ?? userCustomOptionsDefault.pairPerRow;
         applyStylesToGrid();
       });
 
     browserPrefix.storage.local
-      .get("drawBgOnEmptyCells" as keyof Options)
-      .then((result: Partial<Options>) => {
+      .get("drawBgOnEmptyCells" as keyof UserOptions)
+      .then((result: Partial<UserOptions>) => {
         userCustomOptions.drawBgOnEmptyCells =
           result.drawBgOnEmptyCells ??
           userCustomOptionsDefault.drawBgOnEmptyCells;
@@ -107,8 +107,8 @@ const loadUserSettings = (function (): void {
       });
 
     browserPrefix.storage.local
-      .get("allowHotkeys" as keyof Options)
-      .then((result: Partial<Options>) => {
+      .get("allowHotkeys" as keyof UserOptions)
+      .then((result: Partial<UserOptions>) => {
         userCustomOptions.allowHotkeys =
           result.allowHotkeys ?? userCustomOptionsDefault.allowHotkeys;
       });
@@ -974,7 +974,7 @@ function createEnginesNames() {
   }
 }
 
-function switchLabelHandler(field: keyof OnlyBoolean<Options>) {
+function switchLabelHandler(field: keyof OnlyBoolean<UserOptions>) {
   userCustomOptions[field] = !userCustomOptions[field];
 
   browserPrefix.storage.local
@@ -1030,7 +1030,7 @@ function calculateScores(crossTableCell: HTMLDivElement): ResultAsScore[] {
 function applyStylesToEmptyCells() {
   document.body.style.setProperty(
     "--ccc-pattern-bg-3",
-    userCustomOptions.drawBgOnEmptyCells ? "transparent" : ""
+    userCustomOptions.drawBgOnEmptyCells ? "" : "transparent"
   );
 }
 
@@ -1169,7 +1169,7 @@ function toggleBgOfEmptyCells() {
   browserPrefix.storage.local
     .set({
       drawBgOnEmptyCells: userCustomOptions.drawBgOnEmptyCells,
-    })
+    } as Partial<UserOptions>)
     .then(applyStylesToEmptyCells);
 }
 
@@ -1290,3 +1290,36 @@ function calculateErrorMargin(
 
   return `±${errorMargin}`;
 }
+
+chrome.runtime.onMessage.addListener(function (
+  message: RuntimeMessage,
+  sender,
+  senderResponse
+) {
+  try {
+    const { type, payload } = message;
+
+    // handled in highlight.ts
+    if (type !== "toggle_option" || !payload?.optionToToggle) {
+      return true;
+    }
+
+    userCustomOptions[payload.optionToToggle] =
+      !userCustomOptions[payload.optionToToggle];
+
+    if (payload.optionToToggle !== "drawBgOnEmptyCells") {
+      const crossTableModal = document.querySelector(
+        ".modal-vue-modal-content"
+      );
+      if (!crossTableModal) return true;
+
+      convertCrossTable();
+    } else {
+      applyStylesToEmptyCells();
+    }
+
+    return true;
+  } catch (e: any) {
+    console.log(e?.message);
+  }
+});

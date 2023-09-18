@@ -55,9 +55,9 @@
   border-radius: 4px;
 }
 
-/* 
-.movetable-hoverable
+/* TODO delete / uncomment
 
+.movetable-hoverable
 .ccc-agree-end ~ {
   text-decoration: unset !important;
   background-color: rgba(255, 99, 71, 0.252) !important;
@@ -88,7 +88,7 @@
 }
 
 .crosstable-results-cell.crosstable-empty {
-  /* position: relative;
+  position: relative;
   contain: strict;
 
   --ccc-pattern-bg-1: transparent;
@@ -103,15 +103,15 @@
     var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
     var(--ccc-pattern-bg-1) 0,
     var(--ccc-pattern-bg-1) 50%
-  ); */
+  );
 }
 
 .crosstable-results-cell.crosstable-empty:nth-of-type(2n) {
-  /* --ccc-pattern-bg-2: var(--ccc-pattern-bg-3, rgba(92, 92, 92, 0.7)); */
+  --ccc-pattern-bg-2: var(--ccc-pattern-bg-3, rgba(92, 92, 92, 0.7));
 }
 
 .crosstable-results-cell.crosstable-empty::before {
-  /* content: "";
+  content: "";
   position: absolute;
   inset: 0;
 
@@ -123,7 +123,7 @@
     var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
     var(--ccc-pattern-bg-1) 0,
     var(--ccc-pattern-bg-1) 50%
-  ); */
+  );
 }
 
 .schedule-container {
@@ -494,6 +494,11 @@ media queries
 
 div.movetable-tablewrapper {
   scrollbar-gutter: stable !important;
+}
+
+/* TODO properly style this */
+div.movetable-tablewrapper > table > tr > th {
+  /* background-color: rgba(0, 0, 0, 0.2); */
 }
 
 .movetable-tablewrapper table {
@@ -982,6 +987,17 @@ svg#Layer_1 {
 
 .ccc-x-mark > svg {
   pointer-events: none;
+}
+
+.bottomtable-resultspopup {
+  contain: content;
+
+  max-width: 100% !important;
+  overflow-y: scroll !important;
+}
+
+.bottomtable-resultspopup * {
+  max-width: 100%;
 }
 
 /* 

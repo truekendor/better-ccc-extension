@@ -26,48 +26,15 @@ chrome.runtime.onMessage.addListener(function (
   senderResponse
 ) {
   try {
-    if (eventList.length === 0) {
-      return true;
-    }
+    if (eventList.length === 0) return true;
+
     const { type, payload } = message;
 
     if (type === "get_pgn") {
-      // TODO decompose to its own function
-      // TODO uncomment
-      if (!payload?.gameNumber || payload.gameNumber % 2 === 1) return true;
-      console.log(
-        "fetch this ",
-        getGameUrl(eventList[0].id, payload.gameNumber)
-      );
-
-      fetch(getGameUrl(eventList[0].id, payload.gameNumber))
-        .then((res) => {
-          console.log("response 1", res);
-          return res.json();
-        })
-        .then((res: ChessComGameResponse) => {
-          console.log("response full", res);
-          if (!res) {
-            throw new Error("No response");
-          }
-
-          const pgn = getMovesFromPgn(res.pgn);
-          console.log("prev game PGN", pgn);
-
-          const movesArray: string[] = pgn
-            .split(" ")
-            .filter((el) => el !== "" && el !== " ");
-
-          if (!movesArray.length) return true;
-          const message: RuntimeMessage = {
-            type: "response_pgn",
-            payload: {
-              pgn: movesArray ?? null,
-            },
-          };
-
-          senderResponse(message);
-        });
+      getPGNHandler(payload).then((res) => {
+        if (!res) return true;
+        senderResponse(res);
+      });
     } else if (type === "onload") {
       onLoadHandler();
     }
@@ -102,8 +69,6 @@ chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
       return pgn.split(" ").filter((el) => el !== "" && el !== " ");
     })
     .then((pgn) => {
-      console.log("prev game PGN", pgn);
-
       const data: RuntimeMessage = {
         type: "response_pgn",
         payload: {
@@ -182,7 +147,6 @@ function getEventAndGame(tab: Tab): EventAndGame | null {
   // get # query
   // @ts-ignore
   if (!url || !url.includes("computer-chess-championship")) {
-    console.log("not CCC");
     return null;
   }
   const textAfterHash = url?.split("#")?.[1];
@@ -214,6 +178,40 @@ function getEventAndGame(tab: Tab): EventAndGame | null {
 
 function getGameUrl(eventId: string, gameNumber: number): string {
   return `https://cccc.chess.com/archive?event=${eventId}&game=${gameNumber}`;
+}
+
+function getPGNHandler(
+  payload: Partial<RuntimeMessagePayload>
+): Promise<null | RuntimeMessage> {
+  if (!payload?.gameNumber || payload.gameNumber % 2 === 1) {
+    return Promise.resolve(null);
+  }
+
+  return fetch(getGameUrl(eventList[0].id, payload.gameNumber))
+    .then((res) => {
+      if (!res.ok) throw new Error("No response");
+
+      return res.json();
+    })
+    .then((res: ChessComGameResponse) => {
+      if (!res) return null;
+
+      const pgn = getMovesFromPgn(res.pgn);
+
+      const movesArray: string[] = pgn
+        .split(" ")
+        .filter((el) => el !== "" && el !== " ");
+
+      if (!movesArray.length) return null;
+      const message: RuntimeMessage = {
+        type: "response_pgn",
+        payload: {
+          pgn: movesArray ?? null,
+        },
+      };
+
+      return message;
+    });
 }
 
 /**

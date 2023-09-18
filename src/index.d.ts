@@ -5,7 +5,7 @@ type OnlyBoolean<T> = { [k in BooleanKeys<T>]: boolean };
 type ResultAsScore = 1 | 0 | -1;
 type WDL = [number, number, number];
 type PTNML = [number, number, number, number, number];
-type LabelForField = keyof Omit<Options, "pairPerRow">;
+type LabelForField = keyof Omit<UserOptions, "pairPerRow">;
 
 type TChrome = typeof chrome;
 type TFirefox = typeof browser;
@@ -14,7 +14,7 @@ type Tab = chrome.tabs.Tab | browser.tabs.Tab;
 
 type ValuesOfObject<T> = T[keyof T];
 
-type Options = {
+type UserOptions = {
   ptnml: boolean;
   elo: boolean;
   pairPerRow: number | undefined;
@@ -23,6 +23,8 @@ type Options = {
   agreementHighlight: boolean;
   pgnFetch: boolean;
 };
+
+type BooleanUserOptions = Partial<OnlyBoolean<UserOptions>>;
 
 type AdditionalStats = {
   longestLossless: number;
@@ -74,11 +76,16 @@ type InfoEntry =
 
 // * ===================
 // * message passing types
-type RuntimeMessageType = "get_pgn" | "onload" | "response_pgn";
+type RuntimeMessageType =
+  | "get_pgn"
+  | "onload"
+  | "response_pgn"
+  | "toggle_option";
 
 type RuntimeMessagePayload = {
   gameNumber: number | null;
   pgn: string[];
+  optionToToggle: keyof Partial<OnlyBoolean<UserOptions>>;
 } | null;
 
 type RuntimeMessage = {

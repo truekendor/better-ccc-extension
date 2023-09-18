@@ -4,13 +4,13 @@ src/background.js
 src/highlight.js
 src/highlight.ts
 
+popup.js
+popup.ts
+popup.html
+popup.css
+
 src/chess.*
 
 firefox_dev_v2
 firefox_dev_v3
 node_modules
-
-popup.js
-popup.ts
-popup.html
-popup.css
