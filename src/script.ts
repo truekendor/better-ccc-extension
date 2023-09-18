@@ -7,7 +7,8 @@ const mainContainer: HTMLDivElement = document.querySelector(
   ".cpu-champs-page-ccc"
 )!;
 
-// div with main tabs: vote / standings / schedule / match / info
+// div container with main tabs: vote / standings / schedule / match / info
+// and schedule entries / cross table Button etc
 let standingsDiv = document.getElementById("bottomtable-bottomtable")!;
 
 // twitch chat container div
@@ -47,9 +48,10 @@ const userCustomOptions: UserOptions = {
   elo: true,
   pairPerRow: undefined,
   drawBgOnEmptyCells: false,
-  allowHotkeys: true,
+  allowKeyboardShortcuts: true,
   agreementHighlight: true,
   pgnFetch: true,
+  addLinksToGameSchedule: false,
 };
 
 const userCustomOptionsDefault: UserOptions = {
@@ -57,9 +59,10 @@ const userCustomOptionsDefault: UserOptions = {
   elo: true,
   pairPerRow: undefined,
   drawBgOnEmptyCells: false,
-  allowHotkeys: true,
+  allowKeyboardShortcuts: true,
   agreementHighlight: true,
   pgnFetch: true,
+  addLinksToGameSchedule: false,
 } as const;
 
 const PairsObj = {
@@ -107,10 +110,11 @@ const loadUserSettings = (function (): void {
       });
 
     browserPrefix.storage.local
-      .get("allowHotkeys" as keyof UserOptions)
+      .get("allowKeyboardShortcuts")
       .then((result: Partial<UserOptions>) => {
-        userCustomOptions.allowHotkeys =
-          result.allowHotkeys ?? userCustomOptionsDefault.allowHotkeys;
+        userCustomOptions.allowKeyboardShortcuts =
+          result.allowKeyboardShortcuts ??
+          userCustomOptionsDefault.allowKeyboardShortcuts;
       });
   } catch (e: any) {
     console.log(e.message);
@@ -767,7 +771,6 @@ function createSwitchLabel(
   return label;
 }
 
-// ! not in release
 function createAdvancedStats(
   stats: AdditionalStats,
   index_1: number,
@@ -1073,21 +1076,15 @@ function keydownHandler(e: KeyboardEvent): void {
     return;
   }
 
-  // enable/disable hotkeys
+  // enable/disable keyboard shortcuts
   if (e.code === "KeyU" && e.shiftKey && e.ctrlKey) {
-    browserPrefix.storage.local
-      .set({
-        allowHotkeys: !userCustomOptions.allowHotkeys,
-      })
-      .then(() => {
-        userCustomOptions.allowHotkeys = !userCustomOptions.allowHotkeys;
-      });
+    toggleAllowKeyboardShortcuts(false);
 
     return;
   }
 
   // open crosstable
-  if (userCustomOptions.allowHotkeys && e.code === "KeyC") {
+  if (userCustomOptions.allowKeyboardShortcuts && e.code === "KeyC") {
     if (e.target !== document.body || !standingsBtn) return;
     e.stopPropagation();
 
@@ -1105,7 +1102,7 @@ function keydownHandler(e: KeyboardEvent): void {
   }
 
   // open schedule
-  if (userCustomOptions.allowHotkeys && e.code === "KeyS") {
+  if (userCustomOptions.allowKeyboardShortcuts && e.code === "KeyS") {
     if (e.target !== document.body) return;
     e.stopPropagation();
 
@@ -1120,7 +1117,11 @@ function keydownHandler(e: KeyboardEvent): void {
   }
 
   // will add later
-  if (userCustomOptions.allowHotkeys && e.code === "KeyG" && e.shiftKey) {
+  if (
+    userCustomOptions.allowKeyboardShortcuts &&
+    e.code === "KeyG" &&
+    e.shiftKey
+  ) {
     toggleBgOfEmptyCells();
     return;
   }
@@ -1291,6 +1292,23 @@ function calculateErrorMargin(
   return `±${errorMargin}`;
 }
 
+// ! --------------------
+// ! dev ----------------
+type CCCEventInfo = {
+  eventName: string | null;
+  gameNumber: number | null;
+};
+
+const eventInfo: CCCEventInfo = {
+  eventName: null,
+  gameNumber: null,
+};
+// ! dev ----------------
+// ! --------------------
+// ! --------------------
+// ! --------------------
+// ! dev ----------------
+
 chrome.runtime.onMessage.addListener(function (
   message: RuntimeMessage,
   sender,
@@ -1300,21 +1318,30 @@ chrome.runtime.onMessage.addListener(function (
     const { type, payload } = message;
 
     // handled in highlight.ts
-    if (type !== "toggle_option" || !payload?.optionToToggle) {
+    if (type !== "toggle_option" && type !== "event_name") {
       return true;
     }
 
-    userCustomOptions[payload.optionToToggle] =
-      !userCustomOptions[payload.optionToToggle];
+    if (type === "event_name") {
+      eventInfo.eventName = payload?.eventName ?? "";
+      return true;
+    }
+    if (!payload?.optionToToggle) return;
 
-    if (payload.optionToToggle !== "drawBgOnEmptyCells") {
+    const { optionToToggle: option } = payload;
+
+    userCustomOptions[option] = !userCustomOptions[option];
+
+    if (option === "elo" || option === "ptnml") {
       const crossTableModal = document.querySelector(
         ".modal-vue-modal-content"
       );
       if (!crossTableModal) return true;
 
       convertCrossTable();
-    } else {
+    } else if (option === "allowKeyboardShortcuts") {
+      toggleAllowKeyboardShortcuts(true);
+    } else if (option === "drawBgOnEmptyCells") {
       applyStylesToEmptyCells();
     }
 
@@ -1323,3 +1350,52 @@ chrome.runtime.onMessage.addListener(function (
     console.log(e?.message);
   }
 });
+
+function toggleAllowKeyboardShortcuts(reversed: boolean) {
+  const { allowKeyboardShortcuts: allow } = userCustomOptions;
+  browserPrefix.storage.local
+    .set({
+      allowKeyboardShortcuts: reversed ? allow : !allow,
+    })
+    .then(() => {
+      userCustomOptions.allowKeyboardShortcuts = reversed ? allow : !allow;
+    });
+}
+
+observeScheduleClick();
+function observeScheduleClick() {
+  const container = standingsDiv.querySelector(
+    ".selection-panel-container + div"
+  )!;
+
+  const observer = new MutationObserver(() => {
+    if (!userCustomOptions.addLinksToGameSchedule) return;
+    const scheduleContainer: HTMLDivElement | null = container.querySelector(
+      ".schedule-container"
+    );
+
+    if (!scheduleContainer) return;
+
+    createGameScheduleLinks(scheduleContainer);
+  });
+
+  observer.observe(container, {
+    childList: true,
+  });
+}
+
+function createGameScheduleLinks(container: HTMLDivElement) {
+  const links = container.querySelectorAll(".schedule-gameLink");
+
+  links.forEach((link, index) => {
+    const baseURL = "https://www.chess.com/computer-chess-championship#";
+    const src = `${baseURL}event=${eventInfo.eventName}&game=${index + 1}`;
+
+    const anchor = document.createElement("a");
+    anchor.href = src;
+
+    anchor.classList.add("ccc-game-link");
+
+    link.append(anchor);
+  });
+}

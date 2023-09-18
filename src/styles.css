@@ -139,6 +139,10 @@ div.schedule-container > div:nth-child(4n + 2),
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+.schedule-container > .schedule-gameLink {
+  position: relative !important;
+}
+
 /* 
 TODO fix this =========================
 */
@@ -1027,3 +1031,10 @@ svg#Layer_1 {
 
   z-index: 9998;
 } */
+
+.ccc-game-link {
+  position: absolute;
+  inset: 0;
+
+  z-index: 1;
+}

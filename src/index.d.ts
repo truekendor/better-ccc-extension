@@ -19,9 +19,10 @@ type UserOptions = {
   elo: boolean;
   pairPerRow: number | undefined;
   drawBgOnEmptyCells: boolean;
-  allowHotkeys: boolean;
+  allowKeyboardShortcuts: boolean;
   agreementHighlight: boolean;
   pgnFetch: boolean;
+  addLinksToGameSchedule: boolean;
 };
 
 type BooleanUserOptions = Partial<OnlyBoolean<UserOptions>>;
@@ -80,12 +81,14 @@ type RuntimeMessageType =
   | "get_pgn"
   | "onload"
   | "response_pgn"
-  | "toggle_option";
+  | "toggle_option"
+  | "event_name";
 
 type RuntimeMessagePayload = {
   gameNumber: number | null;
   pgn: string[];
   optionToToggle: keyof Partial<OnlyBoolean<UserOptions>>;
+  eventName: string | null;
 } | null;
 
 type RuntimeMessage = {

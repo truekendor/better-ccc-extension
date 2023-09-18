@@ -7,17 +7,47 @@ const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 let allowFetching = true;
 const eventList: EventListItem[] = [];
 
-getEventList();
+const getEventPromise = getEventList();
 function getEventList() {
-  return fetch("https://cccc.chess.com/event-list")
-    .then((res) => {
-      return res.json();
-    })
-    .then((res: EventListItem[]) => {
-      eventList.length = 0;
-      eventList.push(...res);
-    })
-    .catch((e: any) => console.log(e?.message));
+  return (
+    fetch("https://cccc.chess.com/event-list")
+      .then((res) => {
+        return res.json();
+      })
+      .then((res: EventListItem[]) => {
+        eventList.length = 0;
+        eventList.push(...res);
+      })
+      // .then(() => getCurrentTab())
+      // .then((tab) => {
+      //   if (!tab) return;
+
+      //   let eventName = getEventNameFromURL(tab) ?? eventList[0].id;
+
+      //   console.log("LOCAL TAB", tab);
+      //   console.log("LOG FROM EVENT LIST!", eventName);
+
+      //   chrome.tabs.query(
+      //     { active: true, currentWindow: true },
+
+      //     function (tabs) {
+      //       if (!tabs[0].id) return;
+      //       const message: RuntimeMessage = {
+      //         type: "event_name_changed",
+      //         payload: {
+      //           eventName,
+      //         },
+      //       };
+
+      //       console.log("IS TAB FROM BG???", tabs[0]);
+      //       chrome.tabs.sendMessage(tabs[0].id, message);
+
+      //       return true;
+      //     }
+      //   );
+      // })
+      .catch((e: any) => console.log(e?.message))
+  );
 }
 
 chrome.runtime.onMessage.addListener(function (
@@ -49,7 +79,9 @@ chrome.runtime.onMessage.addListener(function (
 chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
   if (!changeInfo.url) return;
 
+  // TODO rewrite getEventAndGame to always return event Name
   const info = getEventAndGame(tab);
+
   if (!info) return;
 
   const { event, game } = info;
@@ -111,6 +143,29 @@ async function onLoadHandler() {
     if (!tab) return;
 
     const info = getEventAndGame(tab);
+    const eventName = getEventNameFromURL(tab) ?? eventList[0].id;
+    if (eventName) {
+      console.log("ON LOAD HANDLER", eventName);
+
+      chrome.tabs.query(
+        { active: true, currentWindow: true },
+
+        function (tabs) {
+          if (!tabs[0].id) return;
+
+          const message: RuntimeMessage = {
+            type: "event_name",
+            payload: {
+              eventName,
+            },
+          };
+          console.log("MESSAGE TO SEND!", message);
+          chrome.tabs.sendMessage(tabs[0].id, message);
+        }
+      );
+    } else {
+      return;
+    }
     if (!info) return;
 
     const { event, game } = info;
@@ -174,6 +229,37 @@ function getEventAndGame(tab: Tab): EventAndGame | null {
   if (!event || !game) return null;
 
   return { event, game };
+}
+
+function getEventNameFromURL(tab: Tab): string | null {
+  const url = tab?.url;
+  // get # query
+  // @ts-ignore
+  if (!url || !url.includes("computer-chess-championship")) {
+    return null;
+  }
+  const textAfterHash = url?.split("#")?.[1];
+
+  if (!textAfterHash) return null;
+
+  const allHashQueries = textAfterHash?.split("&");
+  const queries = allHashQueries.map((query) => {
+    return query.split("=");
+  });
+
+  let eventName;
+
+  queries.forEach((el) => {
+    if (el[0] === "event") {
+      eventName = el[1];
+      return;
+    }
+  });
+
+  console.log("Get_EVENT_NAME_FUNC", eventName);
+  if (!eventName) return null;
+
+  return eventName;
 }
 
 function getGameUrl(eventId: string, gameNumber: number): string {
