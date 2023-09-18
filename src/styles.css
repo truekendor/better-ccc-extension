@@ -12,7 +12,7 @@
   --ccc-double-win-font-color: hsl(102, 61%, 50%);
   --ccc-double-loss-font-color: hsl(0, 100%, 63%);
 
-  --border-color-ccc: hsl(0, 0%, 45%);
+  --ccc-border-color: hsl(0, 0%, 45%);
 
   --won-bg: hsla(81, 63%, 62%, 0.17);
   --loss-bg: hsla(9, 86%, 61%, 0.17);
@@ -20,8 +20,8 @@
   --double-loss-bg: hsla(0, 90%, 36%, 0.36);
   --draw-bg: transparent;
 
-  --wdl-font-size: 1.15rem;
-  --wdl-line-height: 1.2rem;
+  --ccc-wdl-font-size: 1.15rem;
+  --ccc-wdl-line-height: 1.2rem;
 
   --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
@@ -55,9 +55,9 @@
   border-radius: 4px;
 }
 
-/* 
-.movetable-hoverable
+/* TODO delete / uncomment
 
+.movetable-hoverable
 .ccc-agree-end ~ {
   text-decoration: unset !important;
   background-color: rgba(255, 99, 71, 0.252) !important;
@@ -88,7 +88,7 @@
 }
 
 .crosstable-results-cell.crosstable-empty {
-  /* position: relative;
+  position: relative;
   contain: strict;
 
   --ccc-pattern-bg-1: transparent;
@@ -103,15 +103,15 @@
     var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
     var(--ccc-pattern-bg-1) 0,
     var(--ccc-pattern-bg-1) 50%
-  ); */
+  );
 }
 
 .crosstable-results-cell.crosstable-empty:nth-of-type(2n) {
-  /* --ccc-pattern-bg-2: var(--ccc-pattern-bg-3, rgba(92, 92, 92, 0.7)); */
+  --ccc-pattern-bg-2: var(--ccc-pattern-bg-3, rgba(92, 92, 92, 0.7));
 }
 
 .crosstable-results-cell.crosstable-empty::before {
-  /* content: "";
+  content: "";
   position: absolute;
   inset: 0;
 
@@ -123,7 +123,7 @@
     var(--ccc-pattern-bg-2) calc(var(--ccc-line-spacing) / 24),
     var(--ccc-pattern-bg-1) 0,
     var(--ccc-pattern-bg-1) 50%
-  ); */
+  );
 }
 
 .schedule-container {
@@ -137,6 +137,10 @@ div.schedule-container > div:nth-child(4n + 2),
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 1),
 #resultstable-resultstable div:last-child > table > tr:nth-child(4n + 2) {
   background-color: rgba(0, 0, 0, 0.3);
+}
+
+.schedule-container > .schedule-gameLink {
+  position: relative !important;
 }
 
 /* 
@@ -234,6 +238,11 @@ score, wdl etc...
 }
 
 .ccc-ptnml {
+  display: grid;
+  grid-auto-flow: column;
+
+  gap: 0.3rem;
+
   height: 100%;
   padding-inline: 0.4rem;
 
@@ -244,6 +253,12 @@ score, wdl etc...
   color: rgb(211, 211, 211);
 
   word-break: break-all;
+}
+
+.ccc-ptnml > p {
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
 }
 
 #ptnml-header {
@@ -301,7 +316,7 @@ result table section
   width: 1px;
   height: 100%;
 
-  background-color: var(--border-color-ccc);
+  background-color: var(--ccc-border-color);
 }
 
 #ccc-result.ccc-border-left::before {
@@ -334,8 +349,8 @@ result table section
 
 .ccc-wdl-container > p,
 .ccc-elo-wrapper > p {
-  font-size: var(--wdl-font-size);
-  line-height: var(--wdl-line-height);
+  font-size: var(--ccc-wdl-font-size);
+  line-height: var(--ccc-wdl-line-height);
 }
 
 .ccc-wdl-container > :nth-child(2) {
@@ -485,6 +500,11 @@ div.movetable-tablewrapper {
   scrollbar-gutter: stable !important;
 }
 
+/* TODO properly style this */
+div.movetable-tablewrapper > table > tr > th {
+  /* background-color: rgba(0, 0, 0, 0.2); */
+}
+
 .movetable-tablewrapper table {
   /* max-width: 100%; */
   /* width: 100%; */
@@ -565,7 +585,7 @@ div.movetable-tablewrapper {
   position: fixed;
   inset: 0;
 
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.5);
 
   display: flex;
   justify-content: center;
@@ -576,7 +596,6 @@ div.movetable-tablewrapper {
 }
 
 .ccc-info-panel {
-  --ccc-info-panel-pd: 2rem;
   position: fixed;
   width: 270px;
   height: 300px;
@@ -584,15 +603,12 @@ div.movetable-tablewrapper {
   inset: 0;
 
   margin: auto;
-  padding: var(--ccc-info-panel-pd);
+
   border-radius: 0.5rem;
 
   background-color: hsl(36, 7%, 24%);
 
   display: flex;
-  justify-content: center;
-  align-items: center;
-
   flex-direction: column;
 
   font-size: 20px;
@@ -601,18 +617,20 @@ div.movetable-tablewrapper {
   cursor: auto;
   isolation: isolate;
   overflow: hidden;
+
+  box-shadow: 2px 2px 7px rgba(0, 0, 0, 0.6);
 }
 
-.ccc-info-panel::before {
-  position: absolute;
-  inset: calc(var(--ccc-info-panel-pd) / 2);
+.ccc-info-main {
+  display: flex;
+  flex-direction: column;
 
-  content: "";
-  background-color: hsl(36, 7%, 17%);
+  height: 100%;
 
-  z-index: -1;
+  justify-content: center;
+  align-items: center;
 
-  border-radius: 0.5rem;
+  padding: 15px;
 }
 
 .ccc-opponents-div {
@@ -621,6 +639,8 @@ div.movetable-tablewrapper {
   align-items: center;
 
   width: 100%;
+
+  margin-block-end: auto;
 }
 
 .ccc-opponents-div > img {
@@ -895,3 +915,128 @@ tr.font-faded-white > :nth-child(2) {
 
   /* background-color: rgba(255, 99, 71, 0.145); */
 }
+
+/* 
+!test
+!test
+*/
+
+/* .enginedata-container  */
+.enginedata-clock-wrapper svg#Layer_1 {
+  fill: rebeccapurple !important;
+  background-color: rgba(0, 255, 119, 0.472);
+}
+
+svg#Layer_1 {
+  outline: 2px solid red;
+}
+
+.ccc-wave-container {
+  --ccc-wave-color: hsl(114, 32%, 43%);
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  height: 30%;
+}
+
+.ccc-wave {
+  position: absolute;
+
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  line-height: 0;
+
+  fill: var(--ccc-wave-color);
+}
+
+.ccc-wave-filler {
+  display: flex;
+
+  width: 100%;
+  height: 50%;
+  background-color: var(--ccc-wave-color);
+
+  justify-content: end;
+  justify-content: flex-end;
+}
+
+.ccc-x-mark {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 30px;
+  height: 30px;
+
+  fill: rgb(218, 235, 192);
+
+  cursor: pointer;
+
+  transition: fill 70ms ease-in-out;
+
+  background-color: transparent;
+  outline: transparent;
+  border: none;
+}
+
+.ccc-x-mark:hover {
+  fill: rgb(255, 255, 255);
+}
+
+.ccc-x-mark > svg {
+  pointer-events: none;
+}
+
+.bottomtable-resultspopup {
+  contain: content;
+
+  max-width: 100% !important;
+  overflow-y: scroll !important;
+}
+
+.bottomtable-resultspopup * {
+  max-width: 100%;
+}
+
+/* 
+#crosstable-crosstableModal {
+  height: 90vh !important;
+
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+}
+
+#crosstable-crosstableModal > table.crosstable-crosstable > tr:first-child {
+  background-color: #272522 !important;
+
+  position: -webkit-sticky !important;
+  position: sticky !important;
+
+  top: 0;
+
+  z-index: 9999;
+}
+
+.crosstable-crosstable > tr:not(:first-child) > :nth-child(2) {
+  position: -webkit-sticky;
+  position: sticky;
+
+  left: 0;
+
+  z-index: 9998;
+} */
+
+.ccc-game-link {
+  position: absolute;
+  inset: 0;
+
+  z-index: 1;
+}
+
+/*  */

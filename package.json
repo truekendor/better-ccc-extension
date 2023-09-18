@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "tsc src/script.ts"
+    "build": "tsc src/highlight.ts src/background.ts src/script.ts src/chess.ts src/popup.ts --lib \"es2016, dom\""
   },
   "devDependencies": {
     "@types/chrome": "^0.0.241",

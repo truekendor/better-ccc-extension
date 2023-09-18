@@ -1,10 +1,16 @@
 src/script.js
+src/background.js
 
-firefox_dev
+src/highlight.js
+src/highlight.ts
+
+popup.js
+popup.ts
+popup.html
+popup.css
+
+src/chess.*
+
 firefox_dev_v2
 firefox_dev_v3
-<<<<<<< HEAD
-=======
-
->>>>>>> 358f69327a1c1094a51b50843788c615db8a7e58
 node_modules
