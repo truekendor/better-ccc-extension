@@ -1,16 +1,14 @@
-src/script.js
-src/background.js
+# ignore .js by default
+*.js
 
-src/highlight.js
+# ===========
+# to be added 
 src/highlight.ts
 
-popup.js
-popup.ts
-popup.html
-popup.css
+src/chess.ts
+src/chess.d.ts
 
-src/chess.*
-
+# ==========
 firefox_dev_v2
 firefox_dev_v3
 node_modules
