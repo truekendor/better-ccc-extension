@@ -1116,7 +1116,6 @@ function keydownHandler(e: KeyboardEvent): void {
     return;
   }
 
-  // will add later
   if (
     userCustomOptions.allowKeyboardShortcuts &&
     e.code === "KeyG" &&
