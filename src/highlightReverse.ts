@@ -55,30 +55,25 @@ function observeGameEnded() {
   const movesDiv = _DOM_Store.movesTableContainer;
 
   const observer = new MutationObserver((e) => {
-    const gameResult = _DOM_Store.movesTableContainer.querySelector(
-      ".movetable-gameResult"
-    );
-    const nextGameTimer = _DOM_Store.movesTableContainer.querySelector(
-      ".next-game-clock-wrapper"
-    );
-
-    if (!gameResult || nextGameTimer) return;
-
-    const event = getCurrentEventFromStore();
-    const game = getCurrentGameFromStore();
-    // const pgn = CurrentGame.fields.pgn;
-    const pgn = chessCurrent.fields.pgn;
-    const totalGames = _State.pageData.totalGames;
-
-    if (!event || !game || !pgn || !totalGames) return;
-
-    if (
-      _State.pageData.currentGame &&
-      _State.pageData.currentGame < totalGames &&
-      !_State.tabData.game
-    ) {
-      _State.pageData.currentGame += 1;
-    }
+    // const gameResult = _DOM_Store.movesTableContainer.querySelector(
+    //   ".movetable-gameResult"
+    // );
+    // const nextGameTimer = _DOM_Store.movesTableContainer.querySelector(
+    //   ".next-game-clock-wrapper"
+    // );
+    // if (!gameResult || nextGameTimer) return;
+    // const event = getCurrentEventFromStore();
+    // const game = getCurrentGameFromStore();
+    // const pgn = chessCurrent.fields.pgn;
+    // const totalGames = _State.pageData.totalGames;
+    // if (!event || !game || !pgn || !totalGames) return;
+    // if (
+    //   _State.pageData.currentGame &&
+    //   _State.pageData.currentGame < totalGames &&
+    //   !_State.tabData.game
+    // ) {
+    //   _State.pageData.currentGame += 1;
+    // }
   });
 
   observer.observe(movesDiv, {
@@ -89,15 +84,15 @@ function observeGameEnded() {
 function observeGameStarted() {
   const table = _DOM_Store.movesTable;
 
-  let gameNumber = getCurrentGameFromStore();
+  let gameNumber = _State.getGameNumber();
 
   const observer = new MutationObserver(() => {
-    if (gameNumber !== getCurrentGameFromStore()) {
-      gameNumber = getCurrentGameFromStore();
+    // if (gameNumber !== getCurrentGameFromStore()) {
+    gameNumber = _State.getGameNumber();
 
-      console.log("game started", gameNumber);
-      console.log("game started", gameNumber);
-    }
+    // console.log("game started", gameNumber);
+    // console.log("game started", gameNumber);
+    // }
   });
 
   observer.observe(table, {
@@ -109,7 +104,7 @@ function observeMoveScrolled() {
   const observer = new MutationObserver(() => {
     observer.disconnect();
 
-    const currentMoveNumber = getMoveNumber();
+    const currentMoveNumber = ExtractPageData.getMoveNumber();
 
     const currentFEN =
       chessCurrent.actions.getFullFenAtIndex(currentMoveNumber);
@@ -178,15 +173,6 @@ function observeShareModal() {
 
 // * =============
 // * =============
-
-// todo move to the page state
-function getCurrentGameFromStore() {
-  return (
-    _State.tabData.game ??
-    _State.pageData.currentGame ??
-    _State.pageData.totalGames
-  );
-}
 
 // todo move to the page state
 function getCurrentEventFromStore() {
@@ -374,20 +360,6 @@ function requestTBEval(moveNumber: number, currentFen: string) {
   }
 }
 
-function getMoveNumber() {
-  const cellList = _DOM_Store.movesTableContainer.querySelectorAll("td");
-
-  let index = -1;
-
-  cellList.forEach((el, i) => {
-    if (!el.classList.contains("movetable-highlighted")) return;
-
-    index = i;
-  });
-
-  return index;
-}
-
 // TODO rename and rewrite
 function addEntriesToFENHistory() {
   chessCurrent.reset();
@@ -406,7 +378,8 @@ function addEntriesToFENHistory() {
   });
 }
 
-function getGameNumberFromSchedule() {
+// todo rename
+function updatePageDataInState() {
   const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
     ".schedule-container"
   );
@@ -437,62 +410,14 @@ function updateCurrentPGN() {
   chessCurrent.actions.setPGN(pgn);
 }
 
-function getEventLinks() {
-  const eventNameWrapper: HTMLDivElement = _DOM_Store.bottomPanel.querySelector(
-    ".bottomtable-event-name-wrapper"
-  )!;
-
-  eventNameWrapper.click();
-
-  queueMicrotask(() => {
-    const eventsWrapper = _DOM_Store.bottomPanel.querySelector(
-      ".bottomtable-resultspopup"
-    )!;
-
-    const links = eventsWrapper.querySelectorAll("a");
-
-    if (links.length > 0) {
-      links.forEach((link) => {
-        const eventName = parseEventLink(link);
-        if (!eventName) return;
-
-        _State.eventHrefList.push(eventName);
-      });
-
-      eventNameWrapper.click();
-    } else {
-      // wait for the event entries
-      const observer = new MutationObserver((mutations) => {
-        if (mutations.length < 100) return;
-
-        observer.disconnect();
-
-        const links = eventsWrapper.querySelectorAll("a");
-        links.forEach((link) => {
-          const eventName = parseEventLink(link);
-          if (!eventName) return;
-
-          _State.eventHrefList.push(eventName);
-        });
-
-        eventNameWrapper.click();
-      });
-
-      observer.observe(eventsWrapper, {
-        childList: true,
-      });
-    }
-  });
-}
-
 function onloadHandler() {
   // count material onload
   updateCurrentPGN();
 
   addEntriesToFENHistory();
-  getEventLinks();
+  ExtractPageData.getEventLinks();
 
-  getGameNumberFromSchedule();
+  updatePageDataInState();
 
   const currentFEN = chessCurrent.fields.lastFull;
 
@@ -525,7 +450,7 @@ function requestReversePGN() {
     return true;
   }
 
-  const gameNumber = getCurrentGameFromStore();
+  const gameNumber = _State.getGameNumber();
   const event = getCurrentEventFromStore();
 
   if (!gameNumber || !event) return true;
@@ -562,14 +487,17 @@ function scrollToCurrentGame() {
   }
 }
 
-// createFixedButton();
-function createFixedButton() {
+function createFixedButton(
+  cb: undefined | ((...args: any) => any) = undefined
+) {
   const btn = document.createElement("button");
   btn.classList.add("dev-fixed-button");
 
   btn.textContent = "click";
 
-  btn.append(dom_helpers.SVG.icons.gear);
+  if (cb !== undefined) {
+    btn.addEventListener("click", cb);
+  }
 
   document.body.append(btn);
 
@@ -590,7 +518,7 @@ function updateShareModalFENInput() {
       return container.querySelector("input");
     })
     ._bind((input: HTMLInputElement) => {
-      const currentMoveNumber = getMoveNumber();
+      const currentMoveNumber = ExtractPageData.getMoveNumber();
       const fen = chessCurrent.actions.getFullFenAtIndex(currentMoveNumber);
 
       input.value = fen || input.value;
@@ -599,6 +527,7 @@ function updateShareModalFENInput() {
     });
 }
 
+// todo rename
 function addDownloadGameLogsBtn() {
   return new Maybe(document.querySelector(".ui_modal-component"))
     ._bind((modal: HTMLDivElement) => {
@@ -615,23 +544,22 @@ function addDownloadGameLogsBtn() {
 
       return menu;
     })
-    ._bind((container: HTMLDivElement) => {
-      const btn = document.createElement("button");
+    ._bind(async (container: HTMLDivElement) => {
+      const btn = document.createElement("a");
 
       btn.classList.add("ccc-download-logs-btn");
+
       btn.textContent = "Download game logs";
-      btn.type = "button";
-      btn.setAttribute("target", "_blank");
-      btn.setAttribute("rel", "noopener");
+      btn.target = "_blank";
+      btn.rel = "noopener";
+
       btn.setAttribute("download", "");
 
       const archiveLink = container.getAttribute("event-url");
       if (!archiveLink) return container;
 
-      const linkBaseline =
-        "https://cccfiles.chess.com/archive/cutechess.debug-345754-345755.zip";
-
-      const eventId = archiveLink
+      const gameNumber = await ExtractPageData.getCurrentGameNumber();
+      const eventId = +archiveLink
         .split("/")
         .filter((el) => {
           const includes = el.includes(".pgn");
@@ -641,6 +569,12 @@ function addDownloadGameLogsBtn() {
         // returns tournament-${someNumber}.pgn
         .split(".")[0]
         .split("-")[1];
+
+      const link = `https://cccfiles.chess.com/archive/cutechess.debug-${eventId}-${
+        eventId + gameNumber
+      }.zip`;
+
+      btn.href = link;
 
       container.append(btn);
 
@@ -767,6 +701,7 @@ function highlight() {
   });
 }
 
+// todo add description
 function highlightCurrentGame() {
   const container: HTMLDivElement | null = _DOM_Store.bottomPanel.querySelector(
     ".schedule-container"
@@ -788,4 +723,132 @@ function highlightCurrentGame() {
 // todo
 document.addEventListener("visibilitychange", () => {
   const hidden = document.hidden;
+});
+
+// todo rename?
+/**
+ * provides methods for getting data from the page
+ */
+class ExtractPageData {
+  static async getCurrentGameNumber() {
+    if (_State.tabData.game) return Promise.resolve(_State.tabData.game);
+
+    const scheduleContainer = document.querySelector(".schedule-container");
+
+    if (scheduleContainer) {
+      const gameLinks =
+        scheduleContainer.querySelectorAll(".schedule-gameLink");
+      const gameNumber: number = gameLinks.length;
+
+      return Promise.resolve(gameNumber);
+    }
+
+    const standingsContainer = document.getElementById("standings-standings");
+    if (standingsContainer) {
+      const gameNumber = await this.gameNumberFromStandings();
+
+      return Promise.resolve(gameNumber);
+    }
+
+    const currentTabIndex = this.getPressedButtonIndex();
+
+    await new Promise((res) => {
+      res(_DOM_Store.standingsBtn.click());
+    });
+
+    const gameNumber = await this.gameNumberFromStandings();
+
+    await new Promise((res) => {
+      res(_DOM_Store.tabButtons[currentTabIndex].click());
+    });
+
+    return gameNumber;
+  }
+
+  static getMoveNumber() {
+    const cellList = _DOM_Store.movesTableContainer.querySelectorAll("td");
+
+    let index = -1;
+
+    cellList.forEach((el, i) => {
+      if (!el.classList.contains("movetable-highlighted")) return;
+
+      index = i;
+    });
+
+    return index;
+  }
+
+  /**
+   * gets all event IDs and pushes them in the state
+   */
+  static getEventLinks() {
+    const eventNameWrapper: HTMLDivElement =
+      _DOM_Store.bottomPanel.querySelector(".bottomtable-event-name-wrapper")!;
+
+    eventNameWrapper.click();
+
+    queueMicrotask(() => {
+      const eventsWrapper = _DOM_Store.bottomPanel.querySelector(
+        ".bottomtable-resultspopup"
+      )!;
+
+      const links = eventsWrapper.querySelectorAll("a");
+
+      links.forEach((link) => {
+        const eventName = parseEventLink(link);
+        if (!eventName) return;
+
+        _State.eventHrefList.push(eventName);
+      });
+
+      eventNameWrapper.click();
+    });
+  }
+
+  private static gameNumberFromStandings() {
+    const standingsContainer = document.getElementById("standings-standings")!;
+
+    const standingsItem: NodeListOf<HTMLDivElement> =
+      standingsContainer.querySelectorAll(".engineitem-list-item");
+
+    let counter = 0;
+
+    standingsItem.forEach((item) => {
+      const scoreElement = item.querySelector(".engineitem-score")!;
+      const text = scoreElement!.textContent!.trim();
+
+      const score = text.split("/")[1];
+      counter += parseInt(score);
+    });
+
+    counter /= 2;
+    counter += 1;
+
+    counter = Math.min(counter, _State.pageData.totalGames || counter);
+
+    return Promise.resolve(counter);
+  }
+
+  /** returns index of a current pressed button (vote/standings/schedule...) */
+  private static getPressedButtonIndex() {
+    const buttons: NodeListOf<HTMLSpanElement> =
+      _DOM_Store.tabButtonsContainer.querySelectorAll(".selection-panel-item");
+    let selectedBtnIndex = -1;
+
+    buttons.forEach((btn, index) => {
+      if (index > 4) return;
+
+      if (btn.classList.contains("selection-panel-selected")) {
+        selectedBtnIndex = index;
+      }
+    });
+
+    return selectedBtnIndex;
+  }
+}
+
+const btn = createFixedButton();
+btn.addEventListener("click", () => {
+  ExtractPageData.getCurrentGameNumber();
 });

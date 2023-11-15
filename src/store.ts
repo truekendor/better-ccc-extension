@@ -101,6 +101,13 @@ class _State {
     event: null,
     game: null,
   };
+
+  // todo delete?
+  static getGameNumber() {
+    return (
+      this.tabData.game ?? this.pageData.currentGame ?? this.pageData.totalGames
+    );
+  }
 }
 
 // todo rewrite

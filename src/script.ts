@@ -35,11 +35,11 @@ const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 loadUserSettings().catch(logError);
 async function loadUserSettings() {
   Promise.all([
-    ExtensionHelper.getLocalExtensionState("elo"),
-    ExtensionHelper.getLocalExtensionState("ptnml"),
-    ExtensionHelper.getLocalExtensionState("allowKeyboardShortcuts"),
-    ExtensionHelper.getLocalExtensionState("addLinksToGameSchedule"),
-    ExtensionHelper.getLocalExtensionState("replaceClockSvg"),
+    ExtensionHelper.localStorage.getState("elo"),
+    ExtensionHelper.localStorage.getState("ptnml"),
+    ExtensionHelper.localStorage.getState("allowKeyboardShortcuts"),
+    ExtensionHelper.localStorage.getState("addLinksToGameSchedule"),
+    ExtensionHelper.localStorage.getState("replaceClockSvg"),
   ]).then((resultsArray: Partial<UserSettings>[]) => {
     resultsArray.forEach((result) => {
       const key = Object.keys(result)[0] as BooleanKeys<UserSettings>;
@@ -67,12 +67,12 @@ async function loadUserSettings() {
     });
   });
 
-  ExtensionHelper.getLocalExtensionState("pairPerRow").then((result) => {
+  ExtensionHelper.localStorage.getState("pairPerRow").then((result) => {
     userSettings.pairPerRow =
       result.pairPerRow ?? _State.userSettingsDefault.pairPerRow;
   });
 
-  ExtensionHelper.getLocalExtensionState("pairsPerRowDuel").then((result) => {
+  ExtensionHelper.localStorage.getState("pairsPerRowDuel").then((result) => {
     userSettings.pairsPerRowDuel =
       result.pairsPerRowDuel ?? _State.userSettingsDefault.pairsPerRowDuel;
   });
@@ -314,7 +314,7 @@ function handleCustomStatVisibility(
 }
 
 // todo move to helper?
-// handles creation of switch inputs for custom stats
+// handles creation of switch inputs for custom crosstable stats
 function createOptionInputs() {
   const crossTableModal: HTMLDivElement | null = document.querySelector(
     ".modal-vue-modal-content"
@@ -549,14 +549,14 @@ function openCrossTableHandler() {
 function handleSwitchEvent(field: BooleanKeys<UserSettings>) {
   userSettings[field] = !userSettings[field];
 
-  ExtensionHelper.setLocalExtensionState(field, userSettings[field]).then(
-    convertCrossTable
-  );
+  ExtensionHelper.localStorage
+    .setState(field, userSettings[field])
+    .then(convertCrossTable);
 }
 
 function toggleAllowKeyboardShortcuts() {
   const { allowKeyboardShortcuts: allow } = userSettings;
-  ExtensionHelper.setLocalExtensionState("allowKeyboardShortcuts", allow);
+  ExtensionHelper.localStorage.setState("allowKeyboardShortcuts", allow);
 
   userSettings.allowKeyboardShortcuts = allow;
 }

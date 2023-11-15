@@ -693,10 +693,21 @@ pair highlight
 }
 
 .ccc-download-logs-btn {
+  display: block;
+  margin-block-start: 10px;
+
   background-color: #81b64c;
   color: white;
 
+  padding: 0.5rem 1.8rem;
+
   height: 40px;
+
+  border-radius: 0.5rem;
+}
+
+.ccc-download-logs-btn:hover {
+  background-color: #a3d160;
 }
 
 .ccc-options-backdrop {

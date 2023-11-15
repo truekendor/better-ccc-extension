@@ -147,14 +147,15 @@ namespace dom_helpers {
         );
 
         if (enginesAmount === 2) {
-          ExtensionHelper.setLocalExtensionState(
-            "pairsPerRowDuel",
-            value || ""
-          );
+          // ~~~~
+          // ExtensionHelper.setState("pairsPerRowDuel", value || "");
+          ExtensionHelper.localStorage.setState("pairsPerRowDuel", value || "");
 
           userSettings.pairsPerRowDuel = value;
         } else {
-          ExtensionHelper.setLocalExtensionState("pairPerRow", value || "");
+          // ~~~~
+          // ExtensionHelper.setState("pairPerRow", value || "");
+          ExtensionHelper.localStorage.setState("pairPerRow", value || "");
 
           userSettings.pairPerRow = value;
         }
@@ -1077,6 +1078,23 @@ namespace stats_helpers {
   }
 }
 
+namespace ExtensionHelper {
+  export class localStorage {
+    static getState<T extends keyof UserSettings>(key: T) {
+      return browserPrefix.storage.local.get(key) as Promise<
+        Pick<UserSettings, T>
+      >;
+    }
+
+    static setState<K extends keyof UserSettings, V extends UserSettings[K]>(
+      key: K,
+      value: V
+    ) {
+      return browserPrefix.storage.local.set({ [key]: value });
+    }
+  }
+}
+
 class Maybe {
   private value: any;
 
@@ -1096,21 +1114,6 @@ class Maybe {
     }
 
     return new Maybe(result);
-  }
-}
-
-class ExtensionHelper {
-  static getLocalExtensionState<T extends keyof UserSettings>(key: T) {
-    return browserPrefix.storage.local.get(key) as Promise<
-      Pick<UserSettings, T>
-    >;
-  }
-
-  static setLocalExtensionState<
-    K extends keyof UserSettings,
-    V extends UserSettings[K]
-  >(key: K, value: V) {
-    return browserPrefix.storage.local.set({ [key]: value });
   }
 }
 
