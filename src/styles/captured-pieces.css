@@ -1,0 +1,68 @@
+.enginedata-container {
+  /* container queries here */
+  container-type: inline-size;
+}
+
+@container (max-width: 110px) {
+  .ccc-captured-pieces-wrapper {
+    background-color: tomato !important;
+  }
+}
+
+.ccc-captured-pieces-wrapper {
+  --svg-size: 16px;
+
+  position: absolute;
+  bottom: 0;
+
+  transform: translateY(-170%);
+
+  display: flex;
+  flex-wrap: wrap;
+
+  margin-left: -3px;
+  width: calc(10px + 100%);
+
+  align-items: center;
+
+  font-size: var(--svg-size);
+  line-height: 1;
+
+  height: min-content;
+}
+
+.ccc-captured-pieces-wrapper > span {
+  margin: 0 !important;
+}
+
+.ccc-captured-pieces-wrapper > span > svg {
+  height: 95% !important;
+  width: min-content !important;
+}
+
+.ccc-captured-pieces-wrapper > span {
+  height: var(--svg-size) !important;
+}
+
+.ccc-captured-pieces-wrapper > span > svg:not(:first-child) {
+  margin-inline-start: calc(var(--svg-size) / -2);
+}
+
+.enginedata-container .enginedata-clock-wrapper {
+  position: relative !important;
+
+  display: flex !important;
+  align-items: center !important;
+
+  font-size: 15px !important;
+  line-height: 1 !important;
+}
+
+.enginedata-container .enginedata-clock-wrapper > div:last-child {
+  margin-left: auto;
+}
+
+/* this fixes overflow-x on mobile */
+.vote-cast-container {
+  contain: content;
+}

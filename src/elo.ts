@@ -1,0 +1,78 @@
+// these formulas are taken from https://3dkingdoms.com/chess/elo.htm
+// and I have no idea how they work
+
+class ELOCalculation {
+  private static confidenceIntervals = {
+    default: 0.95,
+    2: 0.954499736103642,
+    // for the memes
+    3: 0.99730020393674,
+    4: 0.999936657516334,
+    5: 0.999999426696856,
+    6: 0.999999998026825,
+  };
+
+  static confidence = this.confidenceIntervals["2"];
+
+  static calculateEloFromPercent(percent: number) {
+    const percentage = percent / 100;
+    const eloDiff = (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
+
+    let Sign = "";
+    if (eloDiff > 0) {
+      Sign = "+";
+    }
+
+    const eloDiffAsString = formatter.format(eloDiff);
+
+    return `${Sign}${eloDiffAsString}`;
+  }
+
+  static calculateErrorMargin(wins: number, draws: number, losses: number) {
+    const total = wins + draws + losses;
+    const winP = wins / total;
+    const drawP = draws / total;
+    const lossP = losses / total;
+    const percentage = (wins + draws * 0.5) / total;
+    const winsDev = winP * Math.pow(1 - percentage, 2);
+    const drawsDev = drawP * Math.pow(0.5 - percentage, 2);
+    const lossesDev = lossP * Math.pow(0 - percentage, 2);
+    const stdDeviation =
+      Math.sqrt(winsDev + drawsDev + lossesDev) / Math.sqrt(total);
+
+    // const confidenceP = 0.95;
+    const confidenceP = this.confidence;
+
+    const minConfidenceP = (1 - confidenceP) / 2;
+    const maxConfidenceP = 1 - minConfidenceP;
+    const devMin = percentage + this.phiInv(minConfidenceP) * stdDeviation;
+    const devMax = percentage + this.phiInv(maxConfidenceP) * stdDeviation;
+
+    const difference =
+      this.calculateEloDifference(devMax) - this.calculateEloDifference(devMin);
+
+    const errorMargin = formatter.format(difference / 2);
+
+    return `±${errorMargin}`;
+  }
+
+  private static calculateEloDifference(percentage: number) {
+    return (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
+  }
+
+  private static calculateInverseErrorFunction(x: number) {
+    const a: number = (8 * (Math.PI - 3)) / (3 * Math.PI * (4 - Math.PI));
+    const y: number = Math.log(1 - x * x);
+    const z: number = 2 / (Math.PI * a) + y / 2;
+
+    const ret = Math.sqrt(Math.sqrt(z * z - y / a) - z);
+
+    if (x < 0) return -ret;
+
+    return ret;
+  }
+
+  private static phiInv(p: number) {
+    return Math.sqrt(2) * this.calculateInverseErrorFunction(2 * p - 1);
+  }
+}

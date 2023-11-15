@@ -1,14 +1,8 @@
 # ignore .js by default
-*.js
-
-# ===========
-# to be added 
-src/highlight.ts
-
-src/chess.ts
-src/chess.d.ts
+src/*.js
+src/types/*.js
 
 # ==========
-firefox_dev_v2
-firefox_dev_v3
+firefox_dev*
 node_modules
+.vscode
