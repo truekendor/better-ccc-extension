@@ -1,6 +1,11 @@
 /* * default CCC elements styling
 */
 
+/* this fixes overflow-x on mobile */
+.vote-cast-container {
+  contain: content;
+}
+
 /* game pair background color alternation in schedule tab */
 div.schedule-container > div:nth-child(4n + 1),
 div.schedule-container > div:nth-child(4n + 2),
@@ -16,6 +21,13 @@ div.schedule-container > div:nth-child(4n + 2),
 
 .schedule-container > .schedule-gameLink {
   position: relative;
+}
+
+.schedule-gameLink.ccc-current-game:not(.schedule-inProgress) {
+  background-color: rgba(130, 183, 78, 0.2) !important;
+}
+.schedule-gameLink.ccc-current-game:not(.schedule-inProgress):hover {
+  background-color: rgba(130, 183, 78, 0.29) !important;
 }
 
 /* current game in schedule */
@@ -92,7 +104,7 @@ tr.font-faded-white > td:nth-child(2) > div {
 }
 
 /* * ------------------------
-* Peregrine suggested styles with media queries
+* Peregrine suggested styles 
 */
 
 @media (min-width: 970px) {
@@ -101,6 +113,9 @@ tr.font-faded-white > td:nth-child(2) > div {
     height: 100vh !important;
   }
 }
+
+/* * ------------------------
+*/
 
 .movetable-highlighted.movetable-book-ply:hover,
 .movetable-book-ply:hover {
@@ -199,4 +214,18 @@ tr.font-faded-white > td:nth-child(2) > div {
 
 .crosstable-empty.crosstable-empty {
   background-color: #21201f;
+}
+
+/* settings modal styles */
+.modal-container-bg {
+  cursor: pointer;
+}
+
+.modal-container-bg > .modal-content-component {
+  cursor: auto;
+}
+/* end. settings modal styles */
+
+.bottomtable-event-name-wrapper > i {
+  pointer-events: none;
 }

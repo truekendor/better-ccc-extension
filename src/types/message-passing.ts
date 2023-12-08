@@ -1,5 +1,3 @@
-// * ===================
-// * message passing types
 namespace message_pass {
   export type MessageType =
     | "event_data"
@@ -7,30 +5,31 @@ namespace message_pass {
     | "reverse_pgn_response"
     | "request_tb_eval"
     | "onload"
-    | "ping"
     | "tab_update"
     | "response_tb_standard"
     | "response_tb_mainline"
     | "remove_query";
 
   export type message =
-    | Payload_event_data
-    | Payload_pgn_response
-    | Payload_onload
-    | Payload_get_pgn
-    | Payload_request_tb
-    | Payload_ping
-    | Payload_tab_update
-    | Payload_response_tb_standard
-    | Payload_response_tb_mainline
-    | Remove_Tab_Query;
+    | EventData
+    | PGNResponse
+    | OnloadEvent
+    | GetPGN
+    | RequestTB
+    | TabUpdate
+    | TBResponseStandard
+    | TBResponseMainline
+    | RemoveTabQuery;
 
-  type RuntimeMessage_gen<K extends MessageType, T extends object | null> = {
-    type: K;
-    payload: T extends object ? T : null;
+  type RuntimeMessageBuilder<
+    T extends MessageType,
+    P extends object | null = null
+  > = {
+    type: T;
+    payload: P;
   };
 
-  type Payload_event_data = RuntimeMessage_gen<
+  type EventData = RuntimeMessageBuilder<
     "event_data",
     {
       eventName: string;
@@ -38,7 +37,7 @@ namespace message_pass {
     }
   >;
 
-  type Payload_pgn_response = RuntimeMessage_gen<
+  type PGNResponse = RuntimeMessageBuilder<
     "reverse_pgn_response",
     {
       pgn: string[] | null;
@@ -47,7 +46,7 @@ namespace message_pass {
     }
   >;
 
-  type Payload_get_pgn = RuntimeMessage_gen<
+  type GetPGN = RuntimeMessageBuilder<
     "reverse_pgn_request",
     {
       gameNumber: number;
@@ -55,17 +54,9 @@ namespace message_pass {
     }
   >;
 
-  // todo delete
-  type Payload_ping = RuntimeMessage_gen<
-    "ping",
-    {
-      ping: "pong";
-    }
-  >;
+  type OnloadEvent = RuntimeMessageBuilder<"onload", null>;
 
-  type Payload_onload = RuntimeMessage_gen<"onload", null>;
-
-  type Payload_request_tb = RuntimeMessage_gen<
+  type RequestTB = RuntimeMessageBuilder<
     "request_tb_eval",
     {
       fen: string;
@@ -73,7 +64,7 @@ namespace message_pass {
     }
   >;
 
-  type Payload_tab_update = RuntimeMessage_gen<
+  type TabUpdate = RuntimeMessageBuilder<
     "tab_update",
     {
       event: string | null;
@@ -81,7 +72,7 @@ namespace message_pass {
     }
   >;
 
-  type Payload_response_tb_standard = RuntimeMessage_gen<
+  type TBResponseStandard = RuntimeMessageBuilder<
     "response_tb_standard",
     {
       response: lila.standard_response;
@@ -89,7 +80,7 @@ namespace message_pass {
     }
   >;
 
-  type Payload_response_tb_mainline = RuntimeMessage_gen<
+  type TBResponseMainline = RuntimeMessageBuilder<
     "response_tb_mainline",
     {
       response: lila.mainline_response;
@@ -97,5 +88,5 @@ namespace message_pass {
     }
   >;
 
-  type Remove_Tab_Query = RuntimeMessage_gen<"remove_query", null>;
+  type RemoveTabQuery = RuntimeMessageBuilder<"remove_query", null>;
 }

@@ -30,8 +30,6 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
           _bg_browserPrefix.tabs.update(tab.id, { url: replaceUrl });
         }
       });
-
-      return;
     }
 
     if (type === "onload") {
@@ -52,7 +50,7 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
         .catch((e) => console.log("TB fetch error: ", e?.message ?? e));
     }
 
-    return true;
+    return false;
   } catch (e: any) {
     console.log(e?.message ?? e);
   }
@@ -94,20 +92,26 @@ _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 
 async function getCurrentTab() {
   try {
-    const [tab] = await _bg_browserPrefix.tabs.query({
+    const chromeTab = await chrome.tabs.query({
       active: true,
       currentWindow: true,
     });
 
-    return tab;
+    if (chromeTab?.[0]) {
+      return chromeTab[0];
+    }
+
+    const firefoxTab = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    return firefoxTab[0];
   } catch (e: any) {
     console.log(e?.message ?? e);
   }
 }
 
-// gets CCC tab queries
-// such as a name of the event
-// and game number
 async function onLoadHandler() {
   try {
     const tab = await getCurrentTab();
@@ -123,6 +127,7 @@ async function onLoadHandler() {
         game,
       },
     };
+
     _sendMessageToContent(message);
 
     if (game && event) {

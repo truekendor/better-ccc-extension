@@ -39,7 +39,7 @@ type Tab = chrome.tabs.Tab | browser.tabs.Tab;
 type UserSettings = {
   ptnml: boolean;
   elo: boolean;
-  pairPerRow: number | "";
+  pairsPerRow: number | "";
   pairsPerRowDuel: number | "";
   allowKeyboardShortcuts: boolean;
   // todo
@@ -49,6 +49,20 @@ type UserSettings = {
   replaceClockSvg: boolean;
   displayEngineNames: boolean;
   materialCount: boolean;
+  // todo
+  // calcAdditionalStats: boolean
+  // visualSettings: _dev_VisualSettings
+};
+
+type _dev_VisualSettings = {
+  doubleLossBgColor: string;
+  doubleLossFontColor: string;
+  doubleWinBgColor: string;
+  doubleWinFontColor: string;
+  winBgColor: string;
+  winFontColor: string;
+  lossBgColor: string;
+  lossFontColor: string;
 };
 
 type BooleanUserOptions = Partial<OnlyBoolean<UserSettings>>;
@@ -124,6 +138,8 @@ type GameDataFields = {
 
   lastTrimmed: string | null;
   lastFull: string | null;
+
+  gameNumber: number | null;
 };
 
 type GameDataActions = {
@@ -136,6 +152,8 @@ type GameDataActions = {
   getTrimFenAtIndex: (index: number) => string | null;
 
   setPGN: (pgn: string[]) => void;
+
+  setGameNumber: (gameNumber: number) => void;
 };
 
 type TTEntry = {

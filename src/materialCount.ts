@@ -65,9 +65,7 @@ class CountPieces {
   };
 
   static countMaterial(fen: string) {
-    const keys = Object.keys(this.boardState) as Array<
-      keyof typeof this.boardState
-    >;
+    const keys = utils.objectKeys(this.boardState);
 
     // reset boardState
     keys.forEach((key) => {
@@ -76,7 +74,7 @@ class CountPieces {
     this.boardState.piecesLeft = 32;
 
     if (!fen) {
-      console.log("FEN is undefined");
+      console.log("Count Material\nFEN is undefined");
       return;
     }
 
@@ -102,8 +100,8 @@ class CountPieces {
       this.boardState.piecesLeft -= diff;
     });
 
-    dom_helpers.removeAllChildNodes(this.whitePiecesWrapper);
-    dom_helpers.removeAllChildNodes(this.blackPiecesWrapper);
+    dom_elements.removeAllChildNodes(this.whitePiecesWrapper);
+    dom_elements.removeAllChildNodes(this.blackPiecesWrapper);
 
     keys.forEach((key) => {
       if (
@@ -117,8 +115,8 @@ class CountPieces {
       const span = document.createElement("span");
       span.classList.add("ccc-piece-type");
 
-      const isWhite = key === key.toUpperCase();
-      const prefix = isWhite ? "w" : "b";
+      const isWhitePiece = key === key.toUpperCase();
+      const prefix = isWhitePiece ? "w" : "b";
 
       for (let i = 0; i < this.boardState[key]; i++) {
         let svg: SVGSVGElement | null = null;
@@ -126,29 +124,29 @@ class CountPieces {
         switch (key) {
           case "P":
           case "p":
-            svg = dom_helpers.SVG.chess[`${prefix}_pawn`];
+            svg = SVG.ChessPieces[`${prefix}_pawn`];
             break;
           case "B":
           case "b":
-            svg = dom_helpers.SVG.chess[`${prefix}_bishop`];
+            svg = SVG.ChessPieces[`${prefix}_bishop`];
             break;
           case "N":
           case "n":
-            svg = dom_helpers.SVG.chess[`${prefix}_knight`];
+            svg = SVG.ChessPieces[`${prefix}_knight`];
             break;
           case "R":
           case "r":
-            svg = dom_helpers.SVG.chess[`${prefix}_rook`];
+            svg = SVG.ChessPieces[`${prefix}_rook`];
             break;
           case "Q":
           case "q":
-            svg = dom_helpers.SVG.chess[`${prefix}_queen`];
+            svg = SVG.ChessPieces[`${prefix}_queen`];
             break;
           case "K":
           case "k":
             break;
           default:
-            exhaustiveCheck(key);
+            console.log(key satisfies never);
             break;
         }
 
@@ -157,7 +155,7 @@ class CountPieces {
         }
       }
 
-      if (isWhite) {
+      if (isWhitePiece) {
         this.blackPiecesWrapper.appendChild(span);
       } else {
         this.whitePiecesWrapper.appendChild(span);

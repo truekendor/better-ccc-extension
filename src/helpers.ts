@@ -1,22 +1,111 @@
 /// <reference types="./types" />
 /// <reference path="./types/index.d.ts" />
 
-namespace dom_helpers {
+namespace dom_elements {
+  /**
+   * provides methods for creating crosstable elements
+   */
   export class CrossTable {
-    static crExtensionBtn() {
-      const extensionSettingsBtn = document.createElement("div");
-      const gearSVG = dom_helpers.SVG.icons.gear;
+    static crExtensionSettingsBtn() {
+      const extensionSettingsBtn = document.createElement("button");
+      const gearSVG = SVG.Icons.gear;
 
       extensionSettingsBtn.title = "Extension settings";
 
-      extensionSettingsBtn.classList.add("ccc-all-options-btn");
+      extensionSettingsBtn.classList.add("ccc-extension-settings-btn");
       extensionSettingsBtn.append(gearSVG);
 
       extensionSettingsBtn.addEventListener("click", () => {
-        dom_helpers.CrossTable.crExtensionSettingsModal();
+        dom_elements.CrossTable.crExtensionSettingsModal();
       });
 
       return extensionSettingsBtn;
+    }
+
+    private static crExtensionSettingsModal() {
+      const crossTableModal = document.querySelector(
+        ".modal-vue-modal-content"
+      )!;
+
+      const modalBackdrop = document.createElement("div");
+      const modalWrapper = document.createElement("div");
+
+      modalBackdrop.classList.add("ccc-options-backdrop");
+      modalWrapper.classList.add("ccc-options-modal");
+
+      modalBackdrop.append(modalWrapper);
+
+      modalBackdrop.addEventListener(
+        "click",
+        () => {
+          // document.body.removeChild(modalBackdrop);
+          crossTableModal.removeChild(modalBackdrop);
+        },
+        { once: true }
+      );
+
+      modalWrapper.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+
+      // ! mock
+      // ! mock
+      // ! mock
+      const option_1 = this.crExtensionSettingRow(
+        "displayEngineNames",
+        "engine names"
+      );
+      const option_2 = this.crExtensionSettingRow(
+        "addLinksToGameSchedule",
+        "links to schedule"
+      );
+      const option_3 = this.crExtensionSettingRow(
+        "materialCount",
+        "material count"
+      );
+      const option_4 = this.crExtensionSettingRow(
+        "replaceClockSvg",
+        "replace clock"
+      );
+      const option_5 = this.crExtensionSettingRow(
+        "allowKeyboardShortcuts",
+        "keyboard shortcuts"
+      );
+
+      modalWrapper.append(option_1, option_2, option_3, option_4, option_5);
+
+      crossTableModal.append(modalBackdrop);
+    }
+
+    private static crExtensionSettingRow<T extends BooleanKeys<UserSettings>>(
+      key: T,
+      description: string
+    ) {
+      const row = document.createElement("div");
+      row.classList.add("_row");
+
+      const descriptionElem = document.createElement("p");
+      descriptionElem.classList.add("_desc");
+
+      descriptionElem.textContent = description;
+
+      const input = document.createElement("input");
+      input.classList.add("ccc-input");
+      input.tabIndex = 1000;
+
+      input.type = "checkbox";
+      input.checked = userSettings[key] ?? _State.userSettingsDefault[key];
+
+      input.addEventListener("change", () => {
+        userSettings[key] = !userSettings[key];
+        ExtensionHelper.localStorage.setState(key, userSettings[key]);
+
+        ExtensionHelper.applyUserSettings(key);
+      });
+
+      row.append(descriptionElem, input);
+
+      return row;
     }
 
     static crEngineNames() {
@@ -75,6 +164,27 @@ namespace dom_helpers {
       return wdlWrapper;
     }
 
+    static crSettingsSwitch(text: string, field: BooleanKeys<UserSettings>) {
+      const label = document.createElement("label");
+      const switchInput = document.createElement("input");
+
+      label.classList.add("ccc-label");
+      label.textContent = `${text}:`;
+      label.setAttribute("data-name", field);
+
+      label.htmlFor = `id-${field}`;
+      switchInput.id = label.htmlFor;
+
+      switchInput.classList.add("ccc-input");
+      switchInput.type = "checkbox";
+
+      switchInput.checked = userSettings[field] ?? true;
+
+      label.append(switchInput);
+
+      return label;
+    }
+
     /**
      *  creates SVG caret that opens the additional stats modal
      */
@@ -86,7 +196,7 @@ namespace dom_helpers {
       const additionalStatsBtn = document.createElement("div");
       additionalStatsBtn.classList.add("ccc-info-button");
 
-      const caretSVG = SVG.icons.caretDown;
+      const caretSVG = SVG.Icons.caretDown;
       additionalStatsBtn.append(caretSVG);
 
       additionalStatsBtn.addEventListener("click", (e) => {
@@ -134,7 +244,7 @@ namespace dom_helpers {
       rowAmountInput.value = `${
         enginesAmount === 2
           ? userSettings.pairsPerRowDuel
-          : userSettings.pairPerRow
+          : userSettings.pairsPerRow
       }`;
       formElement.append(rowAmountInput);
 
@@ -147,17 +257,11 @@ namespace dom_helpers {
         );
 
         if (enginesAmount === 2) {
-          // ~~~~
-          // ExtensionHelper.setState("pairsPerRowDuel", value || "");
           ExtensionHelper.localStorage.setState("pairsPerRowDuel", value || "");
-
           userSettings.pairsPerRowDuel = value;
         } else {
-          // ~~~~
-          // ExtensionHelper.setState("pairPerRow", value || "");
-          ExtensionHelper.localStorage.setState("pairPerRow", value || "");
-
-          userSettings.pairPerRow = value;
+          ExtensionHelper.localStorage.setState("pairsPerRow", value || "");
+          userSettings.pairsPerRow = value;
         }
       });
 
@@ -177,7 +281,7 @@ namespace dom_helpers {
       mainContainer.classList.add("ccc-info-panel");
       mainContainer.innerHTML = "";
 
-      const waveContainer = dom_helpers.Wrappers.crWaveWrapper();
+      const waveContainer = dom_elements.Wrappers.crWaveWrapper();
 
       mainContainer.append(waveContainer);
 
@@ -362,29 +466,29 @@ namespace dom_helpers {
       return wrapper;
     }
 
-    private static crExtensionSettingsModal() {
-      const modalBackdrop = document.createElement("div");
-      const modal = document.createElement("div");
+    // private static crExtensionSettingsModal() {
+    //   const modalBackdrop = document.createElement("div");
+    //   const modal = document.createElement("div");
 
-      modalBackdrop.classList.add("ccc-options-backdrop");
-      modal.classList.add("ccc-options-modal");
+    //   modalBackdrop.classList.add("ccc-options-backdrop");
+    //   modal.classList.add("ccc-options-modal");
 
-      modalBackdrop.append(modal);
+    //   modalBackdrop.append(modal);
 
-      modalBackdrop.addEventListener(
-        "click",
-        () => {
-          document.body.removeChild(modalBackdrop);
-        },
-        { once: true }
-      );
+    //   modalBackdrop.addEventListener(
+    //     "click",
+    //     () => {
+    //       document.body.removeChild(modalBackdrop);
+    //     },
+    //     { once: true }
+    //   );
 
-      modal.addEventListener("click", (e) => {
-        e.stopPropagation();
-      });
+    //   modal.addEventListener("click", (e) => {
+    //     e.stopPropagation();
+    //   });
 
-      document.body.append(modalBackdrop);
-    }
+    //   document.body.append(modalBackdrop);
+    // }
   }
 
   export class Wrappers {
@@ -394,7 +498,7 @@ namespace dom_helpers {
       const wave = document.createElement("div");
 
       const xMarkButton = document.createElement("button");
-      const xMarkSVG = SVG.icons.xMark;
+      const xMarkSVG = SVG.Icons.xMark;
 
       xMarkButton.append(xMarkSVG);
       xMarkButton.classList.add("ccc-x-mark");
@@ -413,7 +517,7 @@ namespace dom_helpers {
       waveContainer.classList.add("ccc-wave-container");
       waveFiller.classList.add("ccc-wave-filler");
       wave.classList.add("ccc-wave");
-      const waveSVG = SVG.icons.wave;
+      const waveSVG = SVG.Icons.wave;
       wave.append(waveSVG);
 
       waveContainer.append(waveFiller, wave);
@@ -432,10 +536,35 @@ namespace dom_helpers {
     }
   }
 
-  class SVGBase {
-    private static currentSVG: SVGSVGElement;
+  // =========
+  // helper functions
 
-    private static valuesToOptionsNames: Record<keyof SVGOption, string> = {
+  /**
+   * removes the passed node from the DOM tree
+   * @param {HTMLGenericNode} nodeToRemove
+   */
+  export function removeNode(nodeToRemove: HTMLGenericNode) {
+    nodeToRemove.parentNode?.removeChild(nodeToRemove);
+  }
+
+  /**
+   * removes all children from the passed node
+   * @param {HTMLGenericNode} node
+   */
+  export function removeAllChildNodes(node: HTMLGenericNode) {
+    while (node.firstChild) {
+      node.removeChild(node.firstChild);
+    }
+  }
+}
+
+namespace SVG {
+  type PieceColor = "white" | "black";
+
+  class SVGBase {
+    protected static currentSVG: SVGSVGElement;
+
+    protected static valuesToOptionsNames: Record<keyof SVGOption, string> = {
       d: "d",
       id: "id",
       width: "width",
@@ -489,98 +618,32 @@ namespace dom_helpers {
     }
   }
 
-  class ChessPieces extends SVGBase {
+  export class ChessPieces extends SVGBase {
+    // * SVGs are taken from https://github.com/lichess-org/lila/tree/master/public/piece/mpchess
+
+    // * white pieces
     static get w_pawn() {
-      const svg = this.createSVG({
-        width: "20",
-        height: "25",
-        viewBox: "0 0 20 25",
-        fill: "none",
-      });
-
-      this.createPath({
-        d: "M9.87475 1.23387C8.83034 1.23387 7.82871 1.64876 7.0902 2.38727C6.35169 3.12578 5.9368 4.12741 5.9368 5.17182C5.93783 5.71491 6.05119 6.25191 6.26975 6.74908C6.4883 7.24625 6.80733 7.69284 7.20679 8.06079L4.97281 9.01977V11.3497L7.61578 11.3417C6.0608 21.3916 1.60886 18.3017 1.60886 23.8686H18.2656C18.2656 18.2227 13.7057 21.6366 12.1417 11.3387L14.7817 11.2987V8.98377L12.5717 8.03879C12.9634 7.67092 13.2756 7.2268 13.4892 6.73375C13.7028 6.2407 13.8132 5.70915 13.8137 5.17182C13.8137 4.6546 13.7118 4.14244 13.5138 3.6646C13.3159 3.18676 13.0257 2.7526 12.6599 2.38692C12.2942 2.02123 11.8599 1.73118 11.382 1.53334C10.9042 1.3355 10.392 1.23374 9.87475 1.23387Z",
-        fill: "white",
-        stroke: "black",
-        strokeWidth: "1.51179",
-      });
-
-      return svg;
+      return this.createPawn("white");
     }
 
     static get w_bishop() {
-      const svg = this.createSVG({
-        width: "25",
-        height: "30",
-        viewBox: "0 0 25 30",
-        fill: "none",
-      });
-
-      this.createPath({
-        d: "M19.6651 23.2428C24.0393 23.2428 24.2301 26.4856 24.2301 28.8932H1.51483C1.51483 26.4365 1.70149 23.2428 6.07573 23.2428H19.6651ZM19.7057 23.1899C20.5253 22.0863 24.5668 14.8371 16.6624 7.44811C16.6624 7.44811 13.4852 11.5603 12.9577 17.6378L11.0221 17.634C10.9856 12.0554 15.1204 6.28027 15.1204 6.28027C18.4478 0.00625792 7.51623 -0.0126397 10.5352 6.28027C1.30383 13.8733 5.41432 22.2261 6.09196 23.1899H19.7057Z",
-        fill: "white",
-        stroke: "black",
-        strokeWidth: "1.51181",
-      });
-
-      return svg;
+      return this.createBishop("white");
     }
 
     static get w_knight() {
-      const svg = this.createSVG({
-        width: "25",
-        height: "30",
-        viewBox: "0 0 25 30",
-        fill: "none",
-      });
-
-      this.createPath({
-        d: "M19.6773 23.137H6.10819C6.29485 18.3445 12.0203 15.7971 12.28 13.4878C12.5438 11.1747 11.3751 10.5776 11.3751 10.5776C11.3751 10.5776 10.5758 13.3594 9.55727 13.9264C8.53878 14.4933 6.165 15.0261 6.165 15.0261C6.165 15.0261 4.50133 16.4245 3.52341 16.3263C2.54144 16.2318 1.70149 14.0472 1.70149 14.0472L5.02883 9.11117L6.72091 5.61134L8.31154 3.99367L8.99324 1.62016L10.9126 3.70647C21.4667 3.70647 23.7553 16.3754 19.6773 23.1332V23.137ZM19.6651 23.2429C24.0393 23.2429 24.2301 26.4857 24.2301 28.8932H1.51483C1.51483 26.4366 1.70149 23.2429 6.07573 23.2429H19.6651Z",
-        fill: "white",
-        stroke: "black",
-        strokeWidth: "1.51181",
-      });
-
-      return svg;
+      return this.createKnight("white");
     }
 
     static get w_rook() {
-      const svg = this.createSVG({
-        width: "25",
-        height: "28",
-        viewBox: "0 0 25 28",
-        fill: "none",
-      });
-
-      this.createPath({
-        d: "M19.6651 21.2429C24.0393 21.2429 24.2301 24.4857 24.2301 26.8932H1.51483C1.51483 24.4366 1.70149 21.2429 6.07573 21.2429H19.6651Z",
-        fill: "white",
-        stroke: "black",
-        strokeWidth: "1.51181",
-      });
-
-      this.createPath({
-        d: "M20.4685 21.2391L18.1678 8.94429H7.60143L5.32504 21.2391H20.4685Z",
-        fill: "white",
-        stroke: "black",
-        strokeWidth: "1.51181",
-      });
-
-      this.createPath({
-        d: "M20.1439 2.96508L16.8977 2.12597L16.1957 3.78516L14.8648 3.77766V1.41927L10.7989 1.48351V3.77766H9.61406L8.76194 2.12977L5.58067 3.29011C5.58067 3.29011 5.54821 9.07278 7.22 9.03876H18.5046C20.1764 9.03876 20.1439 2.96508 20.1439 2.96508Z",
-        fill: "white",
-        stroke: "black",
-        strokeWidth: "1.51181",
-      });
-
-      return svg;
+      return this.createRook("white");
     }
 
     static get w_queen() {
+      // separate method was needed to create the white queen
       const svg = this.createSVG({
-        width: "32",
+        width: "34",
         height: "31",
-        viewBox: "0 0 32 31",
+        viewBox: "0 0 34 31",
         fill: "none",
       });
 
@@ -601,11 +664,32 @@ namespace dom_helpers {
       return svg;
     }
 
-    static get w_king() {
-      return null;
+    // * black pieces
+    static get b_pawn() {
+      return this.createPawn("black");
     }
 
-    static get b_pawn() {
+    static get b_bishop() {
+      return this.createBishop("black");
+    }
+
+    static get b_knight() {
+      return this.createKnight("black");
+    }
+
+    static get b_rook() {
+      return this.createRook("black");
+    }
+
+    static get b_queen() {
+      return this.createQueen("black");
+    }
+
+    // *
+    private static createPawn(color: PieceColor) {
+      const fillColor = this.getFillColor(color);
+      const strokeColor = this.getStrokeColor(color);
+
       const svg = this.createSVG({
         width: "20",
         height: "25",
@@ -615,15 +699,18 @@ namespace dom_helpers {
 
       this.createPath({
         d: "M9.87475 1.23387C8.83034 1.23387 7.82871 1.64876 7.0902 2.38727C6.35169 3.12578 5.9368 4.12741 5.9368 5.17182C5.93783 5.71491 6.05119 6.25191 6.26975 6.74908C6.4883 7.24625 6.80733 7.69284 7.20679 8.06079L4.97281 9.01977V11.3497L7.61578 11.3417C6.0608 21.3916 1.60886 18.3017 1.60886 23.8686H18.2656C18.2656 18.2227 13.7057 21.6366 12.1417 11.3387L14.7817 11.2987V8.98377L12.5717 8.03879C12.9634 7.67092 13.2756 7.2268 13.4892 6.73375C13.7028 6.2407 13.8132 5.70915 13.8137 5.17182C13.8137 4.6546 13.7118 4.14244 13.5138 3.6646C13.3159 3.18676 13.0257 2.7526 12.6599 2.38692C12.2942 2.02123 11.8599 1.73118 11.382 1.53334C10.9042 1.3355 10.392 1.23374 9.87475 1.23387Z",
-        fill: "black",
-        stroke: "#CBCACA",
+        fill: fillColor,
+        stroke: strokeColor,
         strokeWidth: "1.51179",
       });
 
       return svg;
     }
 
-    static get b_bishop() {
+    private static createBishop(color: PieceColor) {
+      const fillColor = this.getFillColor(color);
+      const strokeColor = this.getStrokeColor(color);
+
       const svg = this.createSVG({
         width: "25",
         height: "30",
@@ -633,15 +720,18 @@ namespace dom_helpers {
 
       this.createPath({
         d: "M19.6651 23.2428C24.0393 23.2428 24.2301 26.4856 24.2301 28.8932H1.51483C1.51483 26.4365 1.70149 23.2428 6.07573 23.2428H19.6651ZM19.7057 23.1899C20.5253 22.0863 24.5668 14.8371 16.6624 7.44811C16.6624 7.44811 13.4852 11.5603 12.9577 17.6378L11.0221 17.634C10.9856 12.0554 15.1204 6.28027 15.1204 6.28027C18.4478 0.00625792 7.51623 -0.0126397 10.5352 6.28027C1.30383 13.8733 5.41432 22.2261 6.09196 23.1899H19.7057Z",
-        fill: "black",
-        stroke: "#CBCACA",
+        fill: fillColor,
+        stroke: strokeColor,
         strokeWidth: "1.51181",
       });
 
       return svg;
     }
 
-    static get b_knight() {
+    private static createKnight(color: PieceColor) {
+      const fillColor = this.getFillColor(color);
+      const strokeColor = this.getStrokeColor(color);
+
       const svg = this.createSVG({
         width: "25",
         height: "30",
@@ -651,15 +741,18 @@ namespace dom_helpers {
 
       this.createPath({
         d: "M19.6773 23.137H6.10819C6.29485 18.3445 12.0203 15.7971 12.28 13.4878C12.5438 11.1747 11.3751 10.5776 11.3751 10.5776C11.3751 10.5776 10.5758 13.3594 9.55727 13.9264C8.53878 14.4933 6.165 15.0261 6.165 15.0261C6.165 15.0261 4.50133 16.4245 3.52341 16.3263C2.54144 16.2318 1.70149 14.0472 1.70149 14.0472L5.02883 9.11117L6.72091 5.61134L8.31154 3.99367L8.99324 1.62016L10.9126 3.70647C21.4667 3.70647 23.7553 16.3754 19.6773 23.1332V23.137ZM19.6651 23.2429C24.0393 23.2429 24.2301 26.4857 24.2301 28.8932H1.51483C1.51483 26.4366 1.70149 23.2429 6.07573 23.2429H19.6651Z",
-        fill: "black",
-        stroke: "#CBCACA",
+        fill: fillColor,
+        stroke: strokeColor,
         strokeWidth: "1.51181",
       });
 
       return svg;
     }
 
-    static get b_rook() {
+    private static createRook(color: PieceColor) {
+      const fillColor = this.getFillColor(color);
+      const strokeColor = this.getStrokeColor(color);
+
       const svg = this.createSVG({
         width: "25",
         height: "28",
@@ -669,29 +762,31 @@ namespace dom_helpers {
 
       this.createPath({
         d: "M19.6651 21.2429C24.0393 21.2429 24.2301 24.4857 24.2301 26.8932H1.51483C1.51483 24.4366 1.70149 21.2429 6.07573 21.2429H19.6651Z",
-        fill: "black",
-        stroke: "#CBCACA",
+        fill: fillColor,
+        stroke: strokeColor,
         strokeWidth: "1.51181",
       });
 
       this.createPath({
         d: "M20.4685 21.2391L18.1678 8.94429H7.60143L5.32504 21.2391H20.4685Z",
-        fill: "black",
-        stroke: "#CBCACA",
+        fill: fillColor,
+        stroke: strokeColor,
         strokeWidth: "1.51181",
       });
 
       this.createPath({
         d: "M20.1439 2.96508L16.8977 2.12597L16.1957 3.78516L14.8648 3.77766V1.41927L10.7989 1.48351V3.77766H9.61406L8.76194 2.12977L5.58067 3.29011C5.58067 3.29011 5.54821 9.07278 7.22 9.03876H18.5046C20.1764 9.03876 20.1439 2.96508 20.1439 2.96508Z",
-        fill: "black",
-        stroke: "#CBCACA",
+        fill: fillColor,
+        stroke: strokeColor,
         strokeWidth: "1.51181",
       });
 
       return svg;
     }
 
-    static get b_queen() {
+    private static createQueen(color: PieceColor) {
+      const fillColor = this.getFillColor(color);
+
       const svg = this.createSVG({
         width: "30",
         height: "30",
@@ -700,23 +795,30 @@ namespace dom_helpers {
 
       this.createPath({
         d: "M21.6651 24.2429C26.0393 24.2429 26.2301 27.4857 26.2301 29.8932H3.51483C3.51483 27.4366 3.70149 24.2429 8.07573 24.2429H21.6651Z",
-        fill: "black",
+        fill: fillColor,
       });
 
       this.createPath({
         d: "M11.0135 0.877808C10.2146 0.877807 9.44838 1.17477 8.88309 1.70343C8.31781 2.23208 7.99969 2.94921 7.99863 3.69734C7.99923 4.26317 8.18138 4.81582 8.52144 5.28353C8.86151 5.75124 9.3438 6.11243 9.90576 6.32034L9.53245 13.9172L5.54775 7.81321C5.89284 7.34139 6.07679 6.78264 6.07526 6.21076C6.07419 5.46329 5.75663 4.74666 5.19222 4.21811C4.62781 3.68957 3.86261 3.39223 3.06441 3.39123C2.26551 3.39122 1.49927 3.68807 0.933984 4.21673C0.368696 4.74538 0.0505843 5.46263 0.0495148 6.21076C0.0496864 6.87641 0.301008 7.52061 0.759105 8.02959C1.2172 8.53857 1.85261 8.87958 2.55314 8.99246L7.32504 22.7348H22.4726L27.2323 9.07563C27.9513 8.98139 28.6097 8.64731 29.0868 8.1349C29.5639 7.62249 29.8275 6.96613 29.8293 6.28631C29.8293 5.91523 29.7511 5.54777 29.5994 5.20498C29.4476 4.86219 29.2252 4.5508 28.9448 4.28859C28.6644 4.02637 28.3316 3.81847 27.9653 3.67681C27.599 3.53515 27.2066 3.46247 26.8103 3.46297C26.0107 3.46297 25.2438 3.7605 24.6784 4.28997C24.113 4.81944 23.7954 5.53752 23.7954 6.28631C23.7972 6.81008 23.9546 7.32306 24.2499 7.76788L20.18 13.9134L19.8594 6.30903C20.4127 6.09734 20.8864 5.73634 21.2202 5.27199C21.554 4.80765 21.7329 4.2609 21.7341 3.70115C21.7341 2.95236 21.4164 2.23417 20.851 1.70469C20.2856 1.17522 19.5188 0.877808 18.7192 0.877808C17.9203 0.877807 17.154 1.17477 16.5887 1.70343C16.0235 2.23208 15.7053 2.94921 15.7043 3.69734C15.7047 4.43128 16.0104 5.13616 16.5564 5.66266L14.8562 13.9134L13.2331 5.60602C13.7441 5.0855 14.0279 4.40438 14.0284 3.69734C14.0274 2.94921 13.7092 2.23208 13.144 1.70343C12.5787 1.17477 11.8124 0.877807 11.0135 0.877808Z",
-        fill: "black",
+        fill: fillColor,
       });
 
       return svg;
     }
 
-    static get b_king() {
-      return null;
+    // *
+    private static getFillColor(color: PieceColor) {
+      const fillColor: SVGColors = color === "white" ? "white" : "black";
+      return fillColor;
+    }
+
+    private static getStrokeColor(color: PieceColor) {
+      const strokeColor: SVGColors = color === "white" ? "black" : "#CBCACA";
+      return strokeColor;
     }
   }
 
-  class Icons extends SVGBase {
+  export class Icons extends SVGBase {
     static get caretDown() {
       const svg = this.createSVG({
         fill: "none",
@@ -764,6 +866,8 @@ namespace dom_helpers {
     }
 
     static get clock() {
+      // default chess com timer
+      // https://www.chess.com/bundles/web/images/svg/tic.b039b4f5.svg
       const svg = this.createSVG({
         viewBox: "0 0 16 16",
         fill: "white",
@@ -806,46 +910,6 @@ namespace dom_helpers {
 
       return svg;
     }
-  }
-
-  export class SVG extends SVGBase {
-    static get icons() {
-      return Icons;
-    }
-
-    static get chess() {
-      // SVGs are taken from https://github.com/lichess-org/lila/tree/master/public/piece/mpchess
-
-      return ChessPieces;
-    }
-  }
-
-  // =========
-  // helper functions
-
-  /**
-   * removes the passed node from the DOM tree
-   * @param {HTMLGenericNode} nodeToRemove
-   */
-  export function removeNode(nodeToRemove: HTMLGenericNode) {
-    nodeToRemove.parentNode?.removeChild(nodeToRemove);
-  }
-
-  /**
-   * removes all children from the passed node
-   * @param {HTMLGenericNode} node
-   */
-  export function removeAllChildNodes(node: HTMLGenericNode) {
-    while (node.firstChild) {
-      node.removeChild(node.firstChild);
-    }
-  }
-
-  /**
-   * removes all whitespaces from the string
-   */
-  export function removeWhitespace(str: string) {
-    return str.replace(/\s/g, "");
   }
 }
 
@@ -1022,40 +1086,48 @@ namespace stats_helpers {
     return [ptnml, wdlArray, stats] as const;
   }
 
-  /**
-   * gets scores from a crosstable cell and returns them as an array
-   */
-  export function getScoresFromH2HCell(crossTableCell: HTMLDivElement) {
-    const gameResultElementList: NodeListOf<HTMLDivElement> =
-      crossTableCell.querySelectorAll(".crosstable-result");
-
+  /** gets scores from a NodeList and returns them as an array */
+  export function getScoresFromList(
+    gameResultElementList: NodeListOf<HTMLDivElement>
+  ) {
     const scoresArray: ResultAsScore[] = [];
-    let lastResult: ResultAsScore;
 
-    gameResultElementList.forEach((result, index) => {
-      // ID needed to overwrite default CCC styles
-      if (result) {
-        result.id = "ccc-result";
-      }
-
-      if (index % 2 === 0) {
-        result.classList.add("ccc-border-left");
-
-        lastResult = getResultFromNode(result);
-        scoresArray.push(lastResult);
-      } else {
-        result.classList.add("ccc-border-right");
-
-        const currentResult = getResultFromNode(result);
-        const pairResult = getClassNameForPair(lastResult, currentResult);
-        scoresArray.push(currentResult);
-
-        result.classList.add(pairResult);
-        gameResultElementList![index - 1]!.classList.add(pairResult);
-      }
+    gameResultElementList.forEach((result) => {
+      scoresArray.push(getResultFromNode(result));
     });
 
     return scoresArray;
+  }
+
+  /**
+   * todo change description
+   */
+  export function paintGamePairs(
+    gameResultList: NodeListOf<HTMLDivElement>,
+    scoresArray: ResultAsScore[],
+    pairsPerRow: number
+  ) {
+    gameResultList.forEach((elem, index) => {
+      elem.id = "ccc-result";
+
+      const isEven = index % 2 === 0;
+      const temp = index % (pairsPerRow * 2) === 0;
+      const isFirstElementInRow = isEven && temp;
+
+      if (!isEven) {
+        elem.classList.add("ccc-border-right");
+
+        const className = getClassNameForPair(
+          scoresArray[index - 1],
+          scoresArray[index]
+        );
+
+        elem.classList.add(className);
+        gameResultList[index - 1].classList.add(className);
+      } else if (isFirstElementInRow || pairsPerRow === 1) {
+        elem.classList.add("ccc-border-left");
+      }
+    });
   }
 
   function getResultFromNode(node: HTMLDivElement) {
@@ -1080,8 +1152,8 @@ namespace stats_helpers {
 
 namespace ExtensionHelper {
   export class localStorage {
-    static getState<T extends keyof UserSettings>(key: T) {
-      return browserPrefix.storage.local.get(key) as Promise<
+    static getState<T extends keyof UserSettings>(keys: T | T[]) {
+      return browserPrefix.storage.local.get(keys) as Promise<
         Pick<UserSettings, T>
       >;
     }
@@ -1092,9 +1164,115 @@ namespace ExtensionHelper {
     ) {
       return browserPrefix.storage.local.set({ [key]: value });
     }
+
+    static setStateObj<T extends Partial<UserSettings>>(obj: T) {
+      return browserPrefix.storage.local.set(obj);
+    }
+  }
+
+  export class messages {
+    static sendMessage(message: message_pass.message) {
+      // @ts-ignore
+      return browserPrefix.runtime.sendMessage(message) as Promise<unknown>;
+    }
+
+    /** sends ready to BG script on document load */
+    static sendReady() {
+      const message: message_pass.message = {
+        type: "onload",
+        payload: null,
+      };
+
+      // @ts-ignore
+      browserPrefix.runtime.sendMessage(message);
+
+      return false;
+    }
+
+    /** Requests TB 7 eval for current position */
+    static sendTBEvalRequest(ply: number) {
+      const fenString = chessCurrent.actions.getFullFenAtIndex(ply);
+
+      if (!fenString) return false;
+
+      const message: message_pass.message = {
+        type: "request_tb_eval",
+        payload: {
+          fen: fenString[ply - 1]!.split(" ").join("_"),
+          currentPly: ply,
+        },
+      };
+
+      if (!GameState.TB_Response_History[ply]) {
+        browserPrefix.runtime
+          // @ts-ignore
+          .sendMessage(message)
+          .then((response: message_pass.message) => {
+            const { type, payload } = response;
+
+            if (
+              type !== "response_tb_standard" ||
+              !payload.response ||
+              typeof payload.response === "string"
+            ) {
+              return;
+            }
+
+            GameState.TB_Response_History[payload.ply] = payload.response;
+          });
+      }
+
+      return true;
+    }
+  }
+
+  /**
+   * todo add description
+   */
+  export function applyUserSettings<K extends BooleanKeys<UserSettings>>(
+    key: K
+  ) {
+    switch (key) {
+      case "replaceClockSvg":
+        fixClockSVG();
+        break;
+      case "allowKeyboardShortcuts":
+        toggleAllowKeyboardShortcuts();
+        break;
+      // todo
+      case "addLinksToGameSchedule":
+      case "materialCount":
+      case "pgnFetch":
+      case "displayEngineNames":
+        break;
+      case "agreementHighlight":
+      case "elo":
+      case "ptnml":
+        break;
+      default:
+        console.log(key satisfies never);
+        break;
+    }
   }
 }
 
+/** general purpose utility functions */
+namespace utils {
+  /** removes all whitespaces from the string */
+  export function removeWhitespace(str: string) {
+    return str.replace(/\s/g, "");
+  }
+
+  export function objectKeys<T extends {}>(obj: T) {
+    return Object.keys(obj) as Array<keyof T>;
+  }
+
+  export function logError(e: any) {
+    console.log(e?.message ?? e);
+  }
+}
+
+// this was added for no reason in particular
 class Maybe {
   private value: any;
 
@@ -1115,19 +1293,4 @@ class Maybe {
 
     return new Maybe(result);
   }
-}
-
-/**
- * pass this to `default` section of a switch-case
- */
-function exhaustiveCheck(key: never) {
-  throw new Error(`Handle ${key} case`);
-}
-
-function objectKeys<T extends {}>(obj: T) {
-  return Object.keys(obj) as Array<keyof T>;
-}
-
-function logError(e: any) {
-  console.log(e?.message ?? e);
 }

@@ -2247,6 +2247,12 @@ namespace chess_js {
       this.gameState.FenHistoryTrimmed.push(this.FEN_TRIMMED);
     }
 
+    mkReset() {
+      this.actions.clearHistory();
+
+      this.reset();
+    }
+
     // todo rewrite this
     get fields() {
       const fields: GameDataFields = {
@@ -2265,6 +2271,7 @@ namespace chess_js {
           this.gameState.FenHistoryFull[
             this.gameState.FenHistoryFull.length - 1
           ],
+        gameNumber: null,
       } as const;
 
       return fields;
@@ -2293,6 +2300,9 @@ namespace chess_js {
         },
         setPGN: (pgn: string[]) => {
           this.gameState.pgn = pgn;
+        },
+        setGameNumber: (gameNumber: number) => {
+          this.fields.gameNumber = gameNumber;
         },
       } as const;
 

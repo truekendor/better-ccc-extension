@@ -73,10 +73,13 @@ class _DOM_Store {
 }
 
 class _State {
+  static CHESS_STARTING_POSITION =
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
   static userSettingsDefault: UserSettings = {
     ptnml: true,
     elo: true,
-    pairPerRow: 5,
+    pairsPerRow: 5,
     pairsPerRowDuel: 10,
     allowKeyboardShortcuts: true,
     agreementHighlight: true,
@@ -102,11 +105,25 @@ class _State {
     game: null,
   };
 
+  // todo
+  static _data = {
+    pageCurrentGame: null,
+    tabCurrentGame: null,
+    //
+    totalGames: null,
+    eventId: null,
+    eventActive: false,
+  };
+
   // todo delete?
-  static getGameNumber() {
+  static get gameNumber() {
     return (
       this.tabData.game ?? this.pageData.currentGame ?? this.pageData.totalGames
     );
+  }
+
+  static get currentEventId() {
+    return _State.tabData.event || _State.eventHrefList[0];
   }
 }
 
@@ -120,3 +137,71 @@ class Transpositions {
     this.TTList.length = 0;
   }
 }
+
+/**
+ * todo delete description
+ * dev version with object pool
+ * to avoid GC
+ */
+class TT_dev {
+  private TTList: readonly TTEntry[] = [];
+  private sequence = -1;
+
+  private lastIndex = 0;
+
+  private defaultObject: TTEntry = {
+    currentPly: -1,
+    reversePly: -1,
+    fen: "",
+  };
+
+  constructor(size: number = 1000) {
+    this.populateObjectPool(size);
+  }
+
+  reset() {
+    this.TTList.forEach((_, index) => {
+      this.TTList[index].currentPly = this.defaultObject.currentPly;
+      this.TTList[index].reversePly = this.defaultObject.reversePly;
+      this.TTList[index].fen = this.defaultObject.fen;
+    });
+
+    this.lastIndex = 0;
+    this.sequence = -1;
+  }
+
+  get(index: number) {
+    return this.TTList[index];
+  }
+
+  add(
+    currentPly: TTEntry["currentPly"],
+    reversePly: TTEntry["reversePly"],
+    fen: TTEntry["fen"]
+  ) {
+    const currentObj = this.TTList[this.lastIndex];
+
+    currentObj.currentPly = currentPly;
+    currentObj.reversePly = reversePly;
+    currentObj.fen = fen;
+
+    this.lastIndex += 1;
+  }
+
+  private populateObjectPool(size: number) {
+    for (let i = 0; i < size; i++) {
+      const obj: TTEntry = {
+        currentPly: this.defaultObject.currentPly,
+        reversePly: this.defaultObject.reversePly,
+        fen: this.defaultObject.fen,
+      };
+
+      // @ts-ignore
+      this.TTList.push(obj);
+    }
+
+    Object.freeze(this.TTList);
+  }
+}
+
+const qqq = new TT_dev();

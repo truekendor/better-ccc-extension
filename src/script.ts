@@ -19,7 +19,7 @@ const formatter = Intl.NumberFormat(undefined, {
 const userSettings: UserSettings = {
   ptnml: true,
   elo: true,
-  pairPerRow: "",
+  pairsPerRow: "",
   pairsPerRowDuel: "",
   allowKeyboardShortcuts: true,
   agreementHighlight: true,
@@ -32,44 +32,32 @@ const userSettings: UserSettings = {
 
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
-loadUserSettings().catch(logError);
+loadUserSettings().catch(utils.logError);
 async function loadUserSettings() {
-  Promise.all([
-    ExtensionHelper.localStorage.getState("elo"),
-    ExtensionHelper.localStorage.getState("ptnml"),
-    ExtensionHelper.localStorage.getState("allowKeyboardShortcuts"),
-    ExtensionHelper.localStorage.getState("addLinksToGameSchedule"),
-    ExtensionHelper.localStorage.getState("replaceClockSvg"),
-  ]).then((resultsArray: Partial<UserSettings>[]) => {
-    resultsArray.forEach((result) => {
-      const key = Object.keys(result)[0] as BooleanKeys<UserSettings>;
-      userSettings[key] = result[key] ?? _State.userSettingsDefault[key];
-
-      switch (key) {
-        case "replaceClockSvg":
-          if (userSettings.replaceClockSvg) {
-            fixClockSVG();
-          }
-          break;
-        case "ptnml":
-        case "elo":
-        case "allowKeyboardShortcuts":
-        case "pgnFetch":
-        case "agreementHighlight":
-        case "addLinksToGameSchedule":
-        case "displayEngineNames":
-        case "materialCount":
-          break;
-        default:
-          exhaustiveCheck(key);
-          break;
-      }
+  await ExtensionHelper.localStorage
+    .getState([
+      "elo",
+      "ptnml",
+      "allowKeyboardShortcuts",
+      "addLinksToGameSchedule",
+      "replaceClockSvg",
+      "displayEngineNames",
+      "materialCount",
+    ])
+    .then((res) => {
+      const keys = utils.objectKeys(res);
+      keys.forEach((key) => {
+        userSettings[key] = res[key] ?? _State.userSettingsDefault[key];
+      });
     });
-  });
 
-  ExtensionHelper.localStorage.getState("pairPerRow").then((result) => {
-    userSettings.pairPerRow =
-      result.pairPerRow ?? _State.userSettingsDefault.pairPerRow;
+  if (userSettings.replaceClockSvg) {
+    fixClockSVG();
+  }
+
+  ExtensionHelper.localStorage.getState("pairsPerRow").then((result) => {
+    userSettings.pairsPerRow =
+      result.pairsPerRow ?? _State.userSettingsDefault.pairsPerRow;
   });
 
   ExtensionHelper.localStorage.getState("pairsPerRowDuel").then((result) => {
@@ -109,7 +97,9 @@ function convertCrossTable() {
       observeInitial();
     }
 
-    dom_helpers.CrossTable.crEngineNames();
+    if (userSettings.displayEngineNames) {
+      dom_elements.CrossTable.crEngineNames();
+    }
 
     const modal = document.querySelector(".modal-vue-modal-content");
     const images = modal?.querySelectorAll("img");
@@ -123,7 +113,6 @@ function convertCrossTable() {
   }
 }
 
-// todo add description
 function getImageIndexes(cell: HTMLTableCellElement) {
   let index_1: number = -1;
   let index_2: number = -1;
@@ -157,7 +146,7 @@ function getImageIndexes(cell: HTMLTableCellElement) {
 function convertCell(cell: HTMLTableCellElement) {
   const [index_1, index_2] = getImageIndexes(cell);
 
-  // header with result like this --> 205 - 195 [+10]
+  // header with a score string like this: 205 - 195 [+10]
   const cellHeader: HTMLDivElement | null = cell.querySelector(
     ".crosstable-head-to-head"
   );
@@ -170,35 +159,89 @@ function convertCell(cell: HTMLTableCellElement) {
   cellHeader.id = "ccc-cell-header";
 
   // result table for h2h vs one opponent
-  const crossTableCell: HTMLDivElement = cell.querySelector(
+  const resultWrapper: HTMLDivElement = cell.querySelector(
     ".crosstable-result-wrapper"
   )!;
 
-  addClassToCrossTable(crossTableCell);
-  const scoresArray = stats_helpers.getScoresFromH2HCell(crossTableCell);
+  addClassToCrossTableCell(resultWrapper);
+
+  const gameResultElementList: NodeListOf<HTMLDivElement> =
+    resultWrapper.querySelectorAll(".crosstable-result");
+
+  const pairsPerRow =
+    getPairsPerRowAmount() ||
+    parseInt(
+      getComputedStyle(resultWrapper, null).getPropertyValue("--column-amount")
+    ) / 2;
+
+  const scoresArray = stats_helpers.getScoresFromList(gameResultElementList);
+  stats_helpers.paintGamePairs(
+    gameResultElementList,
+    scoresArray,
+    pairsPerRow || 1
+  );
 
   const [ptnml, wdlArray, stats] = stats_helpers.calculateStats(scoresArray);
 
-  // * create stats
-  const ptnmlWrapper = dom_helpers.CrossTable.crPTNMLStat(ptnml);
-  const wdlWrapper = dom_helpers.CrossTable.crWDLStat(wdlArray);
+  if (enginesAmount <= 8) {
+    const caretSvg = cell.querySelector(".ccc-info-button");
 
-  const additionalInfoWrapper = dom_helpers.CrossTable.crAdditionalStatCaret(
-    stats,
-    index_1,
-    index_2
-  );
-  cell.append(additionalInfoWrapper);
+    if (!caretSvg) {
+      const additionalInfoWrapper =
+        dom_elements.CrossTable.crAdditionalStatCaret(stats, index_1, index_2);
+      cell.append(additionalInfoWrapper);
+    }
+  }
 
-  // * adds/removes user chosen stats to the header
-  handleCustomStatVisibility(cellHeader, wdlWrapper, ptnmlWrapper);
+  // * adds/removes ptnml & elo+wdl stats
+  const ptnmlElement = cellHeader.querySelector(".ccc-ptnml-wrapper");
+  const eloWdlElement = cellHeader.querySelector(".ccc-wdl-wrapper");
+
+  const ptnmlAction = !userSettings["ptnml"] ? "add" : "remove";
+  const eloAction = !userSettings["elo"] ? "add" : "remove";
+
+  if (!ptnmlElement) {
+    const ptnmlWrapper = dom_elements.CrossTable.crPTNMLStat(ptnml);
+    cellHeader.append(ptnmlWrapper);
+    ptnmlWrapper.classList[ptnmlAction]("ccc-display-none");
+  } else {
+    ptnmlElement.classList[ptnmlAction]("ccc-display-none");
+  }
+
+  if (!eloWdlElement) {
+    const eloWdlWrapper = dom_elements.CrossTable.crWDLStat(wdlArray);
+
+    cellHeader.append(eloWdlWrapper);
+    eloWdlWrapper.classList[eloAction]("ccc-display-none");
+  } else {
+    eloWdlElement.classList[eloAction]("ccc-display-none");
+  }
+
+  if (cell.hasAttribute("data-observed")) {
+    return;
+  }
+
+  cell.setAttribute("data-observed", "true");
 
   const observer = new MutationObserver(() => {
     observer.disconnect();
-    liveUpdate();
+    const header = cell.querySelector("#ccc-cell-header");
+    if (!header) return;
+
+    const wrappers = cell.querySelectorAll(".ccc-stat-wrapper");
+
+    wrappers?.forEach((wrapper: Element) => {
+      header?.removeChild(wrapper);
+    });
+
+    convertCell(cell);
+
+    observer.observe(resultWrapper, {
+      childList: true,
+    });
   });
 
-  observer.observe(crossTableCell, {
+  observer.observe(resultWrapper, {
     childList: true,
   });
 }
@@ -280,40 +323,6 @@ function liveUpdate() {
   }
 }
 
-// * -------------
-// * ...
-// shows/hides elo&ptnml stats
-function handleCustomStatVisibility(
-  cellHeader: HTMLDivElement,
-  wdlWrapper: HTMLDivElement,
-  ptnmlWrapper: HTMLDivElement
-) {
-  const ptnmlElement = cellHeader.querySelector(".ccc-ptnml");
-  const eloElement = cellHeader.querySelector(".ccc-wdl-container");
-  const statWrappers = cellHeader.querySelectorAll(".ccc-stat-wrapper");
-
-  if (userSettings.elo && !eloElement) {
-    cellHeader.append(wdlWrapper);
-  } else if (!userSettings.elo && eloElement) {
-    statWrappers.forEach((wrapper) => {
-      if (wrapper.contains(eloElement)) {
-        cellHeader.removeChild(wrapper);
-      }
-    });
-  }
-
-  if (userSettings.ptnml && !ptnmlElement) {
-    cellHeader.append(ptnmlWrapper);
-  } else if (!userSettings.ptnml && ptnmlElement) {
-    statWrappers.forEach((wrapper) => {
-      if (wrapper.contains(ptnmlElement)) {
-        cellHeader.removeChild(wrapper);
-      }
-    });
-  }
-}
-
-// todo move to helper?
 // handles creation of switch inputs for custom crosstable stats
 function createOptionInputs() {
   const crossTableModal: HTMLDivElement | null = document.querySelector(
@@ -325,46 +334,27 @@ function createOptionInputs() {
   if (width < 220) return;
 
   const wrapper = document.createElement("div");
+  const closeBtn = crossTableModal.querySelector(".modal-close")!;
+
   wrapper.classList.add("ccc-options-wrapper");
 
-  const formElement = dom_helpers.CrossTable.crPairsPerRowForm();
+  const pairsPerRowForm = dom_elements.CrossTable.crPairsPerRowForm();
 
   // * create switches
-  const eloLabel = createSwitchLabel("WDL + Elo", "elo");
-  const ptnmlLabel = createSwitchLabel("Ptnml", "ptnml");
+  const eloLabel = dom_elements.CrossTable.crSettingsSwitch("WDL + Elo", "elo");
+  const ptnmlLabel = dom_elements.CrossTable.crSettingsSwitch("Ptnml", "ptnml");
 
-  const extensionSettingsBtn = dom_helpers.CrossTable.crExtensionBtn();
+  const extensionSettingsBtn = dom_elements.CrossTable.crExtensionSettingsBtn();
 
-  wrapper.append(formElement, eloLabel, ptnmlLabel, extensionSettingsBtn);
+  wrapper.append(pairsPerRowForm, eloLabel, ptnmlLabel, extensionSettingsBtn);
 
   handleLabelListeners(eloLabel);
   handleLabelListeners(ptnmlLabel);
 
-  crossTableModal.append(wrapper);
+  crossTableModal.insertBefore(wrapper, closeBtn);
 }
 
-function createSwitchLabel(text: string, field: BooleanKeys<UserSettings>) {
-  const label = document.createElement("label");
-  const switchInput = document.createElement("input");
-
-  label.classList.add("ccc-label");
-  label.textContent = `${text}:`;
-  label.setAttribute("data-name", field);
-
-  label.htmlFor = `id-${field}`;
-  switchInput.id = label.htmlFor;
-
-  switchInput.classList.add("ccc-input");
-  switchInput.type = "checkbox";
-
-  switchInput.checked = userSettings[field] ?? true;
-
-  label.append(switchInput);
-
-  return label;
-}
-
-function addClassToCrossTable(crossTableCell: HTMLDivElement) {
+function addClassToCrossTableCell(crossTableCell: HTMLDivElement) {
   crossTableCell.classList.add("ccc-cell-grid");
   if (enginesAmount === 2) {
     crossTableCell.classList.add("one-v-one");
@@ -374,14 +364,19 @@ function addClassToCrossTable(crossTableCell: HTMLDivElement) {
 }
 
 function applyStylesToGrid() {
-  const is1v1 = enginesAmount === 2;
-
-  const rows = is1v1 ? userSettings.pairsPerRowDuel : userSettings.pairPerRow;
+  const rows = getPairsPerRowAmount();
 
   document.body.style.setProperty(
     "--custom-column-amount",
     `${rows ? rows * 2 : ""}`
   );
+}
+
+function getPairsPerRowAmount() {
+  const is1v1 = enginesAmount === 2;
+  const rows = is1v1 ? userSettings.pairsPerRowDuel : userSettings.pairsPerRow;
+
+  return rows;
 }
 
 // * ----------------------------
@@ -474,23 +469,25 @@ function openCrossTableFromOtherTab() {
 }
 
 function closeModalsOnKeydownHandler() {
+  // * ccc modals and popups
   const crossTableModal = document.querySelector(".modal-vue-modal-content");
   const tournamentsList = document.querySelector(".bottomtable-resultspopup");
   const engineDetailsPanel = document.querySelector(".enginedetails-panel");
   const settingsModal = document.querySelector(".modal-container-component");
-  // todo
-  // not yet implemented
-  // custom elements
-  const statsModal = document.querySelector(".ccc-info-backdrop");
-  const extensionSettings = document.querySelector(".ccc-options-backdrop");
 
-  if (statsModal) {
-    const infoBtn = statsModal.parentNode;
-    infoBtn?.removeChild(statsModal);
+  // * custom elements
+  const moreStatsModal = document.querySelector(".ccc-info-backdrop");
+  const extensionSettingsModal = document.querySelector(
+    ".ccc-options-backdrop"
+  );
+
+  if (moreStatsModal) {
+    const infoBtn = moreStatsModal.parentNode;
+    infoBtn?.removeChild(moreStatsModal);
     return;
   }
-  if (extensionSettings) {
-    document.body.removeChild(extensionSettings);
+  if (extensionSettingsModal && crossTableModal) {
+    crossTableModal.removeChild(extensionSettingsModal);
     return;
   }
   if (crossTableModal) {
@@ -555,10 +552,13 @@ function handleSwitchEvent(field: BooleanKeys<UserSettings>) {
 }
 
 function toggleAllowKeyboardShortcuts() {
-  const { allowKeyboardShortcuts: allow } = userSettings;
-  ExtensionHelper.localStorage.setState("allowKeyboardShortcuts", allow);
+  const { allowKeyboardShortcuts } = userSettings;
+  ExtensionHelper.localStorage.setState(
+    "allowKeyboardShortcuts",
+    allowKeyboardShortcuts
+  );
 
-  userSettings.allowKeyboardShortcuts = allow;
+  userSettings.allowKeyboardShortcuts = allowKeyboardShortcuts;
 }
 
 observeScheduleClick();
@@ -614,8 +614,6 @@ function eloPtnmlTriggerHandler(
 ) {
   const crossTableModal = document.querySelector(".modal-vue-modal-content");
   if (!crossTableModal) return;
-
-  convertCrossTable();
 
   const labels: HTMLLabelElement[] = Array.from(
     crossTableModal.querySelectorAll(`.ccc-label`)

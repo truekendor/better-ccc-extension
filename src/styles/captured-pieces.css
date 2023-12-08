@@ -37,7 +37,7 @@
 
 .ccc-captured-pieces-wrapper > span > svg {
   height: 95% !important;
-  width: min-content !important;
+  width: auto !important;
 }
 
 .ccc-captured-pieces-wrapper > span {
@@ -60,9 +60,4 @@
 
 .enginedata-container .enginedata-clock-wrapper > div:last-child {
   margin-left: auto;
-}
-
-/* this fixes overflow-x on mobile */
-.vote-cast-container {
-  contain: content;
 }

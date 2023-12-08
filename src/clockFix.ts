@@ -1,5 +1,5 @@
-const blackPiecesWrapper = dom_helpers.Wrappers.crMaterialCountWrapper();
-const whitePiecesWrapper = dom_helpers.Wrappers.crMaterialCountWrapper();
+const blackPiecesWrapper = dom_elements.Wrappers.crMaterialCountWrapper();
+const whitePiecesWrapper = dom_elements.Wrappers.crMaterialCountWrapper();
 
 const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
   ".enginedata-clock-wrapper"
@@ -7,7 +7,9 @@ const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
 
 // .forEach to make TS happy
 clockWrappers.forEach((wrapper, i) => {
-  if (!wrapper.firstChild) return;
+  if (!wrapper.firstChild) {
+    return;
+  }
   if (i === 0) {
     wrapper.insertBefore(blackPiecesWrapper, wrapper.firstChild);
     return;
@@ -18,9 +20,7 @@ clockWrappers.forEach((wrapper, i) => {
   }
 });
 
-/**
- * fixes the clock SVG near the timer
- */
+/** fixes the clock SVG near the timer */
 function fixClockSVG() {
   // main wrapper with 50MRule and broken container of clock.svg
   const containers: HTMLDivElement[] = Array.from(
@@ -28,6 +28,9 @@ function fixClockSVG() {
   );
 
   containers.forEach((container, i) => {
+    const cccClock = container.querySelector(".ccc-clock");
+    if (cccClock) return;
+
     // container with broken <object> element && <span> with remaining time
     const brokenClockWrapper = container.lastElementChild!;
 
@@ -36,7 +39,7 @@ function fixClockSVG() {
     const remainingTime =
       brokenClockWrapper.lastElementChild! as HTMLSpanElement;
 
-    const clockSVG = dom_helpers.SVG.icons.clock;
+    const clockSVG = SVG.Icons.clock;
     clockSVG.classList.add("ccc-clock");
 
     if (i === 1) {

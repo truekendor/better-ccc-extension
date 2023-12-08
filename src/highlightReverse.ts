@@ -3,16 +3,31 @@ type TB_History_entry = {
   [key: number]: lila.mainline_response | lila.standard_response;
 };
 
-// todo move this to store
-const TB_Response_History: TB_History_entry = {};
-const mainBoardState = {
-  fen: "",
-  index: -1,
-  piecesLeft: -1,
-};
-
 const chessCurrent = chess_js.chess();
 const chessReverse = chess_js.chess();
+
+class GameState {
+  constructor() {
+    // this.chessCurrent = chess_js.chess();
+    // this.chessReverse = chess_js.chess();
+  }
+
+  static mainBoardState = {
+    fen: "",
+    index: -1,
+    piecesLeft: -1,
+    reset: function () {
+      this.fen = "";
+      this.index = -1;
+      this.piecesLeft = -1;
+    },
+  };
+
+  static pgnCache: { [key: string]: string[] } = {};
+
+  // todo move this to store
+  static TB_Response_History: TB_History_entry = {};
+}
 
 // * observers
 observeEndOfLoad();
@@ -32,7 +47,7 @@ function observeEndOfLoad() {
   const mainContentContainer =
     document.querySelector(".cpu-champs-page-main") ?? _DOM_Store.mainContainer;
 
-  sendReadyToBg();
+  ExtensionHelper.messages.sendReady();
 
   _DOM_Store.scheduleBtn.click();
 
@@ -54,26 +69,15 @@ function observeEndOfLoad() {
 function observeGameEnded() {
   const movesDiv = _DOM_Store.movesTableContainer;
 
-  const observer = new MutationObserver((e) => {
-    // const gameResult = _DOM_Store.movesTableContainer.querySelector(
-    //   ".movetable-gameResult"
-    // );
-    // const nextGameTimer = _DOM_Store.movesTableContainer.querySelector(
-    //   ".next-game-clock-wrapper"
-    // );
-    // if (!gameResult || nextGameTimer) return;
-    // const event = getCurrentEventFromStore();
-    // const game = getCurrentGameFromStore();
-    // const pgn = chessCurrent.fields.pgn;
-    // const totalGames = _State.pageData.totalGames;
-    // if (!event || !game || !pgn || !totalGames) return;
-    // if (
-    //   _State.pageData.currentGame &&
-    //   _State.pageData.currentGame < totalGames &&
-    //   !_State.tabData.game
-    // ) {
-    //   _State.pageData.currentGame += 1;
-    // }
+  const observer = new MutationObserver(async () => {
+    const gameResult = movesDiv.querySelector(".movetable-gameResult");
+    if (!gameResult) return;
+
+    const gameNumber = await ExtractPageData.getCurrentGameNumber();
+
+    if (!chessCurrent.fields.pgn) return;
+
+    GameState.pgnCache[gameNumber] = chessCurrent.fields.pgn;
   });
 
   observer.observe(movesDiv, {
@@ -82,21 +86,49 @@ function observeGameEnded() {
 }
 
 function observeGameStarted() {
-  const table = _DOM_Store.movesTable;
+  const enginePlayer = document.querySelector(
+    "#white-player > div"
+  ) as HTMLDivElement;
 
-  let gameNumber = _State.getGameNumber();
+  const observer = new MutationObserver(async () => {
+    GameState.mainBoardState.reset();
+    CountPieces.countMaterial(_State.CHESS_STARTING_POSITION.split(" ")[0]);
 
-  const observer = new MutationObserver(() => {
-    // if (gameNumber !== getCurrentGameFromStore()) {
-    gameNumber = _State.getGameNumber();
+    const currentGameNumber = await ExtractPageData.getCurrentGameNumber();
+    const reverseGameNumber =
+      currentGameNumber % 2 === 0
+        ? currentGameNumber - 1
+        : currentGameNumber + 1;
 
-    // console.log("game started", gameNumber);
-    // console.log("game started", gameNumber);
-    // }
+    chessCurrent.actions.setGameNumber(currentGameNumber);
+
+    if (GameState.pgnCache.hasOwnProperty(reverseGameNumber)) {
+      const reverseGame = GameState.pgnCache[reverseGameNumber];
+
+      chessReverse.actions.setPGN(reverseGame);
+      chessReverse.actions.setGameNumber(reverseGameNumber);
+
+      HighlightReverse.populateReverse(reverseGame);
+
+      HighlightReverse.findTranspositions();
+      HighlightReverse.highlight();
+      return;
+    }
+
+    const message: message_pass.message = {
+      type: "reverse_pgn_request",
+      payload: {
+        event: _State.currentEventId,
+        gameNumber: currentGameNumber,
+      },
+    };
+
+    // @ts-ignore
+    browserPrefix.runtime.sendMessage(message);
   });
 
-  observer.observe(table, {
-    childList: true,
+  observer.observe(enginePlayer, {
+    attributeFilter: ["title"],
   });
 }
 
@@ -119,7 +151,7 @@ function observeMoveScrolled() {
     updateShareModalFENInput();
 
     if (Transpositions.TTList.length !== 0 || Transpositions.sequence > 0) {
-      highlight();
+      HighlightReverse.highlight();
     }
 
     observer.observe(_DOM_Store.movesTable, {
@@ -142,11 +174,15 @@ function observeMovePlayed() {
   const observer = new MutationObserver(() => {
     observer.disconnect();
 
-    updateCurrentPGN();
-    addEntriesToFENHistory();
+    if (chessReverse.fields.pgn) {
+      HighlightReverse.populateReverse(chessReverse.fields.pgn);
+    }
+
+    const currentGameNumber = chessCurrent.fields.gameNumber;
+    HighlightReverse.updateCurrentPGN();
+    HighlightReverse.populateCurrent();
 
     updateShareModalFENInput()._bind(addListenersToShareFENInput);
-    highlight();
 
     observer.observe(movesTable, {
       childList: true,
@@ -160,10 +196,34 @@ function observeMovePlayed() {
   });
 }
 
+// ! same observer as observeOpenCrosstable
+// todo move to observeOpenCrosstable
 function observeShareModal() {
   const observer = new MutationObserver(() => {
     updateShareModalFENInput()._bind(addListenersToShareFENInput);
     addDownloadGameLogsBtn();
+
+    // click-outside-to-close for settings modal
+    const settingsModal: HTMLDivElement | null =
+      _DOM_Store.mainContainer.querySelector(".modal-container-component");
+    if (settingsModal) {
+      const modalContent = settingsModal.querySelector("section")!;
+
+      modalContent.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+
+      settingsModal.addEventListener(
+        "click",
+        (e) => {
+          e.stopPropagation();
+
+          const closeBtn = settingsModal.querySelector("button")!;
+          closeBtn.click();
+        },
+        { once: true }
+      );
+    }
   });
 
   observer.observe(_DOM_Store.mainContainer, {
@@ -173,11 +233,6 @@ function observeShareModal() {
 
 // * =============
 // * =============
-
-// todo move to the page state
-function getCurrentEventFromStore() {
-  return _State.tabData.event || _State.eventHrefList[0];
-}
 
 // * ============
 function getPGNFromCrossTable() {
@@ -189,7 +244,7 @@ function getPGNFromCrossTable() {
     const text = cell.textContent;
     if (!text) return;
 
-    pgnArray.push(dom_helpers.removeWhitespace(text));
+    pgnArray.push(utils.removeWhitespace(text));
   });
 
   const filteredPgnArray = pgnArray.filter((el) => el !== "" && el !== " ");
@@ -203,19 +258,6 @@ function parseEventLink(eventLink: HTMLAnchorElement) {
   if (!parsedLink) return null;
 
   return parsedLink.replace("event=", "");
-}
-
-/** sends ready to BG script on document load */
-function sendReadyToBg() {
-  const message: message_pass.message = {
-    type: "onload",
-    payload: null,
-  };
-
-  // @ts-ignore
-  browserPrefix.runtime.sendMessage(message);
-
-  return true;
 }
 
 browserPrefix.runtime.onMessage.addListener(function (
@@ -232,73 +274,44 @@ browserPrefix.runtime.onMessage.addListener(function (
       _State.tabData.event = event;
       _State.tabData.game = game;
 
-      highlightCurrentGame();
+      HighlightReverse.highlightCurrentGame();
 
       if (!chessReverse.fields.pgn) {
-        console.log("Empty pgn");
         return;
       }
 
-      updateCurrentPGN();
-      populateReverse(chessReverse.fields.pgn);
+      HighlightReverse.updateCurrentPGN();
+      HighlightReverse.populateReverse(chessReverse.fields.pgn);
 
-      findTranspositions();
+      HighlightReverse.findTranspositions();
+
+      return false;
     }
 
     if (type === "reverse_pgn_response") {
       const { reverseGameNumber, gameNumber, pgn } = payload;
-      const event = getCurrentEventFromStore();
+      const event = _State.currentEventId;
 
       if (!pgn) return;
 
+      chessReverse.actions.clearHistory();
+      chessReverse.reset();
       chessReverse.actions.setPGN(pgn);
+
+      GameState.pgnCache[reverseGameNumber] = pgn;
+
+      HighlightReverse.populateReverse(pgn);
+      HighlightReverse.findTranspositions();
+
+      return false;
     }
 
-    senderResponse(true);
-
-    return true;
+    // senderResponse(true);
   } catch (e: any) {
     console.log(e?.message);
   }
   return true;
 });
-
-/**
- * Requests TB eval for current position */
-function sendTBEvalRequest(ply: number) {
-  const fenString = chessCurrent.actions.getFullFenAtIndex(ply);
-
-  if (!fenString) return false;
-
-  const message: message_pass.message = {
-    type: "request_tb_eval",
-    payload: {
-      fen: fenString[ply - 1]!.split(" ").join("_"),
-      currentPly: ply,
-    },
-  };
-
-  if (!TB_Response_History[ply]) {
-    browserPrefix.runtime
-      // @ts-ignore
-      .sendMessage(message)
-      .then((response: message_pass.message) => {
-        const { type, payload } = response;
-
-        if (
-          type !== "response_tb_standard" ||
-          !payload.response ||
-          typeof payload.response === "string"
-        ) {
-          return;
-        }
-
-        TB_Response_History[payload.ply] = payload.response;
-      });
-  }
-
-  return true;
-}
 
 // todo move this to the other file/class/namespace
 // ! ============
@@ -323,31 +336,13 @@ function isLargeEval() {
   return largeEval;
 }
 
-// todo append this panel to the toolbar ?
-// createRequestTBEvalPanel();
-function createRequestTBEvalPanel() {
-  const panel = document.createElement("div");
-  const currentFENSpan = document.createElement("span");
-  const requestTBEvalButton = document.createElement("button");
-
-  panel.classList.add("ccc-eval-panel");
-  currentFENSpan.textContent = `FEN:  ${mainBoardState.fen}`;
-
-  requestTBEvalButton.textContent = "Request TB Eval";
-
-  panel.appendChild(currentFENSpan);
-  panel.appendChild(requestTBEvalButton);
-
-  document.body.appendChild(panel);
-}
-
 // todo add logic
 function requestTBEval(moveNumber: number, currentFen: string) {
   const piecesLeft = CountPieces.piecesLeft;
 
-  mainBoardState.fen = currentFen;
-  mainBoardState.index = moveNumber;
-  mainBoardState.piecesLeft = piecesLeft;
+  GameState.mainBoardState.fen = currentFen;
+  GameState.mainBoardState.index = moveNumber;
+  GameState.mainBoardState.piecesLeft = piecesLeft;
 
   if (piecesLeft <= 7 && false) {
     /**
@@ -356,29 +351,11 @@ function requestTBEval(moveNumber: number, currentFen: string) {
 
     if (isLargeEval()) return;
 
-    sendTBEvalRequest(moveNumber + 1);
+    ExtensionHelper.messages.sendTBEvalRequest(moveNumber + 1);
   }
 }
 
-// TODO rename and rewrite
-function addEntriesToFENHistory() {
-  chessCurrent.reset();
-
-  chessCurrent.actions.clearHistory();
-
-  const moves = chessCurrent.fields.pgn;
-
-  if (!moves) {
-    console.log("empty PGN array");
-    return;
-  }
-
-  moves.forEach((move) => {
-    chessCurrent.mkMove(move);
-  });
-}
-
-// todo rename
+// todo rename/move to _State
 function updatePageDataInState() {
   const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
     ".schedule-container"
@@ -393,7 +370,13 @@ function updatePageDataInState() {
     ".schedule-container > div"
   ).length;
 
-  const currentGameNumber: number = gameLinks.length;
+  let currentGameNumber: number = 0;
+
+  gameLinks.forEach((link, index) => {
+    if (link.classList.contains("schedule-inProgress")) {
+      currentGameNumber = index + 1;
+    }
+  });
 
   const gameInProgress = scheduleContainer.querySelector(
     ".schedule-inProgress"
@@ -405,16 +388,11 @@ function updatePageDataInState() {
   _State.pageData.active = gameInProgress ? true : false;
 }
 
-function updateCurrentPGN() {
-  const pgn = getPGNFromCrossTable();
-  chessCurrent.actions.setPGN(pgn);
-}
-
 function onloadHandler() {
   // count material onload
-  updateCurrentPGN();
+  HighlightReverse.updateCurrentPGN();
+  HighlightReverse.populateCurrent();
 
-  addEntriesToFENHistory();
   ExtractPageData.getEventLinks();
 
   updatePageDataInState();
@@ -432,16 +410,18 @@ function onloadHandler() {
     createGameScheduleLinks();
     requestReversePGN();
 
-    highlightCurrentGame();
+    HighlightReverse.highlightCurrentGame();
 
     if (!chessReverse.fields.pgn) return;
 
-    populateReverse(chessReverse.fields.pgn);
-    findTranspositions();
+    HighlightReverse.populateReverse(chessReverse.fields.pgn);
+    HighlightReverse.findTranspositions();
   });
 }
 
+// todo make async? move to extension helper?
 function requestReversePGN() {
+  // todo delete this
   if (
     _State.pageData.active &&
     _State.pageData.currentGame &&
@@ -450,8 +430,9 @@ function requestReversePGN() {
     return true;
   }
 
-  const gameNumber = _State.getGameNumber();
-  const event = getCurrentEventFromStore();
+  const gameNumber = _State.gameNumber;
+  // const gameNumber = await ExtractPageData.getCurrentGameNumber()
+  const event = _State.currentEventId;
 
   if (!gameNumber || !event) return true;
 
@@ -527,16 +508,12 @@ function updateShareModalFENInput() {
     });
 }
 
-// todo rename
 function addDownloadGameLogsBtn() {
   return new Maybe(document.querySelector(".ui_modal-component"))
     ._bind((modal: HTMLDivElement) => {
       const btn = modal.querySelector(".ccc-download-logs-btn");
       if (btn) return null;
 
-      return modal;
-    })
-    ._bind((modal: HTMLDivElement) => {
       return modal.querySelector(".share-menu-content");
     })
     ._bind((modalContent: HTMLDivElement) => {
@@ -566,7 +543,7 @@ function addDownloadGameLogsBtn() {
           if (!includes) return;
           return el;
         })[0]
-        // returns tournament-${someNumber}.pgn
+        // returns tournament-${tournament-id}.pgn
         .split(".")[0]
         .split("-")[1];
 
@@ -598,126 +575,157 @@ function addListenersToShareFENInput(input: HTMLInputElement) {
   return new Maybe(null);
 }
 
-function populateReverse(pgn: string[]) {
-  chessReverse.reset();
+// todo change name and add description
+class HighlightReverse {
+  // todo add description
+  static highlight() {
+    const movesList = _DOM_Store.movesTable.querySelectorAll("td");
 
-  const moves = pgn;
+    movesList.forEach((moveElement, index) => {
+      if (index < Transpositions.sequence) {
+        moveElement.classList.add("ccc-move-agree");
+      }
+      if (index === Transpositions.sequence) {
+        const reverseMove = chessReverse.fields.pgn![index];
 
-  moves.forEach((move) => {
-    chessReverse.mkMove(move);
+        moveElement.classList.add("ccc-test-move");
+        moveElement.setAttribute("data-move", reverseMove);
+      }
+    });
 
-    chessReverse.actions.addToFull(chessReverse.FEN_FULL);
-    chessReverse.actions.addToTrimmed(chessReverse.FEN_TRIMMED);
-  });
-}
+    const ttLen = Transpositions.TTList.length;
 
-function findTranspositions() {
-  const currentFenMap: Record<string, number> = {};
-  const reverseFenMap: Record<string, number> = {};
+    Transpositions.TTList.forEach((tt, ttIndex) => {
+      movesList[tt.currentPly].classList.add("ccc-move-agree");
 
-  const sequential: number | null = calculateSequential();
+      if (ttLen === ttIndex + 1) {
+        const reverseMove = chessReverse.fields.pgn![tt.currentPly + 1];
+        const moveElement = movesList[tt.currentPly + 1];
 
-  if (sequential === null) {
-    return;
+        moveElement.classList.add("ccc-test-move");
+        moveElement.setAttribute("data-move", reverseMove);
+      }
+    });
   }
 
-  Transpositions.reset();
-
-  chessCurrent.fields.FENhistoryTrimmed.forEach((move, index) => {
-    currentFenMap[move] = index;
-  });
-
-  chessReverse.fields.FENhistoryTrimmed.forEach((move, index) => {
-    reverseFenMap[move] = index;
-  });
-
-  const keys = Object.keys(currentFenMap) as Array<
-    keyof Record<string, number>
-  >;
-
-  keys.forEach((fen) => {
-    if (currentFenMap[fen] < sequential) return;
-
-    if (reverseFenMap[fen] !== undefined) {
-      Transpositions.TTList.push({
-        currentPly: currentFenMap[fen],
-        reversePly: reverseFenMap[fen],
-        fen: fen,
-      });
-    }
-  });
-
-  Transpositions.sequence = sequential;
-}
-
-/**
- * todo add description
- */
-function calculateSequential() {
-  const curPGN = chessCurrent.fields.pgn;
-  const reversePGN = chessReverse.fields.pgn;
-
-  if (!curPGN || !reversePGN) return null;
-
-  let sequel = 0;
-
-  for (let i = 0; i < curPGN.length; i++) {
-    if (curPGN[i] !== reversePGN[i]) break;
-
-    sequel++;
+  static updateCurrentPGN() {
+    const pgn = getPGNFromCrossTable();
+    chessCurrent.actions.setPGN(pgn);
   }
 
-  return sequel;
-}
+  // todo add description
+  static highlightCurrentGame() {
+    const container: HTMLDivElement | null =
+      _DOM_Store.bottomPanel.querySelector(".schedule-container");
+    const currentGame = _State.tabData.game;
 
-// todo add description
-function highlight() {
-  const movesList = _DOM_Store.movesTable.querySelectorAll("td");
+    if (!container) return;
 
-  movesList.forEach((moveElement, index) => {
-    if (index < Transpositions.sequence) {
-      moveElement.classList.add("ccc-move-agree");
+    const highlightedLink = container.querySelector(".ccc-current-game");
+    const links = Array.from(container.querySelectorAll(".schedule-gameLink"));
+
+    if (highlightedLink) {
+      highlightedLink.classList.remove("ccc-current-game");
     }
-    if (index === Transpositions.sequence) {
-      const reverseMove = chessReverse.fields.pgn![index];
 
-      moveElement.classList.add("ccc-test-move");
-      moveElement.setAttribute("data-move", reverseMove);
-    }
-  });
+    if (!currentGame) return;
 
-  const ttLen = Transpositions.TTList.length;
-
-  Transpositions.TTList.forEach((tt, ttIndex) => {
-    movesList[tt.currentPly].classList.add("ccc-move-agree");
-
-    if (ttLen === ttIndex + 1) {
-      const reverseMove = chessReverse.fields.pgn![tt.currentPly + 1];
-      const moveElement = movesList[tt.currentPly + 1];
-
-      moveElement.classList.add("ccc-test-move");
-      moveElement.setAttribute("data-move", reverseMove);
-    }
-  });
-}
-
-// todo add description
-function highlightCurrentGame() {
-  const container: HTMLDivElement | null = _DOM_Store.bottomPanel.querySelector(
-    ".schedule-container"
-  );
-  const currentGame = _State.tabData.game;
-
-  if (!container || !currentGame) return;
-
-  const highlightedLink = container.querySelector(".ccc-current-game");
-  const links = Array.from(container.querySelectorAll(".schedule-gameLink"));
-
-  if (highlightedLink) {
-    highlightedLink.classList.remove("ccc-current-game");
+    links[currentGame - 1].classList.add("ccc-current-game");
   }
 
-  links[currentGame - 1].classList.add("ccc-current-game");
+  // TODO rename and rewrite
+  // todo move to the chess js class?
+  static populateCurrent() {
+    chessCurrent.reset();
+
+    chessCurrent.actions.clearHistory();
+
+    const moves = chessCurrent.fields.pgn;
+
+    if (!moves) {
+      console.log("empty PGN array");
+      return;
+    }
+
+    moves.forEach((move) => {
+      chessCurrent.mkMove(move);
+    });
+  }
+
+  // TODO rename and rewrite
+  // todo move to the chess js class
+  static populateReverse(pgn: string[]) {
+    chessReverse.reset();
+
+    chessReverse.actions.clearHistory();
+
+    const moves = pgn;
+    if (!moves) {
+      console.log("empty reverse PGN array");
+      return;
+    }
+
+    moves.forEach((move) => {
+      chessReverse.mkMove(move);
+    });
+  }
+
+  static findTranspositions() {
+    const currentFenMap: Record<string, number> = {};
+    const reverseFenMap: Record<string, number> = {};
+
+    const sequential: number | null = HighlightReverse.calculateSequential();
+
+    if (sequential === null) {
+      return;
+    }
+
+    Transpositions.reset();
+
+    chessCurrent.fields.FENhistoryTrimmed.forEach((move, index) => {
+      currentFenMap[move] = index;
+    });
+
+    chessReverse.fields.FENhistoryTrimmed.forEach((move, index) => {
+      reverseFenMap[move] = index;
+    });
+
+    const keys = utils.objectKeys(currentFenMap);
+
+    keys.forEach((fen) => {
+      if (currentFenMap[fen] < sequential) return;
+
+      if (reverseFenMap[fen] !== undefined) {
+        Transpositions.TTList.push({
+          currentPly: currentFenMap[fen],
+          reversePly: reverseFenMap[fen],
+          fen: fen,
+        });
+      }
+    });
+
+    Transpositions.sequence = sequential;
+  }
+
+  /**
+   * todo add description
+   */
+  static calculateSequential() {
+    const curPGN = chessCurrent.fields.pgn;
+    const reversePGN = chessReverse.fields.pgn;
+
+    if (!curPGN || !reversePGN) return null;
+
+    let sequel = 0;
+
+    for (let i = 0; i < curPGN.length; i++) {
+      if (curPGN[i] !== reversePGN[i]) break;
+
+      sequel++;
+    }
+
+    return sequel;
+  }
 }
 
 // todo
@@ -731,21 +739,31 @@ document.addEventListener("visibilitychange", () => {
  */
 class ExtractPageData {
   static async getCurrentGameNumber() {
-    if (_State.tabData.game) return Promise.resolve(_State.tabData.game);
+    if (_State.tabData.game) {
+      return Promise.resolve(_State.tabData.game);
+    }
 
-    const scheduleContainer = document.querySelector(".schedule-container");
+    const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
+      ".schedule-container"
+    );
 
     if (scheduleContainer) {
       const gameLinks =
         scheduleContainer.querySelectorAll(".schedule-gameLink");
-      const gameNumber: number = gameLinks.length;
+      let gameNumber = 0;
+
+      gameLinks.forEach((link, index) => {
+        if (link.classList.contains("schedule-inProgress")) {
+          gameNumber = index + 1;
+        }
+      });
 
       return Promise.resolve(gameNumber);
     }
 
     const standingsContainer = document.getElementById("standings-standings");
     if (standingsContainer) {
-      const gameNumber = await this.gameNumberFromStandings();
+      const gameNumber = this.gameNumberFromStandings();
 
       return Promise.resolve(gameNumber);
     }
@@ -756,11 +774,9 @@ class ExtractPageData {
       res(_DOM_Store.standingsBtn.click());
     });
 
-    const gameNumber = await this.gameNumberFromStandings();
+    const gameNumber = this.gameNumberFromStandings();
 
-    await new Promise((res) => {
-      res(_DOM_Store.tabButtons[currentTabIndex].click());
-    });
+    _DOM_Store.tabButtons[currentTabIndex].click();
 
     return gameNumber;
   }
@@ -779,9 +795,7 @@ class ExtractPageData {
     return index;
   }
 
-  /**
-   * gets all event IDs and pushes them in the state
-   */
+  /** gets list of an event IDs and pushes them in the state */
   static getEventLinks() {
     const eventNameWrapper: HTMLDivElement =
       _DOM_Store.bottomPanel.querySelector(".bottomtable-event-name-wrapper")!;
@@ -827,7 +841,7 @@ class ExtractPageData {
 
     counter = Math.min(counter, _State.pageData.totalGames || counter);
 
-    return Promise.resolve(counter);
+    return counter;
   }
 
   /** returns index of a current pressed button (vote/standings/schedule...) */
@@ -849,6 +863,26 @@ class ExtractPageData {
 }
 
 const btn = createFixedButton();
-btn.addEventListener("click", () => {
-  ExtractPageData.getCurrentGameNumber();
+btn.addEventListener("click", async () => {
+  const gameNumber = await ExtractPageData.getCurrentGameNumber();
+
+  const message: message_pass.message = {
+    type: "reverse_pgn_request",
+    payload: {
+      event: _State.currentEventId,
+      gameNumber,
+    },
+  };
+
+  ExtensionHelper.messages.sendMessage(message);
+});
+
+_DOM_Store.scheduleBtn.addEventListener("click", () => {
+  const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
+    ".schedule-container"
+  )! as HTMLDivElement;
+
+  if (!scheduleContainer) return;
+
+  scrollToCurrentGame();
 });
