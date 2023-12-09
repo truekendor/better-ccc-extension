@@ -7,6 +7,10 @@ const chessCurrent = chess_js.chess();
 const chessReverse = chess_js.chess();
 
 class GameState {
+  // todo delete
+  cur = chess_js.chess();
+  rev = chess_js.chess();
+
   constructor() {
     // this.chessCurrent = chess_js.chess();
     // this.chessReverse = chess_js.chess();
@@ -38,8 +42,6 @@ observeMoveScrolled();
 
 observeGameStarted();
 observeGameEnded();
-
-observeShareModal();
 
 // * =============
 // * observers
@@ -92,7 +94,7 @@ function observeGameStarted() {
 
   const observer = new MutationObserver(async () => {
     GameState.mainBoardState.reset();
-    CountPieces.countMaterial(_State.CHESS_STARTING_POSITION.split(" ")[0]);
+    CountMaterial.countMaterial(_State.CHESS_STARTING_POSITION.split(" ")[0]);
 
     const currentGameNumber = await ExtractPageData.getCurrentGameNumber();
     const reverseGameNumber =
@@ -142,8 +144,8 @@ function observeMoveScrolled() {
       chessCurrent.actions.getFullFenAtIndex(currentMoveNumber);
 
     if (currentFEN) {
-      CountPieces.countMaterial(currentFEN);
-      requestTBEval(currentMoveNumber, currentFEN);
+      CountMaterial.countMaterial(currentFEN);
+      // requestTBEval(currentMoveNumber, currentFEN);
     } else {
       console.log("FEN is undefined");
     }
@@ -193,41 +195,6 @@ function observeMovePlayed() {
   observer.observe(movesTable, {
     childList: true,
     subtree: true,
-  });
-}
-
-// ! same observer as observeOpenCrosstable
-// todo move to observeOpenCrosstable
-function observeShareModal() {
-  const observer = new MutationObserver(() => {
-    updateShareModalFENInput()._bind(addListenersToShareFENInput);
-    addDownloadGameLogsBtn();
-
-    // click-outside-to-close for settings modal
-    const settingsModal: HTMLDivElement | null =
-      _DOM_Store.mainContainer.querySelector(".modal-container-component");
-    if (settingsModal) {
-      const modalContent = settingsModal.querySelector("section")!;
-
-      modalContent.addEventListener("click", (e) => {
-        e.stopPropagation();
-      });
-
-      settingsModal.addEventListener(
-        "click",
-        (e) => {
-          e.stopPropagation();
-
-          const closeBtn = settingsModal.querySelector("button")!;
-          closeBtn.click();
-        },
-        { once: true }
-      );
-    }
-  });
-
-  observer.observe(_DOM_Store.mainContainer, {
-    childList: true,
   });
 }
 
@@ -338,7 +305,7 @@ function isLargeEval() {
 
 // todo add logic
 function requestTBEval(moveNumber: number, currentFen: string) {
-  const piecesLeft = CountPieces.piecesLeft;
+  const piecesLeft = CountMaterial.piecesLeft;
 
   GameState.mainBoardState.fen = currentFen;
   GameState.mainBoardState.index = moveNumber;
@@ -400,7 +367,7 @@ function onloadHandler() {
   const currentFEN = chessCurrent.fields.lastFull;
 
   if (currentFEN) {
-    CountPieces.countMaterial(currentFEN);
+    CountMaterial.countMaterial(currentFEN);
   } else {
     console.log("current fen is undefined");
   }
@@ -734,9 +701,6 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // todo rename?
-/**
- * provides methods for getting data from the page
- */
 class ExtractPageData {
   static async getCurrentGameNumber() {
     if (_State.tabData.game) {
@@ -862,20 +826,21 @@ class ExtractPageData {
   }
 }
 
-const btn = createFixedButton();
-btn.addEventListener("click", async () => {
-  const gameNumber = await ExtractPageData.getCurrentGameNumber();
+// todo delete!
+// const btn = createFixedButton();
+// btn.addEventListener("click", async () => {
+//   const gameNumber = await ExtractPageData.getCurrentGameNumber();
 
-  const message: message_pass.message = {
-    type: "reverse_pgn_request",
-    payload: {
-      event: _State.currentEventId,
-      gameNumber,
-    },
-  };
+//   const message: message_pass.message = {
+//     type: "reverse_pgn_request",
+//     payload: {
+//       event: _State.currentEventId,
+//       gameNumber,
+//     },
+//   };
 
-  ExtensionHelper.messages.sendMessage(message);
-});
+//   ExtensionHelper.messages.sendMessage(message);
+// });
 
 _DOM_Store.scheduleBtn.addEventListener("click", () => {
   const scheduleContainer = _DOM_Store.bottomPanel.querySelector(

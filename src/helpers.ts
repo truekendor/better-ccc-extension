@@ -2,9 +2,7 @@
 /// <reference path="./types/index.d.ts" />
 
 namespace dom_elements {
-  /**
-   * provides methods for creating crosstable elements
-   */
+  /**  provides methods for creating crosstable elements */
   export class CrossTable {
     static crExtensionSettingsBtn() {
       const extensionSettingsBtn = document.createElement("button");
@@ -15,7 +13,8 @@ namespace dom_elements {
       extensionSettingsBtn.classList.add("ccc-extension-settings-btn");
       extensionSettingsBtn.append(gearSVG);
 
-      extensionSettingsBtn.addEventListener("click", () => {
+      extensionSettingsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
         dom_elements.CrossTable.crExtensionSettingsModal();
       });
 
@@ -33,11 +32,13 @@ namespace dom_elements {
       modalBackdrop.classList.add("ccc-options-backdrop");
       modalWrapper.classList.add("ccc-options-modal");
 
+      modalWrapper.tabIndex = 1;
+
       modalBackdrop.append(modalWrapper);
 
       modalBackdrop.addEventListener(
         "click",
-        () => {
+        (e) => {
           // document.body.removeChild(modalBackdrop);
           crossTableModal.removeChild(modalBackdrop);
         },
@@ -186,45 +187,6 @@ namespace dom_elements {
     }
 
     /**
-     *  creates SVG caret that opens the additional stats modal
-     */
-    static crAdditionalStatCaret(
-      stats: AdditionalStats,
-      index_1: number,
-      index_2: number
-    ) {
-      const additionalStatsBtn = document.createElement("div");
-      additionalStatsBtn.classList.add("ccc-info-button");
-
-      const caretSVG = SVG.Icons.caretDown;
-      additionalStatsBtn.append(caretSVG);
-
-      additionalStatsBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-
-        const statsElementBackdrop = document.createElement("div");
-        statsElementBackdrop.classList.add("ccc-info-backdrop");
-
-        statsElementBackdrop.addEventListener("click", function (e) {
-          e.stopPropagation();
-          if (e.target !== statsElementBackdrop) return;
-          additionalStatsBtn.removeChild(statsElementBackdrop);
-        });
-
-        const infoElement = this.crAdditionalStatContent(
-          stats,
-          index_1,
-          index_2
-        );
-
-        statsElementBackdrop.append(infoElement);
-        additionalStatsBtn.append(statsElementBackdrop);
-      });
-
-      return additionalStatsBtn;
-    }
-
-    /**
      * creates form element that controls
      * amount of game pairs per row
      *
@@ -269,6 +231,45 @@ namespace dom_elements {
     }
 
     /**
+     *  creates SVG caret that opens the additional stats modal
+     */
+    static crAdditionalStatCaret(
+      stats: AdditionalStats,
+      index_1: number,
+      index_2: number
+    ) {
+      const additionalStatsBtn = document.createElement("div");
+      additionalStatsBtn.classList.add("ccc-info-button");
+
+      const caretSVG = SVG.Icons.caretDown;
+      additionalStatsBtn.append(caretSVG);
+
+      additionalStatsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+
+        const statsElementBackdrop = document.createElement("div");
+        statsElementBackdrop.classList.add("ccc-info-backdrop");
+
+        statsElementBackdrop.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (e.target !== statsElementBackdrop) return;
+          additionalStatsBtn.removeChild(statsElementBackdrop);
+        });
+
+        const infoElement = this.crAdditionalStatContent(
+          stats,
+          index_1,
+          index_2
+        );
+
+        statsElementBackdrop.append(infoElement);
+        additionalStatsBtn.append(statsElementBackdrop);
+      });
+
+      return additionalStatsBtn;
+    }
+
+    /**
      * creates all additional stat entries and puts them
      * into container
      */
@@ -281,7 +282,7 @@ namespace dom_elements {
       mainContainer.classList.add("ccc-info-panel");
       mainContainer.innerHTML = "";
 
-      const waveContainer = dom_elements.Wrappers.crWaveWrapper();
+      const waveContainer = this.crWaveWrapper();
 
       mainContainer.append(waveContainer);
 
@@ -343,6 +344,38 @@ namespace dom_elements {
       mainContainer.append(wrapper);
 
       return mainContainer;
+    }
+
+    private static crWaveWrapper() {
+      const waveContainer = document.createElement("div");
+      const waveFiller = document.createElement("div");
+      const wave = document.createElement("div");
+
+      const xMarkButton = document.createElement("button");
+      const xMarkSVG = SVG.Icons.xMark;
+
+      xMarkButton.append(xMarkSVG);
+      xMarkButton.classList.add("ccc-x-mark");
+
+      waveFiller.append(xMarkButton);
+
+      xMarkButton.addEventListener("click", (e) => {
+        e.stopPropagation();
+
+        const statsModal = document.querySelector(".ccc-info-backdrop");
+        if (!statsModal) return;
+        const infoBtn = statsModal.parentNode;
+        infoBtn?.removeChild(statsModal);
+      });
+
+      waveContainer.classList.add("ccc-wave-container");
+      waveFiller.classList.add("ccc-wave-filler");
+      wave.classList.add("ccc-wave");
+      const waveSVG = SVG.Icons.wave;
+      wave.append(waveSVG);
+
+      waveContainer.append(waveFiller, wave);
+      return waveContainer;
     }
 
     /**
@@ -466,6 +499,7 @@ namespace dom_elements {
       return wrapper;
     }
 
+    // todo delete
     // private static crExtensionSettingsModal() {
     //   const modalBackdrop = document.createElement("div");
     //   const modal = document.createElement("div");
@@ -491,39 +525,8 @@ namespace dom_elements {
     // }
   }
 
-  export class Wrappers {
-    static crWaveWrapper() {
-      const waveContainer = document.createElement("div");
-      const waveFiller = document.createElement("div");
-      const wave = document.createElement("div");
-
-      const xMarkButton = document.createElement("button");
-      const xMarkSVG = SVG.Icons.xMark;
-
-      xMarkButton.append(xMarkSVG);
-      xMarkButton.classList.add("ccc-x-mark");
-
-      waveFiller.append(xMarkButton);
-
-      xMarkButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-
-        const statsModal = document.querySelector(".ccc-info-backdrop");
-        if (!statsModal) return;
-        const infoBtn = statsModal.parentNode;
-        infoBtn?.removeChild(statsModal);
-      });
-
-      waveContainer.classList.add("ccc-wave-container");
-      waveFiller.classList.add("ccc-wave-filler");
-      wave.classList.add("ccc-wave");
-      const waveSVG = SVG.Icons.wave;
-      wave.append(waveSVG);
-
-      waveContainer.append(waveFiller, wave);
-      return waveContainer;
-    }
-
+  // todo rename
+  export class MainWindow {
     /**
      * creates wrapper for captured pieces SVGs
      *
@@ -533,27 +536,6 @@ namespace dom_elements {
       const div = document.createElement("div");
       div.classList.add("ccc-captured-pieces-wrapper");
       return div;
-    }
-  }
-
-  // =========
-  // helper functions
-
-  /**
-   * removes the passed node from the DOM tree
-   * @param {HTMLGenericNode} nodeToRemove
-   */
-  export function removeNode(nodeToRemove: HTMLGenericNode) {
-    nodeToRemove.parentNode?.removeChild(nodeToRemove);
-  }
-
-  /**
-   * removes all children from the passed node
-   * @param {HTMLGenericNode} node
-   */
-  export function removeAllChildNodes(node: HTMLGenericNode) {
-    while (node.firstChild) {
-      node.removeChild(node.firstChild);
     }
   }
 }
@@ -1239,9 +1221,19 @@ namespace ExtensionHelper {
       case "allowKeyboardShortcuts":
         toggleAllowKeyboardShortcuts();
         break;
+      case "materialCount":
+        const wrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
+          ".ccc-captured-pieces-wrapper"
+        );
+
+        wrappers.forEach((wrapper) => {
+          const action = !userSettings.materialCount ? "add" : "remove";
+          wrapper.classList[action]("ccc-hide");
+        });
+
+        break;
       // todo
       case "addLinksToGameSchedule":
-      case "materialCount":
       case "pgnFetch":
       case "displayEngineNames":
         break;
@@ -1269,6 +1261,18 @@ namespace utils {
 
   export function logError(e: any) {
     console.log(e?.message ?? e);
+  }
+
+  /** removes passed node from the DOM */
+  export function removeNode(nodeToRemove: HTMLGenericNode) {
+    nodeToRemove.parentNode?.removeChild(nodeToRemove);
+  }
+
+  /** removes all children from the passed node */
+  export function removeAllChildNodes(node: HTMLGenericNode) {
+    while (node.firstChild) {
+      node.removeChild(node.firstChild);
+    }
   }
 }
 

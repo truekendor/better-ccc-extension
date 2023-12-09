@@ -1,4 +1,28 @@
-class CountPieces {
+(function () {
+  const blackPiecesWrapper = dom_elements.MainWindow.crMaterialCountWrapper();
+  const whitePiecesWrapper = dom_elements.MainWindow.crMaterialCountWrapper();
+
+  const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
+    ".enginedata-clock-wrapper"
+  );
+
+  // .forEach to make TS happy
+  clockWrappers.forEach((wrapper, i) => {
+    if (!wrapper.firstChild) {
+      return;
+    }
+    if (i === 0) {
+      wrapper.insertBefore(blackPiecesWrapper, wrapper.firstChild);
+      return;
+    }
+    if (i === 1) {
+      wrapper.insertBefore(whitePiecesWrapper, wrapper.firstChild);
+      return;
+    }
+  });
+})();
+
+class CountMaterial {
   private static pieceAmountDefault: Record<ChessPieces, number> = {
     K: 1,
     B: 2,
@@ -100,8 +124,8 @@ class CountPieces {
       this.boardState.piecesLeft -= diff;
     });
 
-    dom_elements.removeAllChildNodes(this.whitePiecesWrapper);
-    dom_elements.removeAllChildNodes(this.blackPiecesWrapper);
+    utils.removeAllChildNodes(this.whitePiecesWrapper);
+    utils.removeAllChildNodes(this.blackPiecesWrapper);
 
     keys.forEach((key) => {
       if (

@@ -280,6 +280,8 @@ function observeEmptyCell(cell: HTMLTableCellElement) {
 
 function observeOpenCrossTable() {
   const observer = new MutationObserver(() => {
+    shareModalCb();
+
     const modal = document.querySelector(".modal-vue-modal");
     if (!modal) return;
 
@@ -476,8 +478,9 @@ function closeModalsOnKeydownHandler() {
   const settingsModal = document.querySelector(".modal-container-component");
 
   // * custom elements
-  const moreStatsModal = document.querySelector(".ccc-info-backdrop");
-  const extensionSettingsModal = document.querySelector(
+  const moreStatsModal: HTMLDivElement | null =
+    document.querySelector(".ccc-info-backdrop");
+  const extensionSettingsModal: HTMLDivElement | null = document.querySelector(
     ".ccc-options-backdrop"
   );
 
@@ -487,7 +490,12 @@ function closeModalsOnKeydownHandler() {
     return;
   }
   if (extensionSettingsModal && crossTableModal) {
-    crossTableModal.removeChild(extensionSettingsModal);
+    const modalContent =
+      extensionSettingsModal.firstElementChild! as HTMLDivElement;
+
+    modalContent.focus();
+    extensionSettingsModal.click();
+
     return;
   }
   if (crossTableModal) {
@@ -641,4 +649,31 @@ function handleLabelListeners(label: HTMLLabelElement) {
     label.querySelector("input")!.checked = !userSettings[attr];
     handleSwitchEvent(attr);
   });
+}
+
+function shareModalCb() {
+  updateShareModalFENInput()._bind(addListenersToShareFENInput);
+  addDownloadGameLogsBtn();
+
+  // click-outside-to-close for settings modal
+  const settingsModal: HTMLDivElement | null =
+    _DOM_Store.mainContainer.querySelector(".modal-container-component");
+
+  if (!settingsModal) return;
+  const modalContent = settingsModal.querySelector("section")!;
+
+  modalContent.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+
+  settingsModal.addEventListener(
+    "click",
+    function (e) {
+      e.stopPropagation();
+
+      const closeBtn = settingsModal.querySelector("button")!;
+      closeBtn.click();
+    },
+    { once: true }
+  );
 }

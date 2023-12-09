@@ -1,25 +1,3 @@
-const blackPiecesWrapper = dom_elements.Wrappers.crMaterialCountWrapper();
-const whitePiecesWrapper = dom_elements.Wrappers.crMaterialCountWrapper();
-
-const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
-  ".enginedata-clock-wrapper"
-);
-
-// .forEach to make TS happy
-clockWrappers.forEach((wrapper, i) => {
-  if (!wrapper.firstChild) {
-    return;
-  }
-  if (i === 0) {
-    wrapper.insertBefore(blackPiecesWrapper, wrapper.firstChild);
-    return;
-  }
-  if (i === 1) {
-    wrapper.insertBefore(whitePiecesWrapper, wrapper.firstChild);
-    return;
-  }
-});
-
 /** fixes the clock SVG near the timer */
 function fixClockSVG() {
   // main wrapper with 50MRule and broken container of clock.svg
