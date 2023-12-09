@@ -775,3 +775,7 @@ pair highlight
 #bottomtable-bottomtable > .selection-panel-container + div {
   position: relative;
 }
+
+.schedule-container > :not(.schedule-gameLink) a {
+  visibility: hidden;
+}

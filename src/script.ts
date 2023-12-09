@@ -592,13 +592,7 @@ function createGameScheduleLinks() {
 
   if (!userSettings.addLinksToGameSchedule || !container) return;
 
-  const links = Array.from(container.querySelectorAll(".schedule-gameLink"));
-  const gameInProgress = container.querySelector(".schedule-inProgress");
-
-  // do not include current game
-  if (gameInProgress) {
-    links.pop();
-  }
+  const links = Array.from(container.children);
 
   const baseURL = "https://www.chess.com/computer-chess-championship#";
   const eventName = _State.tabData.event || _State.eventHrefList[0];

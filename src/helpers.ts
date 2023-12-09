@@ -39,7 +39,6 @@ namespace dom_elements {
       modalBackdrop.addEventListener(
         "click",
         (e) => {
-          // document.body.removeChild(modalBackdrop);
           crossTableModal.removeChild(modalBackdrop);
         },
         { once: true }
@@ -80,7 +79,8 @@ namespace dom_elements {
 
     private static crExtensionSettingRow<T extends BooleanKeys<UserSettings>>(
       key: T,
-      description: string
+      description: string,
+      tooltip: string = ""
     ) {
       const row = document.createElement("div");
       row.classList.add("_row");
@@ -498,31 +498,6 @@ namespace dom_elements {
 
       return wrapper;
     }
-
-    // todo delete
-    // private static crExtensionSettingsModal() {
-    //   const modalBackdrop = document.createElement("div");
-    //   const modal = document.createElement("div");
-
-    //   modalBackdrop.classList.add("ccc-options-backdrop");
-    //   modal.classList.add("ccc-options-modal");
-
-    //   modalBackdrop.append(modal);
-
-    //   modalBackdrop.addEventListener(
-    //     "click",
-    //     () => {
-    //       document.body.removeChild(modalBackdrop);
-    //     },
-    //     { once: true }
-    //   );
-
-    //   modal.addEventListener("click", (e) => {
-    //     e.stopPropagation();
-    //   });
-
-    //   document.body.append(modalBackdrop);
-    // }
   }
 
   // todo rename
