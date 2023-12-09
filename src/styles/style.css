@@ -78,12 +78,13 @@ h2h header section
 
 #ccc-cell-header {
   display: grid;
+  width: 100% !important;
 
   justify-content: center;
   align-items: center;
 
-  grid-template-columns: min-content min-content min-content min-content;
-  grid-auto-rows: auto;
+  grid-template-columns: 1fr min-content min-content min-content min-content 1fr;
+  grid-template-rows: auto;
 
   gap: 2px;
 
@@ -96,11 +97,23 @@ h2h header section
 #ccc-cell-header :nth-child(3),
 #ccc-cell-header :nth-child(4) {
   margin: unset !important;
-  grid-column: span 1;
+}
+#ccc-cell-header :nth-child(1) {
+  grid-column: 2 / span 1;
+}
+#ccc-cell-header :nth-child(2) {
+  grid-column: 3 / span 1;
+}
+#ccc-cell-header :nth-child(3) {
+  grid-column: 4 / span 1;
+}
+#ccc-cell-header :nth-child(4) {
+  grid-column: 5 / span 1;
 }
 
 #ccc-cell-header :nth-child(1n + 5) {
-  grid-column: span 4;
+  grid-column: span 6;
+  width: 100% !important;
 }
 
 .ccc-stat-wrapper {
