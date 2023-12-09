@@ -77,19 +77,30 @@ h2h header section
 */
 
 #ccc-cell-header {
-  display: flex;
+  display: grid;
+
   justify-content: center;
   align-items: center;
 
-  flex-wrap: wrap;
+  grid-template-columns: min-content min-content min-content min-content;
+  grid-auto-rows: auto;
+
+  gap: 2px;
 
   margin-block-end: 0.6rem;
-
   position: relative;
 }
 
+#ccc-cell-header :nth-child(1),
+#ccc-cell-header :nth-child(2),
+#ccc-cell-header :nth-child(3),
+#ccc-cell-header :nth-child(4) {
+  margin: unset !important;
+  grid-column: span 1;
+}
+
 #ccc-cell-header :nth-child(1n + 5) {
-  width: 100%;
+  grid-column: span 4;
 }
 
 .ccc-stat-wrapper {
@@ -103,6 +114,8 @@ h2h header section
 .ccc-stat-wrapper:last-of-type {
   margin-block-end: 0.6rem;
 }
+
+/*  */
 
 .ccc-ptnml {
   display: grid;
@@ -777,5 +790,9 @@ pair highlight
 }
 
 .schedule-container > :not(.schedule-gameLink) a {
+  visibility: hidden;
+}
+
+.schedule-container > :is(.schedule-inProgress) a {
   visibility: hidden;
 }
