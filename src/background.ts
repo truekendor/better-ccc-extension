@@ -4,9 +4,11 @@
 /// <reference path="./types/chess-com.d.ts" />
 /// <reference path="./types/chess-js.ts" />
 
+// ! defaults to chrome for some reason
+// todo fix this
 const _bg_browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
-const abortController = new AbortController();
+// const abortController = new AbortController();
 
 _bg_browserPrefix.runtime.onMessage.addListener(function (
   message: message_pass.message,
@@ -37,9 +39,9 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
     } else if (type === "reverse_pgn_request") {
       const { gameNumber, event } = payload;
 
-      requestReverseGame(gameNumber, event).catch((e: any) =>
-        console.log("Game fetch error: ", e?.message ?? e)
-      );
+      requestReverseGame(gameNumber, event).catch((e) => {
+        console.log("Game fetch error: ", e?.message ?? e);
+      });
     } else if (type === "request_tb_eval") {
       const { fen, currentPly } = payload;
 
@@ -58,36 +60,40 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
 
 // to request agreement from random CCC games
 _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-  if (!changeInfo.url) {
-    return false;
+  try {
+    if (!changeInfo.url) {
+      return false;
+    }
+
+    if (
+      !changeInfo.url.includes("chess.com/computer-chess-championship") &&
+      !changeInfo.url.includes("chess.com/ccc")
+    ) {
+      return;
+    }
+
+    const { event, game } = URLHelper.getEventAndGame(tab);
+
+    const message: message_pass.message = {
+      type: "tab_update",
+      payload: {
+        event,
+        game,
+      },
+    };
+    _sendMessageToContent(message);
+
+    if (!game || !event) return;
+
+    // todo delete this
+    requestReverseGame(game, event).catch((e: any) =>
+      console.log("Fetch error: ", e)
+    );
+
+    return true;
+  } catch (e) {
+    console.log("tab updated error", e);
   }
-
-  if (
-    !changeInfo.url.includes("chess.com/computer-chess-championship") &&
-    !changeInfo.url.includes("chess.com/ccc")
-  ) {
-    return;
-  }
-
-  const { event, game } = URLHelper.getEventAndGame(tab);
-
-  const message: message_pass.message = {
-    type: "tab_update",
-    payload: {
-      event,
-      game,
-    },
-  };
-  _sendMessageToContent(message);
-
-  if (!game || !event) return;
-
-  // todo delete this
-  requestReverseGame(game, event).catch((e: any) =>
-    console.log("Fetch error: ", e)
-  );
-
-  return true;
 });
 
 async function getCurrentTab() {
@@ -343,6 +349,34 @@ async function _sendMessageToContent(message: message_pass.message) {
 
   return _bg_browserPrefix.tabs.sendMessage(tab.id, message);
 }
+
+const listenToUrls = [
+  "https://cccc.chess.com/archive*",
+  "http://cccc.chess.com/archive*",
+  "http://cccc.chess.com/*",
+  "https://cccc.chess.com/*",
+  "https://wwww.chess.com/*",
+  "http://wwww.chess.com/*",
+];
+
+chrome.webRequest.onCompleted.addListener(
+  (details) => {
+    if (!details.url.startsWith("https://cccc")) return;
+    console.log("response details!", details);
+
+    const message: message_pass.message = {
+      type: "response_interceptor",
+      payload: {
+        details: details,
+      },
+    };
+
+    _sendMessageToContent(message);
+  },
+  {
+    urls: listenToUrls,
+  }
+);
 
 // todo
 // _bg_browserPrefix.windows.onFocusChanged.addListener((windowId) => {

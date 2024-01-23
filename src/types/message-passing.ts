@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-namespace, @typescript-eslint/no-unused-vars
 namespace message_pass {
   export type MessageType =
     | "event_data"
@@ -8,7 +9,8 @@ namespace message_pass {
     | "tab_update"
     | "response_tb_standard"
     | "response_tb_mainline"
-    | "remove_query";
+    | "remove_query"
+    | "response_interceptor";
 
   export type message =
     | EventData
@@ -19,7 +21,8 @@ namespace message_pass {
     | TabUpdate
     | TBResponseStandard
     | TBResponseMainline
-    | RemoveTabQuery;
+    | RemoveTabQuery
+    | DebugMessage;
 
   type RuntimeMessageBuilder<
     T extends MessageType,
@@ -89,4 +92,11 @@ namespace message_pass {
   >;
 
   type RemoveTabQuery = RuntimeMessageBuilder<"remove_query", null>;
+
+  type DebugMessage = RuntimeMessageBuilder<
+    "response_interceptor",
+    {
+      details: chrome.webRequest.WebResponseCacheDetails;
+    }
+  >;
 }

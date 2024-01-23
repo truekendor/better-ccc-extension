@@ -19,34 +19,38 @@ div.schedule-container > div:nth-child(4n + 2),
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.schedule-container > .schedule-gameLink {
+.schedule-container > .schedule-game-link {
   position: relative;
 }
 
-.schedule-gameLink.ccc-current-game:not(.schedule-inProgress) {
+.schedule-container > .schedule-game-link:not(.schedule-in-progress):hover {
+  background-color: rgba(165, 165, 165, 0.2) !important;
+}
+
+.schedule-game-link.ccc-current-game:not(.schedule-in-progress) {
   background-color: rgba(130, 183, 78, 0.2) !important;
 }
-.schedule-gameLink.ccc-current-game:not(.schedule-inProgress):hover {
+.schedule-game-link.ccc-current-game:not(.schedule-in-progress):hover {
   background-color: rgba(130, 183, 78, 0.29) !important;
 }
 
 /* current game in schedule */
-.schedule-container > div.schedule-inProgress {
+.schedule-container > div.schedule-in-progress {
   outline: 1px solid hsla(var(--ccc-blue-light-raw), 0.4);
 
   background-color: unset;
 }
 
-.schedule-container div.schedule-inProgress {
+.schedule-container div.schedule-in-progress {
   position: relative;
   isolation: isolate;
 }
 
-.schedule-container div.schedule-inProgress > * {
+.schedule-container div.schedule-in-progress > * {
   color: var(--ccc-blue-light-hsl) !important;
 }
 
-.schedule-container div.schedule-inProgress::before {
+.schedule-container div.schedule-in-progress::before {
   content: "";
   position: absolute;
 
@@ -104,7 +108,7 @@ tr.font-faded-white > td:nth-child(2) > div {
 }
 
 /* * ------------------------
-* Peregrine suggested styles 
+* styles suggested by Peregrine  
 */
 
 @media (min-width: 970px) {
@@ -123,7 +127,7 @@ tr.font-faded-white > td:nth-child(2) > div {
 }
 
 /* * ------------------------
-* David suggested styles
+* styles suggested by David
 */
 
 .movetable-highlighted:not(.movetable-book-ply) {

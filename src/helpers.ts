@@ -1,520 +1,4 @@
-/// <reference types="./types" />
-/// <reference path="./types/index.d.ts" />
-
-namespace dom_elements {
-  /**  provides methods for creating crosstable elements */
-  export class CrossTable {
-    static crExtensionSettingsBtn() {
-      const extensionSettingsBtn = document.createElement("button");
-      const gearSVG = SVG.Icons.gear;
-
-      extensionSettingsBtn.title = "Extension settings";
-
-      extensionSettingsBtn.classList.add("ccc-extension-settings-btn");
-      extensionSettingsBtn.append(gearSVG);
-
-      extensionSettingsBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        dom_elements.CrossTable.crExtensionSettingsModal();
-      });
-
-      return extensionSettingsBtn;
-    }
-
-    private static crExtensionSettingsModal() {
-      const crossTableModal = document.querySelector(
-        ".modal-vue-modal-content"
-      )!;
-
-      const modalBackdrop = document.createElement("div");
-      const modalWrapper = document.createElement("div");
-
-      modalBackdrop.classList.add("ccc-options-backdrop");
-      modalWrapper.classList.add("ccc-options-modal");
-
-      modalWrapper.tabIndex = 1;
-
-      modalBackdrop.append(modalWrapper);
-
-      modalBackdrop.addEventListener(
-        "click",
-        (e) => {
-          crossTableModal.removeChild(modalBackdrop);
-        },
-        { once: true }
-      );
-
-      modalWrapper.addEventListener("click", (e) => {
-        e.stopPropagation();
-      });
-
-      // ! mock
-      // ! mock
-      // ! mock
-      const option_1 = this.crExtensionSettingRow(
-        "displayEngineNames",
-        "engine names"
-      );
-      const option_2 = this.crExtensionSettingRow(
-        "addLinksToGameSchedule",
-        "links to schedule"
-      );
-      const option_3 = this.crExtensionSettingRow(
-        "materialCount",
-        "material count"
-      );
-      const option_4 = this.crExtensionSettingRow(
-        "replaceClockSvg",
-        "replace clock"
-      );
-      const option_5 = this.crExtensionSettingRow(
-        "allowKeyboardShortcuts",
-        "keyboard shortcuts"
-      );
-
-      modalWrapper.append(option_1, option_2, option_3, option_4, option_5);
-
-      crossTableModal.append(modalBackdrop);
-    }
-
-    private static crExtensionSettingRow<T extends BooleanKeys<UserSettings>>(
-      key: T,
-      description: string,
-      tooltip: string = ""
-    ) {
-      const row = document.createElement("div");
-      row.classList.add("_row");
-
-      const descriptionElem = document.createElement("p");
-      descriptionElem.classList.add("_desc");
-
-      descriptionElem.textContent = description;
-
-      const input = document.createElement("input");
-      input.classList.add("ccc-input");
-      input.tabIndex = 1000;
-
-      input.type = "checkbox";
-      input.checked = userSettings[key] ?? _State.userSettingsDefault[key];
-
-      input.addEventListener("change", () => {
-        userSettings[key] = !userSettings[key];
-        ExtensionHelper.localStorage.setState(key, userSettings[key]);
-
-        ExtensionHelper.applyUserSettings(key);
-      });
-
-      row.append(descriptionElem, input);
-
-      return row;
-    }
-
-    static crEngineNames() {
-      const engines = document.querySelectorAll(".crosstable-name");
-
-      if (!engines) return;
-
-      const enginesNames: string[] = [];
-      engines.forEach((engine) => {
-        enginesNames.push(engine.textContent!.replace("\n", "").trim());
-      });
-
-      const crossTable = document.querySelector(".crosstable-crosstable");
-      if (!crossTable) return;
-
-      const standingsRow = crossTable.querySelector("tr")!;
-      const enginesRows = standingsRow.querySelectorAll(
-        ".font-extra-faded-white"
-      );
-
-      enginesRows.forEach((row, index) => {
-        row.textContent = `${index + 1} ${enginesNames[index]}`;
-      });
-    }
-
-    static crPTNMLStat(ptnml: PTNML) {
-      const ptnmlWrapper = this.crStatWrapperElement();
-      ptnmlWrapper.classList.add("ccc-ptnml-wrapper");
-
-      const ptnmlElement = document.createElement("div");
-      const ptnmlHeader = document.createElement("div");
-
-      ptnmlHeader.id = "ptnml-header";
-      ptnmlHeader.textContent = "Ptnml(0-2)";
-
-      ptnmlHeader.title = " LL, LD, WL/DD, WD, WW ";
-      this.crPTNMLEntries(ptnmlElement, ptnml);
-
-      ptnmlElement.classList.add("ccc-ptnml");
-
-      ptnmlWrapper.append(ptnmlHeader, ptnmlElement);
-
-      return ptnmlWrapper;
-    }
-
-    static crWDLStat(wdlArray: WDL) {
-      const wdlWrapper = this.crStatWrapperElement();
-      wdlWrapper.classList.add("ccc-wdl-wrapper");
-
-      const [wdlElement, eloElement] = this.crWLDEloElement(wdlArray);
-
-      wdlWrapper.append(wdlElement);
-      if (eloElement) {
-        wdlWrapper.append(eloElement);
-      }
-      return wdlWrapper;
-    }
-
-    static crSettingsSwitch(text: string, field: BooleanKeys<UserSettings>) {
-      const label = document.createElement("label");
-      const switchInput = document.createElement("input");
-
-      label.classList.add("ccc-label");
-      label.textContent = `${text}:`;
-      label.setAttribute("data-name", field);
-
-      label.htmlFor = `id-${field}`;
-      switchInput.id = label.htmlFor;
-
-      switchInput.classList.add("ccc-input");
-      switchInput.type = "checkbox";
-
-      switchInput.checked = userSettings[field] ?? true;
-
-      label.append(switchInput);
-
-      return label;
-    }
-
-    /**
-     * creates form element that controls
-     * amount of game pairs per row
-     *
-     * selectors: `ccc-form` & `ccc-row-input`
-     */
-    static crPairsPerRowForm() {
-      const formElement = document.createElement("form");
-      const rowAmountInput = document.createElement("input");
-
-      formElement.classList.add("ccc-form");
-      rowAmountInput.classList.add("ccc-row-input");
-
-      formElement.textContent = `Pairs per row`;
-
-      rowAmountInput.type = "number";
-      rowAmountInput.min = "0";
-      rowAmountInput.value = `${
-        enginesAmount === 2
-          ? userSettings.pairsPerRowDuel
-          : userSettings.pairsPerRow
-      }`;
-      formElement.append(rowAmountInput);
-
-      formElement.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const value = rowAmountInput.valueAsNumber;
-        document.body.style.setProperty(
-          "--custom-column-amount",
-          `${value ? value * 2 : ""}`
-        );
-
-        if (enginesAmount === 2) {
-          ExtensionHelper.localStorage.setState("pairsPerRowDuel", value || "");
-          userSettings.pairsPerRowDuel = value;
-        } else {
-          ExtensionHelper.localStorage.setState("pairsPerRow", value || "");
-          userSettings.pairsPerRow = value;
-        }
-      });
-
-      return formElement;
-    }
-
-    /**
-     *  creates SVG caret that opens the additional stats modal
-     */
-    static crAdditionalStatCaret(
-      stats: AdditionalStats,
-      index_1: number,
-      index_2: number
-    ) {
-      const additionalStatsBtn = document.createElement("div");
-      additionalStatsBtn.classList.add("ccc-info-button");
-
-      const caretSVG = SVG.Icons.caretDown;
-      additionalStatsBtn.append(caretSVG);
-
-      additionalStatsBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-
-        const statsElementBackdrop = document.createElement("div");
-        statsElementBackdrop.classList.add("ccc-info-backdrop");
-
-        statsElementBackdrop.addEventListener("click", function (e) {
-          e.stopPropagation();
-          if (e.target !== statsElementBackdrop) return;
-          additionalStatsBtn.removeChild(statsElementBackdrop);
-        });
-
-        const infoElement = this.crAdditionalStatContent(
-          stats,
-          index_1,
-          index_2
-        );
-
-        statsElementBackdrop.append(infoElement);
-        additionalStatsBtn.append(statsElementBackdrop);
-      });
-
-      return additionalStatsBtn;
-    }
-
-    /**
-     * creates all additional stat entries and puts them
-     * into container
-     */
-    private static crAdditionalStatContent(
-      stats: AdditionalStats,
-      index_1: number,
-      index_2: number
-    ) {
-      const mainContainer = document.createElement("div");
-      mainContainer.classList.add("ccc-info-panel");
-      mainContainer.innerHTML = "";
-
-      const waveContainer = this.crWaveWrapper();
-
-      mainContainer.append(waveContainer);
-
-      const p1 = this.crStatRow(
-        "Longest lossless streak: ",
-        `${stats.longestLossless} pairs`
-      );
-      const p2 = this.crStatRow(
-        "Longest win streak: ",
-        `${stats.longestWinStreak} pairs`
-      );
-      const p3 = this.crStatRow(
-        "Longest winless streak: ",
-        `${stats.longestWinless} pairs`
-      );
-
-      const p4 = this.crStatRow(
-        "Performance: ",
-        `${formatter.format(stats.performancePercent)}%`
-      );
-      const p5 = this.crStatRow(
-        "Pairs Ratio: ",
-        `${stats.pairsWL[0]} / ${stats.pairsWL[1]} = ${formatter.format(
-          stats.pairsRatio
-        )}`
-      );
-
-      const p6 = this.crStatRow("Highest score: ", `[+${stats.highestScore}]`);
-
-      const opponentsDiv = document.createElement("div");
-      opponentsDiv.classList.add("ccc-opponents-div");
-
-      const pElem = document.createElement("p");
-      pElem.textContent = "vs";
-
-      const img_1 = document.createElement("img");
-      const img_2 = document.createElement("img");
-
-      img_1.src = engineImages![index_1]!.src;
-      img_1.alt = engineImages![index_1]!.alt;
-
-      img_2.src = engineImages![index_2]!.src;
-      img_2.alt = engineImages![index_2]!.alt;
-
-      opponentsDiv.append(img_2, pElem, img_1);
-
-      const wrapper = document.createElement("div");
-      wrapper.classList.add("ccc-info-main");
-
-      wrapper.append(opponentsDiv);
-      wrapper.append(
-        p1,
-        p2,
-        p3,
-        p5,
-        p4
-        //  p6
-      );
-      mainContainer.append(wrapper);
-
-      return mainContainer;
-    }
-
-    private static crWaveWrapper() {
-      const waveContainer = document.createElement("div");
-      const waveFiller = document.createElement("div");
-      const wave = document.createElement("div");
-
-      const xMarkButton = document.createElement("button");
-      const xMarkSVG = SVG.Icons.xMark;
-
-      xMarkButton.append(xMarkSVG);
-      xMarkButton.classList.add("ccc-x-mark");
-
-      waveFiller.append(xMarkButton);
-
-      xMarkButton.addEventListener("click", (e) => {
-        e.stopPropagation();
-
-        const statsModal = document.querySelector(".ccc-info-backdrop");
-        if (!statsModal) return;
-        const infoBtn = statsModal.parentNode;
-        infoBtn?.removeChild(statsModal);
-      });
-
-      waveContainer.classList.add("ccc-wave-container");
-      waveFiller.classList.add("ccc-wave-filler");
-      wave.classList.add("ccc-wave");
-      const waveSVG = SVG.Icons.wave;
-      wave.append(waveSVG);
-
-      waveContainer.append(waveFiller, wave);
-      return waveContainer;
-    }
-
-    /**
-     * creates row with 100% width for PTNML or Elo stat
-     */
-    private static crStatRow(info: string, stat: string) {
-      const row = document.createElement("div");
-      const pInfo = document.createElement("p");
-      const pStat = document.createElement("p");
-
-      row.classList.add("ccc-stat-row");
-      pInfo.classList.add("ccc-stat-info-text");
-      pStat.classList.add("ccc-stat-info-stat");
-
-      pInfo.textContent = info;
-      pStat.textContent = stat;
-
-      row.append(pInfo, pStat);
-      return row;
-    }
-
-    private static crPTNMLEntries(element: HTMLDivElement, ptnml: PTNML) {
-      const ll = document.createElement("p");
-      const ld = document.createElement("p");
-      const wldd = document.createElement("p");
-      const wd = document.createElement("p");
-      const ww = document.createElement("p");
-
-      ll.textContent = `${ptnml[0]},`;
-      ll.title = "L+L";
-
-      ld.textContent = `${ptnml[1]},`;
-      ld.title = "L+D";
-
-      wldd.textContent = `${ptnml[2]},`;
-      wldd.title = "W+L / D+D";
-
-      wd.textContent = `${ptnml[3]},`;
-      wd.title = "W+D";
-
-      ww.textContent = `${ptnml[4]}`;
-      ww.title = "W+W";
-
-      element.append(ll, ld, wldd, wd, ww);
-    }
-
-    /**
-     * creates elo and elo-error margin element
-     */
-    private static crEloAndMarginElement(elo: string, margin: string) {
-      const wrapper = document.createElement("div");
-      const eloElement = document.createElement("p");
-      const marginElement = document.createElement("p");
-
-      wrapper.classList.add("ccc-elo-wrapper");
-
-      eloElement.classList.add("ccc-elo");
-      eloElement.classList.add(parseInt(elo) >= 0 ? "win" : "ccc-elo-negative");
-
-      eloElement.textContent = `${elo}`;
-
-      marginElement.textContent = `${margin}`;
-      marginElement.title = "2 sigma confidence interval";
-      marginElement.classList.add("ccc-error-margin");
-
-      wrapper.append(eloElement, marginElement);
-
-      return wrapper;
-    }
-
-    /**
-     * creates WDL + ELO element
-     */
-    private static crWLDEloElement(wdl: WDL) {
-      const numberOfGames = wdl.reduce((amount, prev) => amount + prev, 0);
-
-      const wdlElement = document.createElement("div");
-      wdlElement.classList.add("ccc-wdl-container");
-
-      const w = document.createElement("p");
-      const d = document.createElement("p");
-      const l = document.createElement("p");
-
-      w.textContent = `+${wdl[0]}`;
-      d.textContent = `=${wdl[1]}`;
-      l.textContent = `-${wdl[2]} `;
-
-      // default CCC styles
-      w.classList.add("win");
-      d.classList.add("draw");
-
-      l.classList.add("loss");
-      l.classList.add("ccc-margin-right");
-
-      const points = wdl[0] + wdl[1] / 2;
-
-      const percent = formatter.format((points / numberOfGames) * 100);
-
-      let elo;
-      let margin;
-      let eloWrapper;
-
-      if (numberOfGames >= 2) {
-        elo = ELOCalculation.calculateEloFromPercent(parseFloat(percent));
-        margin = ELOCalculation.calculateErrorMargin(wdl[0], wdl[1], wdl[2]);
-        eloWrapper = this.crEloAndMarginElement(elo, margin);
-      }
-
-      wdlElement.append(w, d, l);
-
-      return [wdlElement, eloWrapper] as const;
-    }
-
-    /**
-     * creates containers for `PTNML` / `Elo` elements
-     */
-    private static crStatWrapperElement() {
-      const wrapper = document.createElement("div");
-      wrapper.classList.add("ccc-stat-wrapper");
-
-      return wrapper;
-    }
-  }
-
-  // todo rename
-  export class MainWindow {
-    /**
-     * creates wrapper for captured pieces SVGs
-     *
-     * selector: `.ccc-captured-pieces-wrapper`
-     */
-    static crMaterialCountWrapper() {
-      const div = document.createElement("div");
-      div.classList.add("ccc-captured-pieces-wrapper");
-      return div;
-    }
-  }
-}
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-namespace
 namespace SVG {
   type PieceColor = "white" | "black";
 
@@ -596,29 +80,7 @@ namespace SVG {
     }
 
     static get w_queen() {
-      // separate method was needed to create the white queen
-      const svg = this.createSVG({
-        width: "34",
-        height: "31",
-        viewBox: "0 0 34 31",
-        fill: "none",
-      });
-
-      this.createPath({
-        d: "M25.6651 27.2429C30.0393 27.2429 30.2301 30.4857 30.2301 32.8932H7.51483C7.51483 30.4366 7.70149 27.2429 12.0757 27.2429H25.6651Z",
-        fill: "white",
-        stroke: "black",
-        strokeWidth: "1.51181",
-      });
-
-      this.createPath({
-        d: "M15.0138 3.87296C14.6176 3.87269 14.2252 3.95051 13.859 4.10196C13.4929 4.25341 13.1602 4.47552 12.8799 4.7556C12.5996 5.03569 12.3773 5.36825 12.2256 5.7343C12.0739 6.10034 11.9959 6.49269 11.9959 6.88892C11.9962 7.49395 12.1786 8.08488 12.5192 8.58493C12.8598 9.08497 13.3429 9.47101 13.9058 9.69288L13.5328 17.8088L9.54888 11.2849C9.89435 10.7819 10.0791 10.186 10.0789 9.57588C10.0787 9.17982 10.0006 8.78766 9.84892 8.4218C9.69723 8.05594 9.47496 7.72354 9.19481 7.44357C8.91466 7.1636 8.58211 6.94156 8.21615 6.79012C7.85018 6.63867 7.45798 6.56079 7.06191 6.56092C6.26238 6.56119 5.49566 6.87892 4.93031 7.44428C4.36495 8.00963 4.04722 8.77635 4.04695 9.57588C4.04748 10.2866 4.29898 10.9743 4.7571 11.5177C5.21522 12.0611 5.85051 12.4252 6.55092 12.5458L11.3239 27.2357H26.4707L31.2306 12.6358C31.9497 12.5345 32.608 12.1771 33.0847 11.6293C33.5614 11.0815 33.8245 10.3801 33.8256 9.65388C33.8253 8.85435 33.5076 8.08763 32.9422 7.52228C32.3769 6.95692 31.6102 6.63919 30.8106 6.63892C30.0109 6.63892 29.2439 6.95654 28.6784 7.52192C28.1128 8.08731 27.7949 8.85417 27.7947 9.65388C27.7963 10.2139 27.9539 10.7624 28.2496 11.2379L24.1777 17.8078L23.8587 9.67988C24.413 9.45335 24.8873 9.06696 25.2212 8.56992C25.5551 8.07289 25.7335 7.4877 25.7337 6.88892C25.7337 6.08921 25.4161 5.32224 24.8507 4.75666C24.2853 4.19109 23.5184 3.87322 22.7187 3.87296C21.9188 3.87296 21.1517 4.19071 20.5861 4.75631C20.0205 5.32191 19.7028 6.08904 19.7028 6.88892C19.7027 7.67437 20.0091 8.42885 20.5567 8.99189L18.8548 17.8088L17.2298 8.92889C17.7428 8.37325 18.0283 7.64516 18.0298 6.88892C18.0298 6.08904 17.712 5.32191 17.1464 4.75631C16.5808 4.19071 15.8137 3.87296 15.0138 3.87296Z",
-        fill: "white",
-        stroke: "black",
-        strokeWidth: "1.51179",
-      });
-
-      return svg;
+      return this.createQueen("white");
     }
 
     // * black pieces
@@ -743,21 +205,28 @@ namespace SVG {
 
     private static createQueen(color: PieceColor) {
       const fillColor = this.getFillColor(color);
+      const strokeColor = this.getStrokeColor(color);
+      const strokeWidth = color === "white" ? "1.4" : "1.2";
 
       const svg = this.createSVG({
-        width: "30",
-        height: "30",
-        viewBox: "0 0 30 30",
+        width: "34",
+        height: "33",
+        viewBox: "0 0 34 34",
+        fill: "none",
       });
 
       this.createPath({
-        d: "M21.6651 24.2429C26.0393 24.2429 26.2301 27.4857 26.2301 29.8932H3.51483C3.51483 27.4366 3.70149 24.2429 8.07573 24.2429H21.6651Z",
+        d: "M25.6651 27.2429C30.0393 27.2429 30.2301 30.4857 30.2301 32.8932H7.51483C7.51483 30.4366 7.70149 27.2429 12.0757 27.2429H25.6651Z",
         fill: fillColor,
+        stroke: strokeColor,
+        strokeWidth,
       });
 
       this.createPath({
-        d: "M11.0135 0.877808C10.2146 0.877807 9.44838 1.17477 8.88309 1.70343C8.31781 2.23208 7.99969 2.94921 7.99863 3.69734C7.99923 4.26317 8.18138 4.81582 8.52144 5.28353C8.86151 5.75124 9.3438 6.11243 9.90576 6.32034L9.53245 13.9172L5.54775 7.81321C5.89284 7.34139 6.07679 6.78264 6.07526 6.21076C6.07419 5.46329 5.75663 4.74666 5.19222 4.21811C4.62781 3.68957 3.86261 3.39223 3.06441 3.39123C2.26551 3.39122 1.49927 3.68807 0.933984 4.21673C0.368696 4.74538 0.0505843 5.46263 0.0495148 6.21076C0.0496864 6.87641 0.301008 7.52061 0.759105 8.02959C1.2172 8.53857 1.85261 8.87958 2.55314 8.99246L7.32504 22.7348H22.4726L27.2323 9.07563C27.9513 8.98139 28.6097 8.64731 29.0868 8.1349C29.5639 7.62249 29.8275 6.96613 29.8293 6.28631C29.8293 5.91523 29.7511 5.54777 29.5994 5.20498C29.4476 4.86219 29.2252 4.5508 28.9448 4.28859C28.6644 4.02637 28.3316 3.81847 27.9653 3.67681C27.599 3.53515 27.2066 3.46247 26.8103 3.46297C26.0107 3.46297 25.2438 3.7605 24.6784 4.28997C24.113 4.81944 23.7954 5.53752 23.7954 6.28631C23.7972 6.81008 23.9546 7.32306 24.2499 7.76788L20.18 13.9134L19.8594 6.30903C20.4127 6.09734 20.8864 5.73634 21.2202 5.27199C21.554 4.80765 21.7329 4.2609 21.7341 3.70115C21.7341 2.95236 21.4164 2.23417 20.851 1.70469C20.2856 1.17522 19.5188 0.877808 18.7192 0.877808C17.9203 0.877807 17.154 1.17477 16.5887 1.70343C16.0235 2.23208 15.7053 2.94921 15.7043 3.69734C15.7047 4.43128 16.0104 5.13616 16.5564 5.66266L14.8562 13.9134L13.2331 5.60602C13.7441 5.0855 14.0279 4.40438 14.0284 3.69734C14.0274 2.94921 13.7092 2.23208 13.144 1.70343C12.5787 1.17477 11.8124 0.877807 11.0135 0.877808Z",
+        d: "M15.0138 3.87296C14.6176 3.87269 14.2252 3.95051 13.859 4.10196C13.4929 4.25341 13.1602 4.47552 12.8799 4.7556C12.5996 5.03569 12.3773 5.36825 12.2256 5.7343C12.0739 6.10034 11.9959 6.49269 11.9959 6.88892C11.9962 7.49395 12.1786 8.08488 12.5192 8.58493C12.8598 9.08497 13.3429 9.47101 13.9058 9.69288L13.5328 17.8088L9.54888 11.2849C9.89435 10.7819 10.0791 10.186 10.0789 9.57588C10.0787 9.17982 10.0006 8.78766 9.84892 8.4218C9.69723 8.05594 9.47496 7.72354 9.19481 7.44357C8.91466 7.1636 8.58211 6.94156 8.21615 6.79012C7.85018 6.63867 7.45798 6.56079 7.06191 6.56092C6.26238 6.56119 5.49566 6.87892 4.93031 7.44428C4.36495 8.00963 4.04722 8.77635 4.04695 9.57588C4.04748 10.2866 4.29898 10.9743 4.7571 11.5177C5.21522 12.0611 5.85051 12.4252 6.55092 12.5458L11.3239 27.2357H26.4707L31.2306 12.6358C31.9497 12.5345 32.608 12.1771 33.0847 11.6293C33.5614 11.0815 33.8245 10.3801 33.8256 9.65388C33.8253 8.85435 33.5076 8.08763 32.9422 7.52228C32.3769 6.95692 31.6102 6.63919 30.8106 6.63892C30.0109 6.63892 29.2439 6.95654 28.6784 7.52192C28.1128 8.08731 27.7949 8.85417 27.7947 9.65388C27.7963 10.2139 27.9539 10.7624 28.2496 11.2379L24.1777 17.8078L23.8587 9.67988C24.413 9.45335 24.8873 9.06696 25.2212 8.56992C25.5551 8.07289 25.7335 7.4877 25.7337 6.88892C25.7337 6.08921 25.4161 5.32224 24.8507 4.75666C24.2853 4.19109 23.5184 3.87322 22.7187 3.87296C21.9188 3.87296 21.1517 4.19071 20.5861 4.75631C20.0205 5.32191 19.7028 6.08904 19.7028 6.88892C19.7027 7.67437 20.0091 8.42885 20.5567 8.99189L18.8548 17.8088L17.2298 8.92889C17.7428 8.37325 18.0283 7.64516 18.0298 6.88892C18.0298 6.08904 17.712 5.32191 17.1464 4.75631C16.5808 4.19071 15.8137 3.87296 15.0138 3.87296Z",
         fill: fillColor,
+        stroke: strokeColor,
+        strokeWidth,
       });
 
       return svg;
@@ -870,19 +339,33 @@ namespace SVG {
   }
 }
 
-namespace stats_helpers {
-  const PairsObj = {
-    DoubleWin: "ccc-double-win",
-    Win: "ccc-win",
-    Draw: "ccc-draw",
-    Loss: "ccc-loss",
-    DoubleLoss: "ccc-double-loss",
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class CrosstableHelper {
+  private static classNames = {
+    doubleWin: "ccc-double-win",
+    win: "ccc-win",
+    draw: "ccc-draw",
+    loss: "ccc-loss",
+    doubleLoss: "ccc-double-loss",
   } as const;
+
+  /** gets scores from a NodeList and returns them as an array */
+  public static getScoresFromList(
+    gameResultElementList: NodeListOf<HTMLDivElement>
+  ) {
+    const scoresArray: ResultAsScore[] = [];
+
+    gameResultElementList.forEach((result) => {
+      scoresArray.push(this.getResultFromNode(result));
+    });
+
+    return scoresArray;
+  }
 
   /**
    * calculates WDL, ELO and all additional stats
    */
-  export function calculateStats(scoresArray: ResultAsScore[]) {
+  public static calculateStats(scoresArray: ResultAsScore[]) {
     const wdlArray: WDL = [0, 0, 0]; // [W D L] in that order
     scoresArray.forEach((score) => {
       // score is either 1 0 -1
@@ -1043,23 +526,10 @@ namespace stats_helpers {
     return [ptnml, wdlArray, stats] as const;
   }
 
-  /** gets scores from a NodeList and returns them as an array */
-  export function getScoresFromList(
-    gameResultElementList: NodeListOf<HTMLDivElement>
-  ) {
-    const scoresArray: ResultAsScore[] = [];
-
-    gameResultElementList.forEach((result) => {
-      scoresArray.push(getResultFromNode(result));
-    });
-
-    return scoresArray;
-  }
-
   /**
-   * todo change description
+   * todo add description
    */
-  export function paintGamePairs(
+  public static paintGamePairs(
     gameResultList: NodeListOf<HTMLDivElement>,
     scoresArray: ResultAsScore[],
     pairsPerRow: number
@@ -1074,7 +544,7 @@ namespace stats_helpers {
       if (!isEven) {
         elem.classList.add("ccc-border-right");
 
-        const className = getClassNameForPair(
+        const className = this.getClassNameForPair(
           scoresArray[index - 1],
           scoresArray[index]
         );
@@ -1087,108 +557,99 @@ namespace stats_helpers {
     });
   }
 
-  function getResultFromNode(node: HTMLDivElement) {
+  // * ========================
+  // * private methods
+
+  private static getResultFromNode(node: HTMLDivElement) {
     if (node.classList.contains("win")) return 1;
     if (node.classList.contains("draw")) return 0;
     return -1;
   }
 
-  function getClassNameForPair(
+  private static getClassNameForPair(
     lastResult: ResultAsScore,
     currentResult: ResultAsScore
   ) {
     const pairScore = lastResult + currentResult;
 
-    if (pairScore === 2) return PairsObj.DoubleWin;
-    if (pairScore === 1) return PairsObj.Win;
-    if (pairScore === 0) return PairsObj.Draw;
-    if (pairScore === -1) return PairsObj.Loss;
-    return PairsObj.DoubleLoss;
+    if (pairScore === 2) return this.classNames.doubleWin;
+    if (pairScore === 1) return this.classNames.win;
+    if (pairScore === 0) return this.classNames.draw;
+    if (pairScore === -1) return this.classNames.loss;
+    return this.classNames.doubleLoss;
   }
 }
 
-namespace ExtensionHelper {
-  export class localStorage {
-    static getState<T extends keyof UserSettings>(keys: T | T[]) {
-      return browserPrefix.storage.local.get(keys) as Promise<
-        Pick<UserSettings, T>
-      >;
-    }
-
-    static setState<K extends keyof UserSettings, V extends UserSettings[K]>(
-      key: K,
-      value: V
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class ExtensionHelper {
+  private static localStorageMethods = {
+    getState: function <T extends keyof state_types.UserSettings>(
+      keys: T | T[]
     ) {
-      return browserPrefix.storage.local.set({ [key]: value });
-    }
+      return browserPrefix?.storage?.local
+        .get(keys)
+        .catch(Utils.logError) as Promise<
+        Prettify<Pick<state_types.UserSettings, T>>
+      >;
+    },
 
-    static setStateObj<T extends Partial<UserSettings>>(obj: T) {
-      return browserPrefix.storage.local.set(obj);
-    }
-  }
+    setState: function <T extends Partial<state_types.UserSettings>>(obj: T) {
+      return browserPrefix?.storage?.local.set(obj).catch(Utils.logError);
+    },
+  } as const;
 
-  export class messages {
-    static sendMessage(message: message_pass.message) {
+  private static messageMethods = {
+    sendMessage(message: message_pass.message) {
       // @ts-ignore
       return browserPrefix.runtime.sendMessage(message) as Promise<unknown>;
-    }
+    },
 
     /** sends ready to BG script on document load */
-    static sendReady() {
+    sendReady() {
       const message: message_pass.message = {
         type: "onload",
         payload: null,
       };
 
-      // @ts-ignore
+      // @ts-expect-error some cross browser error idc
       browserPrefix.runtime.sendMessage(message);
 
       return false;
-    }
+    },
+  } as const;
 
-    /** Requests TB 7 eval for current position */
-    static sendTBEvalRequest(ply: number) {
-      const fenString = chessCurrent.actions.getFullFenAtIndex(ply);
+  // * =====================
+  // * getters
 
-      if (!fenString) return false;
-
-      const message: message_pass.message = {
-        type: "request_tb_eval",
-        payload: {
-          fen: fenString[ply - 1]!.split(" ").join("_"),
-          currentPly: ply,
-        },
-      };
-
-      if (!GameState.TB_Response_History[ply]) {
-        browserPrefix.runtime
-          // @ts-ignore
-          .sendMessage(message)
-          .then((response: message_pass.message) => {
-            const { type, payload } = response;
-
-            if (
-              type !== "response_tb_standard" ||
-              !payload.response ||
-              typeof payload.response === "string"
-            ) {
-              return;
-            }
-
-            GameState.TB_Response_History[payload.ply] = payload.response;
-          });
+  static get localStorage() {
+    class localStorage {
+      static getState<T extends keyof state_types.UserSettings>(keys: T | T[]) {
+        return browserPrefix?.storage?.local
+          .get(keys)
+          .catch(Utils.logError) as Promise<
+          Prettify<Pick<state_types.UserSettings, T>>
+        >;
       }
 
-      return true;
+      static setState<T extends Partial<state_types.UserSettings>>(obj: T) {
+        return browserPrefix?.storage?.local.set(obj).catch(Utils.logError);
+      }
     }
+    return localStorage;
+
+    // return this.localStorageMethods;
+  }
+
+  static get messages() {
+    return this.messageMethods;
   }
 
   /**
    * todo add description
    */
-  export function applyUserSettings<K extends BooleanKeys<UserSettings>>(
-    key: K
-  ) {
+  public static applyUserSettings<
+    K extends BooleanKeys<state_types.UserSettings>
+  >(key: K) {
     switch (key) {
       case "replaceClockSvg":
         fixClockSVG();
@@ -1197,14 +658,7 @@ namespace ExtensionHelper {
         toggleAllowKeyboardShortcuts();
         break;
       case "materialCount":
-        const wrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
-          ".ccc-captured-pieces-wrapper"
-        );
-
-        wrappers.forEach((wrapper) => {
-          const action = !userSettings.materialCount ? "add" : "remove";
-          wrapper.classList[action]("ccc-hide");
-        });
+        this.handleMaterialCountCase();
 
         break;
       // todo
@@ -1215,36 +669,67 @@ namespace ExtensionHelper {
       case "agreementHighlight":
       case "elo":
       case "ptnml":
+      case "drawnPairNeutralColorWL":
         break;
       default:
         console.log(key satisfies never);
         break;
     }
   }
+
+  private static handleMaterialCountCase() {
+    const capturedPiecesWrappers: NodeListOf<HTMLDivElement> =
+      document.querySelectorAll(".ccc-captured-pieces-wrapper");
+
+    capturedPiecesWrappers.forEach((wrapper) => {
+      const action = !UserSettings.custom.materialCount ? "add" : "remove";
+
+      wrapper.classList[action]("ccc-hide");
+    });
+  }
 }
 
 /** general purpose utility functions */
-namespace utils {
+class Utils {
+  private static colorMap = {
+    blue: "lightblue",
+    red: "tomato",
+    green: "lightgreen",
+    orange: "orange",
+    //
+    pBlack: "black",
+    pWhite: "white",
+    pRed: "red",
+    pGreen: "green",
+    pBlue: "blue",
+  } as const;
+
   /** removes all whitespaces from the string */
-  export function removeWhitespace(str: string) {
+  public static removeWhitespace(str: string) {
     return str.replace(/\s/g, "");
   }
 
-  export function objectKeys<T extends {}>(obj: T) {
+  public static objectKeys<T extends object>(obj: T) {
     return Object.keys(obj) as Array<keyof T>;
   }
 
-  export function logError(e: any) {
+  public static logError(e: any) {
     console.log(e?.message ?? e);
   }
 
+  public static log(message: string, color: keyof typeof this.colorMap) {
+    const optionsString = `color: ${this.colorMap[color]}; font-weight: bold;`;
+
+    console.log(`%c${message}`, optionsString);
+  }
+
   /** removes passed node from the DOM */
-  export function removeNode(nodeToRemove: HTMLGenericNode) {
+  public static removeNode(nodeToRemove: HTMLGenericNode) {
     nodeToRemove.parentNode?.removeChild(nodeToRemove);
   }
 
   /** removes all children from the passed node */
-  export function removeAllChildNodes(node: HTMLGenericNode) {
+  public static removeAllChildNodes(node: HTMLGenericNode) {
     while (node.firstChild) {
       node.removeChild(node.firstChild);
     }
@@ -1252,8 +737,9 @@ namespace utils {
 }
 
 // this was added for no reason in particular
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Maybe {
-  private value: any;
+  private value;
 
   constructor(value: any) {
     this.value = value;

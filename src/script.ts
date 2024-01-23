@@ -2,37 +2,22 @@
 /// <reference path="./types/index.d.ts" />
 /// <reference path="./types/lila-tb.ts" />
 
-let crossTableBtn: HTMLButtonElement | null;
 /** cells with H2H results */
 let crossTableElements: NodeListOf<HTMLTableCellElement>;
 
-let crossTableModal: HTMLDivElement | null;
-let crossTableWithScroll: HTMLDivElement | null;
-
+// todo move to state?
 let enginesAmount = 0;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const formatter = Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
   maximumFractionDigits: 2,
 });
 
-const userSettings: UserSettings = {
-  ptnml: true,
-  elo: true,
-  pairsPerRow: "",
-  pairsPerRowDuel: "",
-  allowKeyboardShortcuts: true,
-  agreementHighlight: true,
-  pgnFetch: true,
-  addLinksToGameSchedule: true,
-  replaceClockSvg: true,
-  displayEngineNames: true,
-  materialCount: true,
-};
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
-loadUserSettings().catch(utils.logError);
+loadUserSettings().catch(Utils.logError);
 async function loadUserSettings() {
   await ExtensionHelper.localStorage
     .getState([
@@ -44,32 +29,35 @@ async function loadUserSettings() {
       "displayEngineNames",
       "materialCount",
     ])
-    .then((res) => {
-      const keys = utils.objectKeys(res);
-      keys.forEach((key) => {
-        userSettings[key] = res[key] ?? _State.userSettingsDefault[key];
-      });
-    });
+    .then((state) => {
+      const keys = Utils.objectKeys(state);
 
-  if (userSettings.replaceClockSvg) {
+      keys.forEach((key) => {
+        UserSettings.custom[key] = state[key] ?? UserSettings.default[key];
+      });
+    })
+    .catch(Utils.logError);
+
+  if (UserSettings.custom.replaceClockSvg) {
     fixClockSVG();
   }
 
-  ExtensionHelper.localStorage.getState("pairsPerRow").then((result) => {
-    userSettings.pairsPerRow =
-      result.pairsPerRow ?? _State.userSettingsDefault.pairsPerRow;
-  });
+  ExtensionHelper.localStorage
+    .getState(["pairsPerRow", "pairsPerRowDuel"])
+    .then((result) => {
+      UserSettings.custom.pairsPerRow =
+        result.pairsPerRow ?? UserSettings.default.pairsPerRow;
 
-  ExtensionHelper.localStorage.getState("pairsPerRowDuel").then((result) => {
-    userSettings.pairsPerRowDuel =
-      result.pairsPerRowDuel ?? _State.userSettingsDefault.pairsPerRowDuel;
-  });
+      UserSettings.custom.pairsPerRowDuel =
+        result.pairsPerRowDuel ?? UserSettings.default.pairsPerRowDuel;
+    });
 }
 
+// todo move to some state/storage
 const engineImages: HTMLImageElement[] = [];
 
 // * observers
-observeOpenCrossTable();
+observeModalOpen();
 
 // * ---------------
 // * extension logic
@@ -97,8 +85,8 @@ function convertCrossTable() {
       observeInitial();
     }
 
-    if (userSettings.displayEngineNames) {
-      dom_elements.CrossTable.crEngineNames();
+    if (UserSettings.custom.displayEngineNames) {
+      components.CrossTable.crEngineNames();
     }
 
     const modal = document.querySelector(".modal-vue-modal-content");
@@ -108,8 +96,8 @@ function convertCrossTable() {
     engineImages.push(...Array.from(images ?? []));
 
     activeCells.forEach(convertCell);
-  } catch (e: any) {
-    console.log(e.message);
+  } catch (e: unknown) {
+    Utils.logError(e);
   }
 }
 
@@ -174,21 +162,21 @@ function convertCell(cell: HTMLTableCellElement) {
       getComputedStyle(resultWrapper, null).getPropertyValue("--column-amount")
     ) / 2;
 
-  const scoresArray = stats_helpers.getScoresFromList(gameResultElementList);
-  stats_helpers.paintGamePairs(
+  const scoresArray = CrosstableHelper.getScoresFromList(gameResultElementList);
+  CrosstableHelper.paintGamePairs(
     gameResultElementList,
     scoresArray,
     pairsPerRow || 1
   );
-
-  const [ptnml, wdlArray, stats] = stats_helpers.calculateStats(scoresArray);
+  const [ptnml, wdlArray, stats] = CrosstableHelper.calculateStats(scoresArray);
 
   if (enginesAmount <= 8) {
     const caretSvg = cell.querySelector(".ccc-info-button");
 
+    // todo delete
     if (!caretSvg) {
       const additionalInfoWrapper =
-        dom_elements.CrossTable.crAdditionalStatCaret(stats, index_1, index_2);
+        components.CrossTable.crAdditionalStatButton(stats, index_1, index_2);
       cell.append(additionalInfoWrapper);
     }
   }
@@ -197,11 +185,11 @@ function convertCell(cell: HTMLTableCellElement) {
   const ptnmlElement = cellHeader.querySelector(".ccc-ptnml-wrapper");
   const eloWdlElement = cellHeader.querySelector(".ccc-wdl-wrapper");
 
-  const ptnmlAction = !userSettings["ptnml"] ? "add" : "remove";
-  const eloAction = !userSettings["elo"] ? "add" : "remove";
+  const ptnmlAction = !UserSettings.custom["ptnml"] ? "add" : "remove";
+  const eloAction = !UserSettings.custom["elo"] ? "add" : "remove";
 
   if (!ptnmlElement) {
-    const ptnmlWrapper = dom_elements.CrossTable.crPTNMLStat(ptnml);
+    const ptnmlWrapper = components.CrossTable.crPTNMLStat(ptnml);
     cellHeader.append(ptnmlWrapper);
     ptnmlWrapper.classList[ptnmlAction]("ccc-display-none");
   } else {
@@ -209,7 +197,7 @@ function convertCell(cell: HTMLTableCellElement) {
   }
 
   if (!eloWdlElement) {
-    const eloWdlWrapper = dom_elements.CrossTable.crWDLStat(wdlArray);
+    const eloWdlWrapper = components.CrossTable.crWDLStat(wdlArray);
 
     cellHeader.append(eloWdlWrapper);
     eloWdlWrapper.classList[eloAction]("ccc-display-none");
@@ -261,8 +249,8 @@ function observeInitial() {
       childList: true,
       subtree: true,
     });
-  } catch (e: any) {
-    console.log(e.message);
+  } catch (e: unknown) {
+    Utils.logError(e);
   }
 }
 
@@ -278,12 +266,11 @@ function observeEmptyCell(cell: HTMLTableCellElement) {
   });
 }
 
-function observeOpenCrossTable() {
+function observeModalOpen() {
   const observer = new MutationObserver(() => {
     shareModalCb();
 
-    const modal = document.querySelector(".modal-vue-modal");
-    if (!modal) return;
+    if (!document.querySelector(".modal-vue-modal")) return;
 
     queueMicrotask(openCrossTableHandler);
   });
@@ -291,38 +278,6 @@ function observeOpenCrossTable() {
   observer.observe(_DOM_Store.mainContainer, {
     childList: true,
   });
-}
-
-// live cross table update
-function liveUpdate() {
-  try {
-    const activeCells = Array.from(crossTableElements).filter((el) => {
-      if (el.classList.contains("crosstable-empty")) {
-        enginesAmount++;
-        return;
-      }
-      return el;
-    });
-    if (activeCells.length === 0) return;
-
-    // for each cell with games in it
-    // find and remove all custom elements
-    activeCells.forEach((cell) => {
-      const header = cell.querySelector("#ccc-cell-header");
-      if (!header) return;
-
-      // wrappers for custom stats
-      const wrappers = cell.querySelectorAll(".ccc-stat-wrapper");
-
-      wrappers?.forEach((wrapper: Element) => {
-        header?.removeChild(wrapper);
-      });
-    });
-
-    convertCrossTable();
-  } catch (e: any) {
-    console.log(e.message ?? e);
-  }
 }
 
 // handles creation of switch inputs for custom crosstable stats
@@ -340,13 +295,13 @@ function createOptionInputs() {
 
   wrapper.classList.add("ccc-options-wrapper");
 
-  const pairsPerRowForm = dom_elements.CrossTable.crPairsPerRowForm();
+  const pairsPerRowForm = components.CrossTable.crPairsPerRowForm();
 
   // * create switches
-  const eloLabel = dom_elements.CrossTable.crSettingsSwitch("WDL + Elo", "elo");
-  const ptnmlLabel = dom_elements.CrossTable.crSettingsSwitch("Ptnml", "ptnml");
+  const eloLabel = components.CrossTable.crSettingsSwitch("WDL + Elo", "elo");
+  const ptnmlLabel = components.CrossTable.crSettingsSwitch("Ptnml", "ptnml");
 
-  const extensionSettingsBtn = dom_elements.CrossTable.crExtensionSettingsBtn();
+  const extensionSettingsBtn = components.CrossTable.crExtensionSettingsBtn();
 
   wrapper.append(pairsPerRowForm, eloLabel, ptnmlLabel, extensionSettingsBtn);
 
@@ -376,7 +331,9 @@ function applyStylesToGrid() {
 
 function getPairsPerRowAmount() {
   const is1v1 = enginesAmount === 2;
-  const rows = is1v1 ? userSettings.pairsPerRowDuel : userSettings.pairsPerRow;
+  const rows = is1v1
+    ? UserSettings.custom.pairsPerRowDuel
+    : UserSettings.custom.pairsPerRow;
 
   return rows;
 }
@@ -393,12 +350,13 @@ function keydownHandler(e: KeyboardEvent) {
 
   // enable/disable keyboard shortcuts
   if (e.code === "KeyU" && e.shiftKey && e.ctrlKey) {
-    userSettings.allowKeyboardShortcuts = !userSettings.allowKeyboardShortcuts;
+    UserSettings.custom.allowKeyboardShortcuts =
+      !UserSettings.custom.allowKeyboardShortcuts;
     toggleAllowKeyboardShortcuts();
 
     return;
   }
-  if (!userSettings.allowKeyboardShortcuts) return;
+  if (!UserSettings.custom.allowKeyboardShortcuts) return;
 
   // open crosstable
   if (e.code === "KeyC" && !e.ctrlKey) {
@@ -439,7 +397,7 @@ function keydownHandler(e: KeyboardEvent) {
 }
 
 function openCrossTableWithKeyboard(container: HTMLElement) {
-  crossTableBtn = container?.querySelector("button");
+  const crossTableBtn = container?.querySelector("button");
   if (!crossTableBtn) return;
 
   crossTableBtn.click();
@@ -542,31 +500,31 @@ function openCrossTableHandler() {
     );
 
     convertCrossTable();
-  } catch (e: any) {
-    console.log(e.message ?? e);
+  } catch (e: unknown) {
+    Utils.logError(e);
   }
 }
 
+// todo delete
 // ! --------------------
 // ! --------------------
 // ! dev ----------------
 
-function handleSwitchEvent(field: BooleanKeys<UserSettings>) {
-  userSettings[field] = !userSettings[field];
+function handleSwitchEvent(field: BooleanKeys<state_types.UserSettings>) {
+  UserSettings.custom[field] = !UserSettings.custom[field];
 
-  ExtensionHelper.localStorage
-    .setState(field, userSettings[field])
-    .then(convertCrossTable);
+  convertCrossTable();
+
+  ExtensionHelper.localStorage.setState({
+    [field]: UserSettings.custom[field],
+  });
 }
 
 function toggleAllowKeyboardShortcuts() {
-  const { allowKeyboardShortcuts } = userSettings;
-  ExtensionHelper.localStorage.setState(
-    "allowKeyboardShortcuts",
-    allowKeyboardShortcuts
-  );
+  const { allowKeyboardShortcuts } = UserSettings.custom;
+  ExtensionHelper.localStorage.setState({ allowKeyboardShortcuts });
 
-  userSettings.allowKeyboardShortcuts = allowKeyboardShortcuts;
+  UserSettings.custom.allowKeyboardShortcuts = allowKeyboardShortcuts;
 }
 
 observeScheduleClick();
@@ -590,14 +548,16 @@ function createGameScheduleLinks() {
     ".schedule-container"
   );
 
-  if (!userSettings.addLinksToGameSchedule || !container) return;
+  if (!UserSettings.custom.addLinksToGameSchedule || !container) return;
 
   const links = Array.from(container.children);
 
   const baseURL = "https://www.chess.com/computer-chess-championship#";
-  const eventName = _State.tabData.event || _State.eventHrefList[0];
+  const eventName = _State.eventId;
 
-  if (!eventName) return;
+  if (!eventName) {
+    return;
+  }
 
   links.forEach((link, index) => {
     const src = `${baseURL}event=${eventName}&game=${index + 1}`;
@@ -611,27 +571,10 @@ function createGameScheduleLinks() {
   });
 }
 
-function eloPtnmlTriggerHandler(
-  optionToToggle: Extract<BooleanKeys<UserSettings>, "elo" | "ptnml">
-) {
-  const crossTableModal = document.querySelector(".modal-vue-modal-content");
-  if (!crossTableModal) return;
-
-  const labels: HTMLLabelElement[] = Array.from(
-    crossTableModal.querySelectorAll(`.ccc-label`)
-  );
-
-  labels.forEach((label) => {
-    const attr = label.getAttribute("data-name") as BooleanKeys<UserSettings>;
-    if (optionToToggle !== attr) return;
-
-    userSettings[optionToToggle] = !userSettings[optionToToggle];
-    label.click();
-  });
-}
-
 function handleLabelListeners(label: HTMLLabelElement) {
-  const attr = label.getAttribute("data-name") as BooleanKeys<UserSettings>;
+  const attr = label.getAttribute(
+    "data-name"
+  ) as BooleanKeys<state_types.UserSettings>;
 
   label.addEventListener("change", () => {
     handleSwitchEvent(attr);
@@ -640,7 +583,7 @@ function handleLabelListeners(label: HTMLLabelElement) {
   label.addEventListener("keydown", (e) => {
     if (e.code !== "Enter") return;
 
-    label.querySelector("input")!.checked = !userSettings[attr];
+    label.querySelector("input")!.checked = !UserSettings.custom[attr];
     handleSwitchEvent(attr);
   });
 }
@@ -671,3 +614,161 @@ function shareModalCb() {
     { once: true }
   );
 }
+
+_DOM_Store.scheduleBtn.addEventListener("click", () => {
+  const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
+    ".schedule-container"
+  )! as HTMLDivElement;
+
+  if (!scheduleContainer) return;
+
+  scrollToCurrentGame();
+});
+
+function scrollToCurrentGame() {
+  const currentGame =
+    _DOM_Store.bottomPanel.querySelector(".schedule-in-progress") ??
+    _DOM_Store.bottomPanel.querySelector(".ccc-current-game");
+
+  const container: HTMLDivElement | null = _DOM_Store.bottomPanel.querySelector(
+    ".schedule-container"
+  );
+
+  const lastGame: Element | null = container?.lastElementChild || null;
+
+  if (currentGame) {
+    currentGame.scrollIntoView();
+  } else if (lastGame) {
+    lastGame.scrollIntoView();
+  }
+}
+
+function updateShareModalFENInput() {
+  const shareModal = _DOM_Store.mainContainer.querySelector(
+    ".ui_modal-component"
+  );
+  if (!shareModal) return new Maybe(null);
+
+  return new Maybe(shareModal.querySelector(".share-menu-content"))
+    ._bind((container) => {
+      return container.querySelector(".share-menu-tab-pgn-section");
+    })
+    ._bind((container) => {
+      return container.querySelector("input");
+    })
+    ._bind((input: HTMLInputElement) => {
+      const currentMoveNumber = ExtractPageData.getMoveNumber();
+      const fen = chessCurrent.actions.getFullFenAtIndex(currentMoveNumber);
+
+      input.value = fen || input.value;
+
+      return input;
+    });
+}
+
+function addDownloadGameLogsBtn() {
+  return new Maybe(document.querySelector(".ui_modal-component"))
+    ._bind((modal: HTMLDivElement) => {
+      const btn = modal.querySelector(".ccc-download-logs-btn");
+      if (btn) return null;
+
+      return modal.querySelector(".share-menu-content");
+    })
+    ._bind((modalContent: HTMLDivElement) => {
+      const menu = modalContent.children[0];
+
+      return menu;
+    })
+    ._bind(async (container: HTMLDivElement) => {
+      const btn = document.createElement("a");
+
+      btn.classList.add("ccc-download-logs-btn");
+
+      btn.textContent = "Download game logs";
+      btn.target = "_blank";
+      btn.rel = "noopener";
+
+      btn.setAttribute("download", "");
+
+      const archiveLink = container.getAttribute("event-url");
+      if (!archiveLink) return container;
+
+      const gameNumber = await ExtractPageData.getCurrentGameNumber();
+      const eventId = +archiveLink
+        .split("/")
+        .filter((el) => {
+          const includes = el.includes(".pgn");
+          if (!includes) return;
+          return el;
+        })[0]
+        // returns tournament-${tournament-id}.pgn
+        .split(".")[0]
+        .split("-")[1];
+
+      const link = `https://cccfiles.chess.com/archive/cutechess.debug-${eventId}-${
+        eventId + +gameNumber
+      }.zip`;
+
+      btn.href = link;
+
+      container.append(btn);
+
+      return container;
+    });
+}
+
+function addListenersToShareFENInput(input: HTMLInputElement) {
+  const listenerAdded = input.getAttribute("data-listener-added");
+
+  if (!listenerAdded) {
+    input.setAttribute("data-listener-added", "true");
+
+    input.addEventListener("keydown", (e) => {
+      if (!e.code.toLowerCase().startsWith("arrow")) return;
+
+      e.stopPropagation();
+    });
+  }
+
+  return new Maybe(null);
+}
+
+observeEndOfLoadMain();
+ExtensionHelper.messages.sendReady();
+
+function observeEndOfLoadMain() {
+  const mainContentContainer =
+    document.querySelector(".cpu-champs-page-main") ?? _DOM_Store.mainContainer;
+
+  _DOM_Store.scheduleBtn.click();
+
+  if (!mainContentContainer) {
+    return;
+  }
+
+  const observer = new MutationObserver(() => {
+    observer.disconnect();
+
+    if (!document.getElementById("#cpu-champs-page-ccc")) {
+      scrollToCurrentGame();
+    }
+
+    // mutation observer events are microtasks themselves.
+    // this is needed (?) just in case
+    queueMicrotask(() => {
+      ExtractPageData.getEventLinks();
+
+      createGameScheduleLinks();
+    });
+  });
+
+  observer.observe(mainContentContainer, {
+    childList: true,
+  });
+}
+
+// todo
+// document.addEventListener("visibilitychange", () => {
+//   const hidden = document.hidden;
+//   console.log("changed, visible = ", !hidden);
+// });

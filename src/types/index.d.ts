@@ -18,11 +18,15 @@ type RequireOnlyOne<T, Keys extends keyof T = keyof T> = Pick<
       Partial<Record<Exclude<Keys, K>, never>>;
   }[Keys];
 
+// https://stackoverflow.com/questions/57798098/exclude-empty-object-from-partial-type
+type AtLeastOne<T, U = { [K in keyof T]: Pick<T, K> }> = Partial<T> &
+  U[keyof U];
+
 type EmptyObject = Record<string, never>;
 
 type Prettify<T> = {
   [Key in keyof T]: T[Key];
-} & {};
+} & unknown;
 
 // https://youtu.be/a_m7jxrTlaw?list=PLIvujZeVDLMx040-j1W4WFs1BxuTGdI_b
 type LooseAutocomplete<T extends string> = T | Omit<string, T>;
@@ -36,36 +40,41 @@ type PTNML = [number, number, number, number, number];
 type Browsers = typeof chrome | typeof browser;
 type Tab = chrome.tabs.Tab | browser.tabs.Tab;
 
-type UserSettings = {
-  ptnml: boolean;
-  elo: boolean;
-  pairsPerRow: number | "";
-  pairsPerRowDuel: number | "";
-  allowKeyboardShortcuts: boolean;
-  // todo
-  pgnFetch: boolean;
-  agreementHighlight: boolean;
-  addLinksToGameSchedule: boolean;
-  replaceClockSvg: boolean;
-  displayEngineNames: boolean;
-  materialCount: boolean;
-  // todo
-  // calcAdditionalStats: boolean
-  // visualSettings: _dev_VisualSettings
-};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare namespace state_types {
+  export type UserSettings = {
+    ptnml: boolean;
+    elo: boolean;
+    pairsPerRow: number | "";
+    pairsPerRowDuel: number | "";
+    allowKeyboardShortcuts: boolean;
+    // todo
+    pgnFetch: boolean;
+    agreementHighlight: boolean;
+    addLinksToGameSchedule: boolean;
+    replaceClockSvg: boolean;
+    displayEngineNames: boolean;
+    materialCount: boolean;
+    // todo rename
+    drawnPairNeutralColorWL: boolean;
+    // todo
+    // calcAdditionalStats: boolean
+    // visualSettings: _dev_VisualSettings
+  };
 
-type _dev_VisualSettings = {
-  doubleLossBgColor: string;
-  doubleLossFontColor: string;
-  doubleWinBgColor: string;
-  doubleWinFontColor: string;
-  winBgColor: string;
-  winFontColor: string;
-  lossBgColor: string;
-  lossFontColor: string;
-};
+  type _dev_VisualSettings = {
+    doubleLossBgColor: string;
+    doubleLossFontColor: string;
+    doubleWinBgColor: string;
+    doubleWinFontColor: string;
+    winBgColor: string;
+    winFontColor: string;
+    lossBgColor: string;
+    lossFontColor: string;
+  };
+}
 
-type BooleanUserOptions = Partial<OnlyBoolean<UserSettings>>;
+type BooleanUserOptions = Partial<OnlyBoolean<state_types.UserSettings>>;
 
 type AdditionalStats = {
   longestLossless: number;
@@ -101,63 +110,48 @@ type ChessPieceLower = "p" | "b" | "n" | "r" | "q" | "k";
 type ChessPieces = Prettify<ChessPieceUpper | ChessPieceLower>;
 
 // * ===================
-// * state types
-type ChessGameData = {
-  /**
-   * todo add description
-   */
-  FenHistoryFull: string[];
-  /**
-   * todo add description
-   */
-  FenHistoryTrimmed: string[];
-  /**
-   * todo add description
-   */
-  pgn: string[] | null;
-};
+// * chess state types
 
-type PageData = {
-  currentGame: number | null;
-  totalGames: number | null;
-  active: boolean;
-};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+declare namespace CustomChess {
+  export type GameData = {
+    /**
+     * todo add description
+     */
+    FenHistoryFull: string[];
+    /**
+     * todo add description
+     */
+    FenHistoryTrimmed: string[];
+    /**
+     * todo add description
+     */
+    pgn: string[] | null;
+  };
 
-type TabData = {
-  event: string | null;
-  game: number | null;
-};
+  export type GameDataFields = {
+    pgn: readonly string[] | null;
+    FenHistoryFull: readonly string[];
+    FenHistoryTrimmed: readonly string[];
 
-type GameDataFields = {
-  historyFullLen: number;
-  historyTrimmedLen: number;
+    lastTrimmed: string | null;
+    lastFull: string | null;
 
-  pgn: string[] | null;
-  FENHistoryFull: string[];
-  FENhistoryTrimmed: string[];
+    gameNumber: number | null;
+  };
 
-  lastTrimmed: string | null;
-  lastFull: string | null;
+  export type GameDataActions = {
+    clearFenHistory: () => void;
+    resetPGN: () => void;
+    getFullFenAtIndex: (index: number) => string | null;
+    getTrimFenAtIndex: (index: number) => string | null;
 
-  gameNumber: number | null;
-};
+    setPGN: (pgn: string[]) => void;
+  };
 
-type GameDataActions = {
-  clearHistory: () => void;
-
-  addToFull: (fen: string) => void;
-  addToTrimmed: (fen: string) => void;
-
-  getFullFenAtIndex: (index: number) => string | null;
-  getTrimFenAtIndex: (index: number) => string | null;
-
-  setPGN: (pgn: string[]) => void;
-
-  setGameNumber: (gameNumber: number) => void;
-};
-
-type TTEntry = {
-  currentPly: number;
-  reversePly: number;
-  fen: string;
-};
+  export type TranspositionObject = {
+    currentPly: number;
+    reversePly: number;
+    fen: string;
+  };
+}

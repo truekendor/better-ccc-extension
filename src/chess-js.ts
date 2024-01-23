@@ -1,3 +1,5 @@
+/* eslint-disable no-inner-declarations */
+/* eslint-disable no-constant-condition */
 /**
  * @license
  * Copyright (c) 2023, Jeff Hlywa (jhlywa@gmail.com)
@@ -67,6 +69,7 @@
  *    to check for blocking pieces. E7 (20) + 16 = E6 (36) + 16 = E5 (52) etc.
  */
 
+// eslint-disable-next-line @typescript-eslint/no-namespace, @typescript-eslint/no-unused-vars
 namespace chess_js {
   const WHITE = "w" as const;
   const BLACK = "b" as const;
@@ -185,10 +188,10 @@ namespace chess_js {
   const RANK_7 = 1 as const;
   const RANK_8 = 0 as const;
 
-  const SIDES = {
-    [KING]: BITS.KSIDE_CASTLE,
-    [QUEEN]: BITS.QSIDE_CASTLE,
-  } as const;
+  // const SIDES = {
+  //   [KING]: BITS.KSIDE_CASTLE,
+  //   [QUEEN]: BITS.QSIDE_CASTLE,
+  // } as const;
 
   const ROOKS = {
     w: [
@@ -714,26 +717,6 @@ namespace chess_js {
     }
 
     /**
-     * todo move to MyChess class
-     * Returns the trimmed FEN string for the current position.
-     * Note, the en passant square is only included
-     * if the side-to-move can legally capture en passant.
-     */
-    get FEN_TRIMMED() {
-      return this._trimFen(this.fen());
-    }
-
-    /**
-     * todo move to MyChess class
-     * Returns the FEN string for the current position.
-     * Note, the en passant square is only included
-     * if the side-to-move can legally capture en passant.
-     */
-    get FEN_FULL() {
-      return this.fen();
-    }
-
-    /**
      * Called when the initial board setup is changed with put() or remove().
      * modifies the SetUp and FEN properties of the header object. If the FEN
      * is equal to the default position, the SetUp and FEN are deleted the setup
@@ -754,7 +737,7 @@ namespace chess_js {
     /**
      * Reset the board to the initial starting position.
      */
-    reset() {
+    protected reset() {
       this.load(DEFAULT_POSITION);
     }
     // ! ****
@@ -2123,16 +2106,15 @@ namespace chess_js {
       return move;
     }
 
-    // ! ****
     protected turn() {
       return this._turn;
     }
 
-    history(): string[];
-    history({ verbose }: { verbose: true }): Move[];
-    history({ verbose }: { verbose: false }): string[];
-    history({ verbose }: { verbose: boolean }): string[] | Move[];
-    history({ verbose = false }: { verbose?: boolean } = {}) {
+    protected history(): string[];
+    protected history({ verbose }: { verbose: true }): Move[];
+    protected history({ verbose }: { verbose: false }): string[];
+    protected history({ verbose }: { verbose: boolean }): string[] | Move[];
+    protected history({ verbose = false }: { verbose?: boolean } = {}) {
       const reversedHistory = [];
       const moveHistory = [];
 
@@ -2184,24 +2166,20 @@ namespace chess_js {
       this._comments = currentComments;
     }
 
-    // ! ****
     protected getComment() {
       return this._comments[this.fen()];
     }
 
-    // ! ****
     protected setComment(comment: string) {
       this._comments[this.fen()] = comment.replace("{", "[").replace("}", "]");
     }
 
-    // ! ****
     protected deleteComment() {
       const comment = this._comments[this.fen()];
       delete this._comments[this.fen()];
       return comment;
     }
 
-    // ! ****
     protected getComments() {
       this._pruneComments();
       return Object.keys(this._comments).map((fen: string) => {
@@ -2209,7 +2187,6 @@ namespace chess_js {
       });
     }
 
-    // ! ****
     protected deleteComments() {
       this._pruneComments();
       return Object.keys(this._comments).map((fen) => {
@@ -2219,14 +2196,13 @@ namespace chess_js {
       });
     }
 
-    // ! ****
     protected moveNumber() {
       return this._moveNumber;
     }
   }
 
   class CustomChess extends Chess {
-    private gameState: ChessGameData = {
+    private gameState: CustomChess.GameData = {
       FenHistoryFull: [],
       FenHistoryTrimmed: [],
       pgn: null,
@@ -2236,37 +2212,53 @@ namespace chess_js {
       super(fen);
     }
 
+    /**
+     * Returns the trimmed FEN string for the current position.
+     * Note, the en passant square is only included
+     * if the side-to-move can legally capture en passant.
+     */
+    protected get FEN_TRIMMED() {
+      return this._trimFen(this.fen());
+    }
+
+    /**
+     * Returns the FEN string for the current position.
+     * Note, the en passant square is only included
+     * if the side-to-move can legally capture en passant.
+     */
+    protected get FEN_FULL() {
+      return this.fen();
+    }
+
     // the names _move and move are already taken
-    mkMove(
-      move: string | { from: string; to: string; promotion?: string },
-      { strict = false }: { strict?: boolean } = {}
-    ) {
+    private mkMove(move: string) {
       this.move(move);
 
       this.gameState.FenHistoryFull.push(this.FEN_FULL);
       this.gameState.FenHistoryTrimmed.push(this.FEN_TRIMMED);
     }
 
-    mkReset() {
-      this.actions.clearHistory();
-
+    /**
+     * Resets the board to the initial starting position
+     * and clears FEN history
+     */
+    private mkReset() {
+      this.actions.clearFenHistory();
       this.reset();
     }
 
     // todo rewrite this
     get fields() {
-      const fields: GameDataFields = {
-        historyFullLen: this.gameState.FenHistoryFull.length,
-        historyTrimmedLen: this.gameState.FenHistoryTrimmed.length,
+      const fields: CustomChess.GameDataFields = {
         // *
         pgn: this.gameState.pgn,
-        FENHistoryFull: this.gameState.FenHistoryFull,
-        FENhistoryTrimmed: this.gameState.FenHistoryTrimmed,
+        FenHistoryFull: this.gameState.FenHistoryFull,
+        FenHistoryTrimmed: this.gameState.FenHistoryTrimmed,
         // *
         lastTrimmed:
           this.gameState.FenHistoryTrimmed[
             this.gameState.FenHistoryTrimmed.length - 1
-          ] || null,
+          ],
         lastFull:
           this.gameState.FenHistoryFull[
             this.gameState.FenHistoryFull.length - 1
@@ -2279,17 +2271,13 @@ namespace chess_js {
 
     // todo rewrite this
     get actions() {
-      const actions: GameDataActions = {
-        clearHistory: () => {
+      const actions: CustomChess.GameDataActions = {
+        // todo delete?
+        clearFenHistory: () => {
           this.gameState.FenHistoryFull.length = 0;
           this.gameState.FenHistoryTrimmed.length = 0;
         },
-        addToFull: (fen: string) => {
-          this.gameState.FenHistoryFull.push(fen);
-        },
-        addToTrimmed: (fen: string) => {
-          this.gameState.FenHistoryTrimmed.push(fen);
-        },
+
         getFullFenAtIndex: (index) => {
           if (index <= 0) return chess_js.startingPosition;
 
@@ -2299,10 +2287,17 @@ namespace chess_js {
           return this.gameState.FenHistoryTrimmed?.[index] || null;
         },
         setPGN: (pgn: string[]) => {
+          this.mkReset();
+
           this.gameState.pgn = pgn;
+
+          this.gameState.pgn.forEach((move) => {
+            this.mkMove(move);
+          });
         },
-        setGameNumber: (gameNumber: number) => {
-          this.fields.gameNumber = gameNumber;
+        resetPGN: () => {
+          this.fields.pgn = [];
+          this.reset();
         },
       } as const;
 
@@ -2316,4 +2311,5 @@ namespace chess_js {
   }
 
   export const startingPosition = DEFAULT_POSITION;
+  export const trimmedStartPos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 }

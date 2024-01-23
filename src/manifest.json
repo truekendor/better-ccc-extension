@@ -17,6 +17,7 @@
       "js": [
         "chess-js.js",
         "helpers.js",
+        "components.js",
         "elo.js",
         "store.js",
         "clockFix.js",
@@ -35,5 +36,6 @@
     "48": "icons/icon_48.png",
     "32": "icons/icon_32.png"
   },
-  "permissions": ["scripting", "storage", "tabs", "activeTab"]
+  "permissions": ["scripting", "storage", "tabs", "activeTab", "webRequest"],
+  "host_permissions": ["https://cccc.chess.com/*", "https://www.chess.com/*"]
 }

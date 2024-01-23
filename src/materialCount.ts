@@ -1,6 +1,6 @@
 (function () {
-  const blackPiecesWrapper = dom_elements.MainWindow.crMaterialCountWrapper();
-  const whitePiecesWrapper = dom_elements.MainWindow.crMaterialCountWrapper();
+  const blackPiecesWrapper = components.MainWindow.crMaterialCountWrapper();
+  const whitePiecesWrapper = components.MainWindow.crMaterialCountWrapper();
 
   const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
     ".enginedata-clock-wrapper"
@@ -89,7 +89,7 @@ class CountMaterial {
   };
 
   static countMaterial(fen: string) {
-    const keys = utils.objectKeys(this.boardState);
+    const keys = Utils.objectKeys(this.boardState);
 
     // reset boardState
     keys.forEach((key) => {
@@ -124,8 +124,8 @@ class CountMaterial {
       this.boardState.piecesLeft -= diff;
     });
 
-    utils.removeAllChildNodes(this.whitePiecesWrapper);
-    utils.removeAllChildNodes(this.blackPiecesWrapper);
+    Utils.removeAllChildNodes(this.whitePiecesWrapper);
+    Utils.removeAllChildNodes(this.blackPiecesWrapper);
 
     keys.forEach((key) => {
       if (

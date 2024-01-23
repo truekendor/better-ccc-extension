@@ -1,4 +1,5 @@
 /** fixes the clock SVG near the timer */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function fixClockSVG() {
   // main wrapper with 50MRule and broken container of clock.svg
   const containers: HTMLDivElement[] = Array.from(

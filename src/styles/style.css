@@ -27,7 +27,7 @@
   --draw-bg: transparent;
 
   --ccc-wdl-font-size: 1.15rem;
-  --ccc-wdl-line-height: 1.2rem;
+  --ccc-wdl-line-height: ;
 
   --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
@@ -86,7 +86,7 @@ h2h header section
   grid-template-columns: 1fr min-content min-content min-content min-content 1fr;
   grid-template-rows: auto;
 
-  gap: 2px;
+  gap: 3px 0px;
 
   margin-block-end: 0.6rem;
   position: relative;
@@ -122,6 +122,8 @@ h2h header section
   align-items: center;
 
   flex-wrap: wrap;
+
+  line-height: 1;
 }
 
 .ccc-stat-wrapper:last-of-type {
@@ -134,10 +136,9 @@ h2h header section
   display: grid;
   grid-auto-flow: column;
 
-  gap: 0.2rem;
-
   height: 100%;
-  padding-inline: 0.4rem;
+
+  padding-inline-start: 0.4rem;
 
   border-radius: 3px;
 
@@ -146,11 +147,19 @@ h2h header section
   color: rgb(211, 211, 211);
 }
 
+.ccc-ptnml,
+.ccc-ptnml > p {
+  color: var(--ccc-light-gray);
+  font-size: var(--ccc-wdl-font-size);
+  line-height: 1;
+}
+
 .ccc-ptnml > p {
   word-break: keep-all;
 
   font-size: inherit;
   font-weight: inherit;
+
   color: inherit;
 }
 
@@ -210,7 +219,7 @@ result table section
 
 /* WDL */
 .ccc-stat-wrapper.ccc-wdl-wrapper {
-  row-gap: 0.4rem;
+  row-gap: 0.2rem;
   margin-block: 0.2rem !important;
 }
 
@@ -218,7 +227,8 @@ result table section
   display: inline-flex;
   border-radius: 2px;
 
-  padding-inline: 0.5rem;
+  padding-inline-start: 0;
+  padding-inline-end: 0.5rem;
 }
 
 .ccc-elo-wrapper {
@@ -271,13 +281,25 @@ pair highlight
 }
 
 .loss.ccc-draw {
-  --ccc-color: var(--color-text-loss);
-  background-color: var(--draw-bg);
+  /* --ccc-color: var(--color-text-loss); */
+  /* background-color: var(--draw-bg); */
 }
 
 .win.ccc-draw {
-  --ccc-color: var(--color-text-win);
-  background-color: var(--draw-bg);
+  /* --ccc-color: var(--color-text-win); */
+  /* background-color: var(--draw-bg); */
+}
+
+.ccc-draw {
+  --ccc-color: rgb(122, 122, 122);
+  /* --ccc-color: rgb(161, 161, 161); */
+  /* --ccc-color: rgba(0, 0, 0, 0); */
+  color: var(--ccc-color);
+}
+
+/* todo uncomment? */
+table > tr:nth-child(2n) .ccc-draw {
+  /* --ccc-color: rgb(138, 138, 138); */
 }
 
 .loss:last-child:nth-child(2n + 1) {
@@ -681,12 +703,7 @@ pair highlight
   z-index: 999999;
 }
 
-.dev-fixed-button > svg {
-  width: 16px;
-  height: 16px;
-}
-
-.ccc-test-move::after {
+.ccc-data-move::after {
   content: attr(data-move);
 
   display: block;
@@ -802,10 +819,22 @@ pair highlight
   position: relative;
 }
 
-.schedule-container > :not(.schedule-gameLink) a {
+/* todo move to default-ccc ? */
+.schedule-container > :not(.schedule-game-link) a {
   visibility: hidden;
 }
 
-.schedule-container > :is(.schedule-inProgress) a {
+.schedule-container > :is(.schedule-in-progress) a {
   visibility: hidden;
+}
+
+._tooltip_test {
+  position: absolute;
+
+  width: 100%;
+  height: min-content;
+
+  background-color: rgb(200, 94, 45);
+  top: 0;
+  transform: translateY(-100%);
 }

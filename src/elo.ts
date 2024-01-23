@@ -1,7 +1,7 @@
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
 
-class ELOCalculation {
+class ELO {
   private static confidenceIntervals = {
     default: 0.95,
     2: 0.954499736103642,
@@ -53,7 +53,7 @@ class ELOCalculation {
 
     const errorMargin = formatter.format(difference / 2);
 
-    return `±${errorMargin}`;
+    return `${errorMargin}`;
   }
 
   private static calculateEloDifference(percentage: number) {
