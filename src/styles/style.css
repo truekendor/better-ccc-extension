@@ -828,13 +828,6 @@ table > tr:nth-child(2n) .ccc-draw {
   visibility: hidden;
 }
 
-._tooltip_test {
-  position: absolute;
-
-  width: 100%;
-  height: min-content;
-
-  background-color: rgb(200, 94, 45);
-  top: 0;
-  transform: translateY(-100%);
+.schedule-in-progress > * {
+  pointer-events: none;
 }

@@ -4,16 +4,15 @@
 /// <reference path="./types/chess-com.d.ts" />
 /// <reference path="./types/chess-js.ts" />
 
-// ! defaults to chrome for some reason
 // todo fix this
 const _bg_browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
 // const abortController = new AbortController();
 
 _bg_browserPrefix.runtime.onMessage.addListener(function (
-  message: message_pass.message,
-  sender,
-  senderResponse
+  message: message_pass.message
+  // sender,
+  // senderResponse
 ) {
   try {
     const { type, payload } = message;
@@ -43,13 +42,12 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
         console.log("Game fetch error: ", e?.message ?? e);
       });
     } else if (type === "request_tb_eval") {
-      const { fen, currentPly } = payload;
-
-      requestTBScoreHandler(fen, currentPly)
-        .then((res) => {
-          senderResponse(res);
-        })
-        .catch((e) => console.log("TB fetch error: ", e?.message ?? e));
+      // const { fen, currentPly } = payload;
+      // requestTBScoreHandler(fen, currentPly)
+      //   .then((res) => {
+      //     senderResponse(res);
+      //   })
+      //   .catch((e) => console.log("TB fetch error: ", e?.message ?? e));
     }
 
     return false;
@@ -90,13 +88,15 @@ _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
       console.log("Fetch error: ", e)
     );
 
-    return true;
+    return false;
   } catch (e) {
     console.log("tab updated error", e);
   }
 });
 
-async function getCurrentTab() {
+async function getCurrentTab(): Promise<
+  browser.tabs.Tab | chrome.tabs.Tab | undefined
+> {
   try {
     const chromeTab = await chrome.tabs.query({
       active: true,
@@ -118,7 +118,7 @@ async function getCurrentTab() {
   }
 }
 
-async function onLoadHandler() {
+async function onLoadHandler(): Promise<false | undefined> {
   try {
     const tab = await getCurrentTab();
 
@@ -154,20 +154,23 @@ async function onLoadHandler() {
           pgn: getMovesFromPgn(response.pgn),
           reverseGameNumber,
           gameNumber: game,
+          eventId: event,
         },
       };
 
       _sendMessageToContent(message);
     }
 
-    return true;
+    return false;
   } catch (e: any) {
     console.log(e?.message);
   }
-  return true;
 }
 
-async function requestReverseGame(gameNumber: number, event: string) {
+async function requestReverseGame(
+  gameNumber: number,
+  event: string
+): Promise<void> {
   const reverseGameNumber =
     gameNumber % 2 === 0 ? gameNumber - 1 : gameNumber + 1;
 
@@ -189,31 +192,32 @@ async function requestReverseGame(gameNumber: number, event: string) {
       gameNumber,
       reverseGameNumber,
       pgn: pgnArray,
+      eventId: event,
     },
   };
 
   _sendMessageToContent(message);
 }
 
-async function requestTBScoreHandler(fen: string, ply: number) {
-  const tbResponse = await tbScore.requestTBScoreStandard(fen);
+// async function requestTBScoreHandler(fen: string, ply: number): {
+//   // const tbResponse = await tbScore.requestTBScoreStandard(fen);
 
-  const message: message_pass.message = {
-    type: "response_tb_standard",
-    payload: {
-      response: tbResponse || null,
-      ply,
-    },
-  };
+//   // const message: message_pass.message = {
+//   //   type: "response_tb_standard",
+//   //   payload: {
+//   //     response: tbResponse || null,
+//   //     ply,
+//   //   },
+//   // };
 
-  return message;
-}
+//   // return message;
+// }
 
 /**
  * returns moves string that looks like this
  * 1. e4 e5 2. Nf3 Nc6 3. Nf6 ...
  */
-function getMovesFromPgn(pgn: string) {
+function getMovesFromPgn(pgn: string): string[] {
   const data: string[] = pgn.split("\n");
   const pgnString = data[data.length - 1]!;
 
@@ -224,7 +228,7 @@ function getMovesFromPgn(pgn: string) {
  * returns string[] with moves in SAN format
  * ['e4', 'e5', 'Ke2', 'Ke7', 'Na3', ...]
  */
-function parsePGNMoves(pgn: string) {
+function parsePGNMoves(pgn: string): string[] {
   return (
     pgn
       .split(" ")
@@ -243,7 +247,10 @@ function parsePGNMoves(pgn: string) {
 
 // todo add description
 class URLHelper {
-  static getEventAndGame(tab: Tab) {
+  static getEventAndGame(tab: Tab): {
+    event: string | null;
+    game: number | null;
+  } {
     const url = tab?.url;
 
     // get "#" query params
@@ -291,12 +298,13 @@ class URLHelper {
     return eventAndGame;
   }
 
-  static getArchiveGameURL(eventId: string, gameNumber: number) {
+  static getArchiveGameURL(eventId: string, gameNumber: number): string {
     return `https://cccc.chess.com/archive?event=${eventId}&game=${gameNumber}`;
   }
 }
 
 // todo add description
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class TB7Score {
   private controller = new AbortController();
 
@@ -305,7 +313,9 @@ class TB7Score {
   private urlStandard = `${this.urlBase}?fen=`;
   private urlMainline = `${this.urlBase}/mainline?fen=`;
 
-  async requestTBScoreStandard(fen: string) {
+  async requestTBScoreStandard(
+    fen: string
+  ): Promise<lila.standard_response | undefined> {
     try {
       const requestURL = `${this.urlStandard}${fen}`;
 
@@ -320,7 +330,9 @@ class TB7Score {
     }
   }
 
-  async requestTBScoreMainline(fen: string) {
+  async requestTBScoreMainline(
+    fen: string
+  ): Promise<lila.mainline_response | undefined> {
     try {
       const requestURL = `${this.urlMainline}${fen}`;
 
@@ -338,12 +350,14 @@ class TB7Score {
 }
 
 // todo delete
-const tbScore = new TB7Score();
+// const tbScore = new TB7Score();
 
 /**
  * sends a message to the content scripts
  */
-async function _sendMessageToContent(message: message_pass.message) {
+async function _sendMessageToContent(
+  message: message_pass.message
+): Promise<any> {
   const tab = await getCurrentTab();
   if (!tab || !tab.id) return;
 
@@ -362,8 +376,6 @@ const listenToUrls = [
 chrome.webRequest.onCompleted.addListener(
   (details) => {
     if (!details.url.startsWith("https://cccc")) return;
-    console.log("response details!", details);
-
     const message: message_pass.message = {
       type: "response_interceptor",
       payload: {

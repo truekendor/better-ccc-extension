@@ -1,17 +1,8 @@
-const chessCurrent = chess_js.chess();
-const chessReverse = chess_js.chess();
+const chessCurrent = ChessJS.chess();
+const chessReverse = ChessJS.chess();
 
 // * =========================
 // * observer calls
-
-// todo move to state?
-const previousGameState: {
-  gameNumber: number;
-  pgn: string[];
-} = {
-  gameNumber: -1,
-  pgn: [],
-};
 
 observeEndOfLoad();
 
@@ -24,7 +15,7 @@ observeGameEnded();
 
 // * =========================
 // * observers
-function observeEndOfLoad() {
+function observeEndOfLoad(): void {
   const mainContentContainer =
     document.querySelector(".cpu-champs-page-main") ?? _DOM_Store.mainContainer;
 
@@ -34,7 +25,6 @@ function observeEndOfLoad() {
 
   const observer = new MutationObserver(() => {
     observer.disconnect();
-    // todo
 
     initStateValues();
     initMaterialCount();
@@ -42,9 +32,42 @@ function observeEndOfLoad() {
     setTimeout(createGameScheduleLinks, 40);
 
     setTimeout(() => {
+      const gameResultDiv = _DOM_Store.movesTableContainer.querySelector(
+        ".movetable-gameResult"
+      );
+
+      const queryRemovalNeeded =
+        !gameResultDiv && UserSettings.custom.clearQueryStringOnCurrentGame;
+
+      if (queryRemovalNeeded) {
+        new MessagePass({
+          type: "remove_query",
+          payload: null,
+        }).sendToBg();
+      }
+
+      if (gameResultDiv && _State.eventId) {
+        const eventId = _State.eventId;
+        const pgn = ExtractPageData.getPGNFromMoveTable();
+
+        ExtractPageData.getCurrentGameNumber().then((gameNumber) => {
+          ChessGamesCache.cacheFromObject({
+            eventId,
+            gameNumber,
+            pgn,
+            type: "full-game",
+          });
+        });
+      }
+
       _dev_request_game();
 
-      HighlightReverseDeviation.justDoIt();
+      // todo delete this?
+      // todo debug and see if this even needed
+      if (chessReverse.fields.pgn) {
+        FindReverseDeviation.findTranspositions();
+        HighlightReverseDeviation.highlight();
+      }
     }, 100);
   });
 
@@ -53,59 +76,33 @@ function observeEndOfLoad() {
   });
 }
 
-function observeGameEnded() {
-  const movesDiv = _DOM_Store.movesTableContainer;
-
+// * -----------------
+// *
+function observeGameEnded(): void {
   const observer = new MutationObserver(async () => {
-    const gameResult = movesDiv.querySelector(".movetable-gameResult");
-    if (!gameResult) return;
-
-    {
-      const pgn = ExtractPageData.getPGNFromMoveTable();
-
-      previousGameState.gameNumber =
-        await ExtractPageData.getCurrentGameNumber();
-      previousGameState.pgn.length = 0;
-      previousGameState.pgn.push(...pgn);
-    }
-  });
-
-  observer.observe(movesDiv, {
-    childList: true,
-  });
-}
-
-// todo uncomment
-function observeGameStarted() {
-  const observer = new MutationObserver(async (entries) => {
-    // todo delete comments
-    console.log("entries", entries);
-    if (document.hidden) return;
-
-    chessReverse.actions.clearFenHistory();
-    chessReverse.actions.resetPGN();
-
-    const gameNumber = await ExtractPageData.getCurrentGameNumber();
-
-    // todo delete logs
-    if (!isReverseGame(gameNumber, previousGameState.gameNumber)) {
-      Utils.log(
-        `not a reverse game 
-         current gameNumber: ${gameNumber}
-         prev gameNumber: ${previousGameState.gameNumber}
-      `,
-        "pRed"
-      );
+    const gameResultDiv = _DOM_Store.movesTableContainer.querySelector(
+      ".movetable-gameResult"
+    );
+    if (!gameResultDiv) {
+      Utils.log("no gameresult div", "pRed");
       return;
     }
-    Utils.log(
-      `is a reverse game 
-      ${gameNumber} 
-      ${previousGameState.gameNumber}`,
-      "pWhite"
-    );
 
-    chessCurrent.actions.setPGN(previousGameState.pgn);
+    Utils.log("game eneded!", "orange");
+    Utils.log("game eneded!", "orange");
+
+    const pgn = ExtractPageData.getPGNFromMoveTable();
+    const gameNumber = await ExtractPageData.getCurrentGameNumber();
+    const eventId = _State.eventId;
+
+    if (eventId) {
+      ChessGamesCache.cacheFromObject({
+        eventId,
+        gameNumber,
+        pgn,
+        type: "full-game",
+      });
+    }
   });
 
   observer.observe(_DOM_Store.movesTableContainer, {
@@ -113,9 +110,46 @@ function observeGameStarted() {
   });
 }
 
-// moves played/scrolled
+function observeGameStarted(): void {
+  const observer = new MutationObserver(async () => {
+    const gameResultDiv = _DOM_Store.movesTableContainer.querySelector(
+      ".movetable-gameResult"
+    );
+    if (gameResultDiv) {
+      Utils.log("no gameresult", "pRed");
+      return;
+    }
 
-function observeMoveScrolled() {
+    FindReverseDeviation.reset();
+
+    chessCurrent.actions.clearFenHistory();
+    chessCurrent.actions.resetPGN();
+
+    chessReverse.actions.clearFenHistory();
+    chessReverse.actions.resetPGN();
+
+    const gameNumber = await ExtractPageData.getCurrentGameNumber();
+
+    if (!_State.eventId) {
+      return;
+    }
+    const gameCache = ChessGamesCache.getGame(getReverseGameNumber(gameNumber));
+
+    if (gameCache) {
+      chessReverse.actions.setPGN(gameCache.pgn);
+      return;
+    }
+  });
+
+  observer.observe(_DOM_Store.movesTableContainer, {
+    childList: true,
+  });
+}
+
+// * -----------------
+// *
+
+function observeMoveScrolled(): void {
   const observer = new MutationObserver(() => {
     observer.disconnect();
     updateShareModalFENInput();
@@ -144,17 +178,19 @@ function observeMoveScrolled() {
   });
 }
 
-function observeMovePlayed() {
+function observeMovePlayed(): void {
   const movesTable = _DOM_Store.movesTable;
 
   const observer = new MutationObserver(() => {
     observer.disconnect();
     updateShareModalFENInput()._bind(addListenersToShareFENInput);
 
-    const pgn = ExtractPageData.getPGNFromMoveTable();
-    chessCurrent.actions.setPGN(pgn);
-    HighlightReverseDeviation.justDoIt();
+    {
+      const pgn = ExtractPageData.getPGNFromMoveTable();
+      chessCurrent.actions.setPGN(pgn);
 
+      HighlightReverseDeviation.findTranspositionsAndHighlight();
+    }
     observer.observe(movesTable, {
       childList: true,
       subtree: true,
@@ -186,15 +222,11 @@ browserPrefix.runtime.onMessage.addListener(function (
         return;
       }
 
-      Utils.log("Game PGN received", "green");
-
       setTimeout(
         () => {
-          Utils.log("delayed highlight", "orange");
-          HighlightReverseDeviation.justDoIt();
+          HighlightReverseDeviation.findTranspositionsAndHighlight();
         },
         // todo change this to better metric
-        // arbitrary
         1100
       );
     }
@@ -211,14 +243,19 @@ browserPrefix.runtime.onMessage.addListener(function (
 
       // todo replace with some logic
       setTimeout(() => {
-        HighlightReverseDeviation.justDoIt();
+        HighlightReverseDeviation.findTranspositionsAndHighlight();
       }, 1500);
 
       return false;
     }
 
     if (type === "reverse_pgn_response") {
-      const { pgn: reversePGN } = payload;
+      const {
+        pgn: reversePGN,
+        gameNumber,
+        reverseGameNumber,
+        eventId,
+      } = payload;
       const currentPGN = ExtractPageData.getPGNFromMoveTable();
 
       if (!reversePGN) {
@@ -227,7 +264,17 @@ browserPrefix.runtime.onMessage.addListener(function (
       }
 
       chessCurrent.actions.setPGN(currentPGN);
+      chessCurrent.fields.gameNumber = gameNumber;
+
       chessReverse.actions.setPGN(reversePGN);
+      chessReverse.fields.gameNumber = reverseGameNumber;
+
+      ChessGamesCache.cacheFromObject({
+        pgn: reversePGN,
+        eventId,
+        gameNumber: reverseGameNumber,
+        type: "full-game",
+      });
 
       return false;
     }
@@ -239,71 +286,174 @@ browserPrefix.runtime.onMessage.addListener(function (
   return true;
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-class HighlightReverseDeviation {
-  private static sequentialAgreementLength: number = -1;
-  private static transpositionList: Array<CustomChess.TranspositionObject> = [];
-  private static moveTableElementList: HTMLTableCellElement[] = [];
+class TranspositionEntry {
+  public currentPly: number;
+  public reversePly: number;
+  public fen: string;
 
-  // todo add description
-  static highlight() {
-    const reversePGN = chessReverse.fields.pgn;
-    if (!reversePGN) {
+  constructor({ currentPly, reversePly, fen }: TranspositionEntry) {
+    this.currentPly = currentPly;
+    this.reversePly = reversePly;
+    this.fen = fen;
+  }
+}
+
+class TranspositionsObjectPool {
+  private index = 0;
+  private pool = this.setupTranspositionsList();
+
+  add(obj: TranspositionEntry): void {
+    if (this.index === this.pool.length) {
       return;
     }
 
-    this.highlightSequential(reversePGN);
-    this.highlightTranspositions(reversePGN);
+    this.pool[this.index].currentPly = obj.currentPly;
+    this.pool[this.index].reversePly = obj.reversePly;
+    this.pool[this.index].fen = obj.fen;
+
+    this.index += 1;
   }
 
-  static findTranspositions() {
-    this.resetTranspositions();
-    HighlightReverseDeviation.calculateSequential();
+  reset(): void {
+    this.pool.forEach((_, index, arr) => {
+      arr[index].currentPly = -1;
+      arr[index].reversePly = -1;
+      arr[index].fen = "";
+    });
 
-    const currentFenMap: Record<string, number> = {};
-    const reverseFenMap: Record<string, number> = {};
+    this.index = 0;
+  }
+
+  get values(): readonly TranspositionEntry[] {
+    return this.pool.slice(0, this.index);
+  }
+
+  private setupTranspositionsList(): readonly TranspositionEntry[] {
+    const arr: readonly TranspositionEntry[] = new Array(100)
+      .fill(null)
+      .map(() => {
+        return new TranspositionEntry({
+          currentPly: -1,
+          reversePly: -1,
+          fen: "",
+        });
+      });
+
+    return arr;
+  }
+}
+
+// todo rename?
+class FindReverseDeviation {
+  private static sequentialAgreementLength: number = -1;
+  private static transpositionsObjectPool = new TranspositionsObjectPool();
+
+  private static currentGameFenMap = new Map<string, number>();
+  private static reverseGameFenMap = new Map<string, number>();
+
+  static get agreementLength(): number {
+    return this.sequentialAgreementLength;
+  }
+
+  static get transpositions(): readonly TranspositionEntry[] {
+    return this.transpositionsObjectPool.values;
+  }
+
+  static findTranspositions(): void {
+    this.reset();
+    this.calcSequentialFromPGN();
 
     if (this.sequentialAgreementLength <= 0) {
       return;
     }
 
     chessCurrent.fields.FenHistoryTrimmed.forEach((fenStr, index) => {
-      currentFenMap[fenStr] = index;
+      this.currentGameFenMap.set(fenStr, index);
     });
 
     chessReverse.fields.FenHistoryTrimmed.forEach((fenStr, index) => {
-      reverseFenMap[fenStr] = index;
+      this.reverseGameFenMap.set(fenStr, index);
     });
 
-    const keys = Utils.objectKeys(currentFenMap);
-
-    keys.forEach((fen) => {
-      if (currentFenMap[fen] < this.sequentialAgreementLength) return;
-
-      if (reverseFenMap[fen] !== undefined) {
-        this.transpositionList.push({
-          currentPly: currentFenMap[fen],
-          reversePly: reverseFenMap[fen],
-          fen: fen,
-        });
+    this.currentGameFenMap.forEach((value, fenKey) => {
+      if (value < this.sequentialAgreementLength) {
+        return;
       }
+      const reversePly = this.reverseGameFenMap.get(fenKey);
+
+      if (!this.reverseGameFenMap.has(fenKey) || !reversePly) {
+        return;
+      }
+
+      const obj = new TranspositionEntry({
+        currentPly: value,
+        reversePly: reversePly,
+        fen: fenKey,
+      });
+
+      this.transpositionsObjectPool.add(obj);
     });
   }
 
-  // todo delete or rename
-  static justDoIt() {
-    this.moveTableElementList.length = 0;
-    this.moveTableElementList.push(
-      ...ExtractPageData.getMovesTableCellElements()
-    );
+  static reset(): void {
+    this.currentGameFenMap.clear();
+    this.reverseGameFenMap.clear();
 
+    this.transpositionsObjectPool.reset();
+
+    this.sequentialAgreementLength = 0;
+  }
+
+  private static calcSequentialFromPGN(): void {
+    const currentPGN = chessCurrent.fields.pgn;
+    const reversePGN = chessReverse.fields.pgn;
+
+    if (!currentPGN || !reversePGN) {
+      this.sequentialAgreementLength = -1;
+      return;
+    }
+
+    let sequel = 0;
+
+    for (let i = 0; i < currentPGN.length; i++) {
+      if (currentPGN[i] !== reversePGN[i]) {
+        break;
+      }
+
+      sequel++;
+    }
+
+    this.sequentialAgreementLength = sequel;
+  }
+}
+
+class HighlightReverseDeviation {
+  private static moveTableElementList: HTMLTableCellElement[] = [];
+
+  // todo add description
+  static highlight(): void {
+    if (!chessReverse.fields.pgn || chessReverse.fields.pgn.length < 20) {
+      return;
+    }
+
+    this.highlightSequential();
+    this.highlightTranspositions();
+  }
+
+  // todo add description
+  static findTranspositionsAndHighlight(): void {
     this.clearMoveTableClasses();
-    this.findTranspositions();
+
+    this.moveTableElementList.length = 0;
+    this.moveTableElementList.push(...ExtractPageData.getMovesElements());
+
+    FindReverseDeviation.findTranspositions();
     this.highlight();
   }
 
-  static clearMoveTableClasses() {
-    const moves = ExtractPageData.getMovesTableCellElements();
+  private static clearMoveTableClasses(): void {
+    const moves = ExtractPageData.getMovesElements();
+
     moves.forEach((move) => {
       move.classList.remove("ccc-move-agree");
       move.classList.remove("ccc-data-move");
@@ -311,36 +461,13 @@ class HighlightReverseDeviation {
     });
   }
 
-  private static calculateSequential() {
-    const curPGN = chessCurrent.fields.pgn;
+  private static highlightSequential(): void {
     const reversePGN = chessReverse.fields.pgn;
 
-    if (!curPGN || !reversePGN) {
-      this.sequentialAgreementLength = -1;
-      return;
-    }
-
-    let sequel = 0;
-
-    for (let i = 0; i < curPGN.length; i++) {
-      if (curPGN[i] !== reversePGN[i]) break;
-
-      sequel++;
-    }
-
-    this.sequentialAgreementLength = sequel;
-  }
-
-  private static resetTranspositions() {
-    this.transpositionList.length = 0;
-    this.sequentialAgreementLength = 0;
-  }
-
-  private static highlightSequential(reversePGN: readonly string[]): void {
     this.moveTableElementList.forEach((moveElement, index) => {
-      if (index < this.sequentialAgreementLength) {
+      if (index < FindReverseDeviation.agreementLength) {
         moveElement.classList.add("ccc-move-agree");
-      } else if (index === this.sequentialAgreementLength) {
+      } else if (index === FindReverseDeviation.agreementLength) {
         const reverseMove = reversePGN![index];
 
         moveElement.classList.add("ccc-data-move");
@@ -349,37 +476,50 @@ class HighlightReverseDeviation {
     });
   }
 
-  private static highlightTranspositions(reversePGN: readonly string[]): void {
-    this.transpositionList.forEach((transpositionObject, index) => {
-      this.moveTableElementList[transpositionObject.currentPly].classList.add(
-        "ccc-move-agree"
-      );
+  private static highlightTranspositions(): void {
+    if (!chessReverse.fields.pgn) {
+      return;
+    }
 
-      const isLastTransposition = this.transpositionList.length === index + 1;
+    FindReverseDeviation.transpositions.forEach(
+      (transpositionObject, index) => {
+        this.moveTableElementList[transpositionObject.currentPly].classList.add(
+          "ccc-move-agree"
+        );
 
-      if (!isLastTransposition) {
-        return;
+        const isLastTransposition =
+          FindReverseDeviation.transpositions.length === index + 1;
+
+        if (!isLastTransposition) {
+          return;
+        }
+
+        const reverseFenIndex = chessReverse.fields.FenHistoryTrimmed.indexOf(
+          transpositionObject.fen
+        );
+        const reverseMove = chessReverse.fields.pgn![reverseFenIndex + 1];
+
+        const moveElement =
+          this.moveTableElementList[transpositionObject.currentPly + 1];
+
+        const moveNumber = (reverseFenIndex + (reverseFenIndex % 2)) / 2 + 1;
+
+        moveElement.title = `Deviated at ${moveNumber}. ${
+          reverseFenIndex % 2 === 1 ? " " : " .."
+        }${reverseMove}`;
+
+        moveElement.classList.add("ccc-data-move");
+        moveElement.setAttribute("data-move", reverseMove);
       }
-
-      const reverseFenIndex = chessReverse.fields.FenHistoryTrimmed.indexOf(
-        transpositionObject.fen
-      );
-      const reverseMove = reversePGN[reverseFenIndex + 1];
-
-      const moveElement =
-        this.moveTableElementList[transpositionObject.currentPly + 1];
-
-      moveElement.classList.add("ccc-data-move");
-      moveElement.setAttribute("data-move", reverseMove);
-    });
+    );
   }
 }
 
-// todo rename or delete ?
+// todo rename
 class ExtractPageData {
   /**
    * @todo make it fail if webpage is not in focus
-   * @todo move to _State as private method
+   * @todo move to _State as private method?
    * the only ~reliable way to get current game number from webpage
    */
   static async getCurrentGameNumber(): Promise<number> {
@@ -448,9 +588,10 @@ class ExtractPageData {
   }
 
   /**
-   * gets list of an event IDs and pushes them in the state
+   * todo redo/name
+   * sets latest event id from web pages event list to state
    */
-  static getEventLinks() {
+  static setEventIdToState(): void {
     const eventNameWrapper: HTMLDivElement =
       _DOM_Store.bottomPanel.querySelector(".bottomtable-event-name-wrapper")!;
 
@@ -475,7 +616,7 @@ class ExtractPageData {
   static getPGNFromMoveTable(): string[] {
     const pgnArray: string[] = [];
     const cellsWithMoves: NodeListOf<HTMLTableCellElement> =
-      this.getMovesTableCellElements();
+      this.getMovesElements();
 
     cellsWithMoves.forEach((cell) => {
       const text = cell.textContent;
@@ -489,7 +630,7 @@ class ExtractPageData {
     return filteredPgnArray;
   }
 
-  static getMovesTableCellElements() {
+  static getMovesElements(): NodeListOf<HTMLTableCellElement> {
     return _DOM_Store.movesTable.querySelectorAll("td");
   }
 
@@ -534,7 +675,7 @@ class ExtractPageData {
   }
 
   /** returns index of a current pressed button (vote/standings/schedule...) */
-  private static getPressedButtonIndex() {
+  private static getPressedButtonIndex(): number {
     const buttons: NodeListOf<HTMLSpanElement> =
       _DOM_Store.tabButtonsContainer.querySelectorAll(".selection-panel-item");
     let selectedBtnIndex = -1;
@@ -550,7 +691,7 @@ class ExtractPageData {
     return selectedBtnIndex;
   }
 
-  private static parseEventLink(eventLink: HTMLAnchorElement) {
+  private static parseEventLink(eventLink: HTMLAnchorElement): string | null {
     const parsedLink = eventLink.href.split("#")[1];
 
     if (!parsedLink) return null;
@@ -559,8 +700,7 @@ class ExtractPageData {
   }
 }
 
-function initStateValues() {
-  // update state
+function initStateValues(): void {
   const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
     ".schedule-container"
   );
@@ -581,33 +721,19 @@ function initStateValues() {
   _State.isEventActive = gameInProgress;
 }
 
-function initMaterialCount() {
+function initMaterialCount(): void {
   const currentFEN = chessCurrent.fields.lastFull;
-  CountMaterial.countMaterial(currentFEN || chess_js.trimmedStartPos);
+  CountMaterial.countMaterial(currentFEN || ChessJS.trimmedStartPos);
 }
 
-// todo delete
-function isReverseGame(gameNumber1: number, gameNumber2: number) {
-  const diff = Math.abs(gameNumber1 - gameNumber2);
+function getReverseGameNumber(currentGameNumber: number): number {
+  const offset = currentGameNumber % 2 === 0 ? -1 : 1;
 
-  if (diff !== 1) return false;
-  if ((gameNumber1 + gameNumber2 + 1) % 4 !== 0) return false;
-
-  return true;
+  return currentGameNumber + offset;
 }
 
-// function createFixedButton() {
-//   const btn = document.createElement("button");
-//   btn.classList.add("dev-fixed-button");
-
-//   btn.textContent = "click";
-
-//   document.body.append(btn);
-
-//   return btn;
-// }
-
-async function _dev_request_game() {
+// todo delete?
+async function _dev_request_game(): Promise<void> {
   const gameNumber = await ExtractPageData.getCurrentGameNumber();
   const eventId = _State.eventId;
 
@@ -615,6 +741,7 @@ async function _dev_request_game() {
     console.log("event id is null");
     return;
   }
+
   const message: message_pass.message = {
     type: "reverse_pgn_request",
     payload: {
@@ -624,4 +751,77 @@ async function _dev_request_game() {
   };
 
   ExtensionHelper.messages.sendMessage(message);
+}
+
+// todo move to index.d.ts
+type GameCacheEntry = {
+  pgn: string[];
+  type: "intermediate-cache" | "full-game";
+};
+
+class ChessGamesCache {
+  // ? cache structure example:
+  // {
+  //  ---- game number ----
+  //   22: {
+  //       pgn: ['e4', 'e5', ...]
+  //       type: 'full-game'
+  //     },
+  //   45: {
+  //       pgn: ['g4', 'd5', ...]
+  //       type: 'intermediate-cache'
+  //     }
+  // }
+  // todo make private
+  static cache = new Map<number, GameCacheEntry>();
+  private static currentEventId: string;
+
+  static async cacheCurrent(): Promise<void> {
+    const pgn = ExtractPageData.getPGNFromMoveTable();
+    const gameNumber = await ExtractPageData.getCurrentGameNumber();
+    const eventId = _State.eventId;
+
+    if (!eventId) return;
+
+    ChessGamesCache.cacheFromObject({
+      eventId,
+      gameNumber,
+      pgn,
+      type: "full-game",
+    });
+  }
+
+  static cacheFromObject({
+    eventId,
+    gameNumber,
+    pgn,
+    type,
+  }: {
+    gameNumber: number;
+    eventId: string;
+    pgn: string[];
+    type: GameCacheEntry["type"];
+  }): void {
+    if (this.currentEventId !== eventId) {
+      this.currentEventId = eventId;
+      this.cache.clear();
+    }
+
+    this.cache.set(gameNumber, {
+      type,
+      pgn,
+    });
+  }
+
+  static getGame(gameNumber: number): GameCacheEntry | null {
+    if (!this.currentEventId) {
+      return null;
+    }
+
+    if (!this.cache.has(gameNumber)) {
+      return null;
+    }
+
+    return this.cache.get(gameNumber)!;
+  }
 }

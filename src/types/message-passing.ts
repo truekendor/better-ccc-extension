@@ -46,6 +46,7 @@ namespace message_pass {
       pgn: string[] | null;
       gameNumber: number;
       reverseGameNumber: number;
+      eventId: string;
     }
   >;
 

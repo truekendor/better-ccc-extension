@@ -20,7 +20,7 @@ namespace SVG {
       strokeLinejoin: "stroke-linejoin",
     } as const;
 
-    protected static createSVG(options: Partial<SVGOption>) {
+    protected static createSVG(options: Partial<SVGOption>): SVGSVGElement {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 
       const keys = Object.keys(options) as (keyof Partial<SVGOption>)[];
@@ -38,7 +38,7 @@ namespace SVG {
       return svg;
     }
 
-    protected static createPath(options: Partial<SVGOption>) {
+    protected static createPath(options: Partial<SVGOption>): void {
       if (!this.currentSVG) return;
 
       const path = document.createElementNS(
@@ -63,49 +63,49 @@ namespace SVG {
     // * SVGs are taken from https://github.com/lichess-org/lila/tree/master/public/piece/mpchess
 
     // * white pieces
-    static get w_pawn() {
+    static get w_pawn(): SVGSVGElement {
       return this.createPawn("white");
     }
 
-    static get w_bishop() {
+    static get w_bishop(): SVGSVGElement {
       return this.createBishop("white");
     }
 
-    static get w_knight() {
+    static get w_knight(): SVGSVGElement {
       return this.createKnight("white");
     }
 
-    static get w_rook() {
+    static get w_rook(): SVGSVGElement {
       return this.createRook("white");
     }
 
-    static get w_queen() {
+    static get w_queen(): SVGSVGElement {
       return this.createQueen("white");
     }
 
     // * black pieces
-    static get b_pawn() {
+    static get b_pawn(): SVGSVGElement {
       return this.createPawn("black");
     }
 
-    static get b_bishop() {
+    static get b_bishop(): SVGSVGElement {
       return this.createBishop("black");
     }
 
-    static get b_knight() {
+    static get b_knight(): SVGSVGElement {
       return this.createKnight("black");
     }
 
-    static get b_rook() {
+    static get b_rook(): SVGSVGElement {
       return this.createRook("black");
     }
 
-    static get b_queen() {
+    static get b_queen(): SVGSVGElement {
       return this.createQueen("black");
     }
 
     // *
-    private static createPawn(color: PieceColor) {
+    private static createPawn(color: PieceColor): SVGSVGElement {
       const fillColor = this.getFillColor(color);
       const strokeColor = this.getStrokeColor(color);
 
@@ -126,7 +126,7 @@ namespace SVG {
       return svg;
     }
 
-    private static createBishop(color: PieceColor) {
+    private static createBishop(color: PieceColor): SVGSVGElement {
       const fillColor = this.getFillColor(color);
       const strokeColor = this.getStrokeColor(color);
 
@@ -147,7 +147,7 @@ namespace SVG {
       return svg;
     }
 
-    private static createKnight(color: PieceColor) {
+    private static createKnight(color: PieceColor): SVGSVGElement {
       const fillColor = this.getFillColor(color);
       const strokeColor = this.getStrokeColor(color);
 
@@ -168,7 +168,7 @@ namespace SVG {
       return svg;
     }
 
-    private static createRook(color: PieceColor) {
+    private static createRook(color: PieceColor): SVGSVGElement {
       const fillColor = this.getFillColor(color);
       const strokeColor = this.getStrokeColor(color);
 
@@ -203,7 +203,7 @@ namespace SVG {
       return svg;
     }
 
-    private static createQueen(color: PieceColor) {
+    private static createQueen(color: PieceColor): SVGSVGElement {
       const fillColor = this.getFillColor(color);
       const strokeColor = this.getStrokeColor(color);
       const strokeWidth = color === "white" ? "1.4" : "1.2";
@@ -233,19 +233,25 @@ namespace SVG {
     }
 
     // *
-    private static getFillColor(color: PieceColor) {
-      const fillColor: SVGColors = color === "white" ? "white" : "black";
+    private static getFillColor(
+      color: PieceColor
+    ): Extract<SVGColors, "white" | "black"> {
+      const fillColor: Extract<SVGColors, "white" | "black"> =
+        color === "white" ? "white" : "black";
       return fillColor;
     }
 
-    private static getStrokeColor(color: PieceColor) {
-      const strokeColor: SVGColors = color === "white" ? "black" : "#CBCACA";
+    private static getStrokeColor(
+      color: PieceColor
+    ): Extract<SVGColors, "black" | "#CBCACA"> {
+      const strokeColor: Extract<SVGColors, "black" | "#CBCACA"> =
+        color === "white" ? "black" : "#CBCACA";
       return strokeColor;
     }
   }
 
   export class Icons extends SVGBase {
-    static get caretDown() {
+    static get caretDown(): SVGSVGElement {
       const svg = this.createSVG({
         fill: "none",
         viewBox: "0 0 320 512",
@@ -263,7 +269,7 @@ namespace SVG {
       return svg;
     }
 
-    static get wave() {
+    static get wave(): SVGSVGElement {
       const svg = this.createSVG({
         viewBox: "0 0 1200 120",
       });
@@ -275,7 +281,7 @@ namespace SVG {
       return svg;
     }
 
-    static get xMark() {
+    static get xMark(): SVGSVGElement {
       const svg = this.createSVG({
         viewBox: "0 0 384 512",
         height: "1em",
@@ -291,7 +297,7 @@ namespace SVG {
       return svg;
     }
 
-    static get clock() {
+    static get clock(): SVGSVGElement {
       // default chess com timer
       // https://www.chess.com/bundles/web/images/svg/tic.b039b4f5.svg
       const svg = this.createSVG({
@@ -310,7 +316,7 @@ namespace SVG {
       return svg;
     }
 
-    static get flask() {
+    static get flask(): SVGSVGElement {
       const svg = this.createSVG({
         height: "1em",
         viewBox: "0 0 448 512",
@@ -325,7 +331,7 @@ namespace SVG {
       return svg;
     }
 
-    static get gear() {
+    static get gear(): SVGSVGElement {
       const svg = this.createSVG({
         viewBox: "0 0 24 24",
       });
@@ -352,7 +358,7 @@ class CrosstableHelper {
   /** gets scores from a NodeList and returns them as an array */
   public static getScoresFromList(
     gameResultElementList: NodeListOf<HTMLDivElement>
-  ) {
+  ): ResultAsScore[] {
     const scoresArray: ResultAsScore[] = [];
 
     gameResultElementList.forEach((result) => {
@@ -365,7 +371,9 @@ class CrosstableHelper {
   /**
    * calculates WDL, ELO and all additional stats
    */
-  public static calculateStats(scoresArray: ResultAsScore[]) {
+  public static calculateStats(
+    scoresArray: ResultAsScore[]
+  ): readonly [PTNML, WDL, AdditionalStats] {
     const wdlArray: WDL = [0, 0, 0]; // [W D L] in that order
     scoresArray.forEach((score) => {
       // score is either 1 0 -1
@@ -533,7 +541,7 @@ class CrosstableHelper {
     gameResultList: NodeListOf<HTMLDivElement>,
     scoresArray: ResultAsScore[],
     pairsPerRow: number
-  ) {
+  ): void {
     gameResultList.forEach((elem, index) => {
       elem.id = "ccc-result";
 
@@ -560,7 +568,7 @@ class CrosstableHelper {
   // * ========================
   // * private methods
 
-  private static getResultFromNode(node: HTMLDivElement) {
+  private static getResultFromNode(node: HTMLDivElement): ResultAsScore {
     if (node.classList.contains("win")) return 1;
     if (node.classList.contains("draw")) return 0;
     return -1;
@@ -569,7 +577,7 @@ class CrosstableHelper {
   private static getClassNameForPair(
     lastResult: ResultAsScore,
     currentResult: ResultAsScore
-  ) {
+  ): ValuesOf<typeof this.classNames> {
     const pairScore = lastResult + currentResult;
 
     if (pairScore === 2) return this.classNames.doubleWin;
@@ -582,22 +590,6 @@ class CrosstableHelper {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ExtensionHelper {
-  private static localStorageMethods = {
-    getState: function <T extends keyof state_types.UserSettings>(
-      keys: T | T[]
-    ) {
-      return browserPrefix?.storage?.local
-        .get(keys)
-        .catch(Utils.logError) as Promise<
-        Prettify<Pick<state_types.UserSettings, T>>
-      >;
-    },
-
-    setState: function <T extends Partial<state_types.UserSettings>>(obj: T) {
-      return browserPrefix?.storage?.local.set(obj).catch(Utils.logError);
-    },
-  } as const;
-
   private static messageMethods = {
     sendMessage(message: message_pass.message) {
       // @ts-ignore
@@ -621,35 +613,36 @@ class ExtensionHelper {
   // * =====================
   // * getters
 
+  // todo add return type
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   static get localStorage() {
-    class localStorage {
-      static getState<T extends keyof state_types.UserSettings>(keys: T | T[]) {
+    const localStorageMethods = {
+      getState: function <T extends keyof user_config.settings>(keys: T | T[]) {
         return browserPrefix?.storage?.local
           .get(keys)
           .catch(Utils.logError) as Promise<
-          Prettify<Pick<state_types.UserSettings, T>>
+          Prettify<Pick<user_config.settings, T>>
         >;
-      }
+      },
 
-      static setState<T extends Partial<state_types.UserSettings>>(obj: T) {
+      setState: function <T extends Partial<user_config.settings>>(obj: T) {
         return browserPrefix?.storage?.local.set(obj).catch(Utils.logError);
-      }
-    }
-    return localStorage;
+      },
+    } as const;
 
-    // return this.localStorageMethods;
+    return localStorageMethods;
   }
 
-  static get messages() {
+  static get messages(): typeof this.messageMethods {
     return this.messageMethods;
   }
 
   /**
    * todo add description
    */
-  public static applyUserSettings<
-    K extends BooleanKeys<state_types.UserSettings>
-  >(key: K) {
+  public static applyUserSettings<K extends BooleanKeys<user_config.settings>>(
+    key: K
+  ): void {
     switch (key) {
       case "replaceClockSvg":
         fixClockSVG();
@@ -671,13 +664,16 @@ class ExtensionHelper {
       case "ptnml":
       case "drawnPairNeutralColorWL":
         break;
+      case "clearQueryStringOnCurrentGame":
+        this.handlerClearQuery();
+        break;
       default:
         console.log(key satisfies never);
         break;
     }
   }
 
-  private static handleMaterialCountCase() {
+  private static handleMaterialCountCase(): void {
     const capturedPiecesWrappers: NodeListOf<HTMLDivElement> =
       document.querySelectorAll(".ccc-captured-pieces-wrapper");
 
@@ -686,6 +682,40 @@ class ExtensionHelper {
 
       wrapper.classList[action]("ccc-hide");
     });
+  }
+
+  /**
+   * removes event id from hash query string
+   * if clicked on ongoing game
+   */
+  private static handlerClearQuery(): void {
+    document.addEventListener("click", (e) => {
+      if (!e.target) return;
+      console.log("click", e.target);
+
+      // @ts-ignore
+      if (e.target?.classList?.contains("schedule-in-progress")) {
+        new MessagePass({
+          type: "remove_query",
+          payload: null,
+        }).sendToBg();
+      }
+    });
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// todo add description
+class MessagePass {
+  private message: message_pass.message;
+
+  constructor(obg: message_pass.message) {
+    this.message = obg;
+  }
+
+  sendToBg(): Promise<unknown> {
+    // @ts-ignore
+    return browserPrefix.runtime.sendMessage(this.message) as Promise<unknown>;
   }
 }
 
@@ -705,31 +735,34 @@ class Utils {
   } as const;
 
   /** removes all whitespaces from the string */
-  public static removeWhitespace(str: string) {
+  public static removeWhitespace(str: string): string {
     return str.replace(/\s/g, "");
   }
 
-  public static objectKeys<T extends object>(obj: T) {
+  public static objectKeys<T extends object>(obj: T): Array<keyof T> {
     return Object.keys(obj) as Array<keyof T>;
   }
 
-  public static logError(e: any) {
+  public static logError(e: any): void {
     console.log(e?.message ?? e);
   }
 
-  public static log(message: string, color: keyof typeof this.colorMap) {
+  public static log(
+    message: string | number,
+    color: keyof typeof this.colorMap
+  ): void {
     const optionsString = `color: ${this.colorMap[color]}; font-weight: bold;`;
 
     console.log(`%c${message}`, optionsString);
   }
 
   /** removes passed node from the DOM */
-  public static removeNode(nodeToRemove: HTMLGenericNode) {
+  public static removeNode(nodeToRemove: HTMLGenericNode): void {
     nodeToRemove.parentNode?.removeChild(nodeToRemove);
   }
 
   /** removes all children from the passed node */
-  public static removeAllChildNodes(node: HTMLGenericNode) {
+  public static removeAllChildNodes(node: HTMLGenericNode): void {
     while (node.firstChild) {
       node.removeChild(node.firstChild);
     }
@@ -745,7 +778,7 @@ class Maybe {
     this.value = value;
   }
 
-  _bind<T extends (...args: any) => any>(fn: T) {
+  _bind<T extends (...args: any) => any>(fn: T): Maybe {
     if (this.value === undefined || this.value === null) {
       return new Maybe(null);
     }

@@ -18,7 +18,7 @@ const formatter = Intl.NumberFormat(undefined, {
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
 loadUserSettings().catch(Utils.logError);
-async function loadUserSettings() {
+async function loadUserSettings(): Promise<void> {
   await ExtensionHelper.localStorage
     .getState([
       "elo",
@@ -28,6 +28,7 @@ async function loadUserSettings() {
       "replaceClockSvg",
       "displayEngineNames",
       "materialCount",
+      "clearQueryStringOnCurrentGame",
     ])
     .then((state) => {
       const keys = Utils.objectKeys(state);
@@ -61,7 +62,7 @@ observeModalOpen();
 
 // * ---------------
 // * extension logic
-function convertCrossTable() {
+function convertCrossTable(): void {
   try {
     enginesAmount = document.querySelectorAll(".crosstable-empty").length || 0;
 
@@ -101,7 +102,9 @@ function convertCrossTable() {
   }
 }
 
-function getImageIndexes(cell: HTMLTableCellElement) {
+function getImageIndexes(
+  cell: HTMLTableCellElement
+): readonly [number, number] {
   let index_1: number = -1;
   let index_2: number = -1;
 
@@ -131,7 +134,7 @@ function getImageIndexes(cell: HTMLTableCellElement) {
   return [index_1, index_2] as const;
 }
 
-function convertCell(cell: HTMLTableCellElement) {
+function convertCell(cell: HTMLTableCellElement): void {
   const [index_1, index_2] = getImageIndexes(cell);
 
   // header with a score string like this: 205 - 195 [+10]
@@ -235,7 +238,7 @@ function convertCell(cell: HTMLTableCellElement) {
 }
 
 // observes prematurely opened cross table
-function observeInitial() {
+function observeInitial(): void {
   try {
     const initObserver = new MutationObserver(() => {
       initObserver.disconnect();
@@ -255,7 +258,7 @@ function observeInitial() {
 }
 
 // observes cells with no h2h records
-function observeEmptyCell(cell: HTMLTableCellElement) {
+function observeEmptyCell(cell: HTMLTableCellElement): void {
   const observer = new MutationObserver(() => {
     observer.disconnect();
     convertCell(cell);
@@ -266,7 +269,7 @@ function observeEmptyCell(cell: HTMLTableCellElement) {
   });
 }
 
-function observeModalOpen() {
+function observeModalOpen(): void {
   const observer = new MutationObserver(() => {
     shareModalCb();
 
@@ -281,7 +284,7 @@ function observeModalOpen() {
 }
 
 // handles creation of switch inputs for custom crosstable stats
-function createOptionInputs() {
+function createOptionInputs(): void {
   const crossTableModal: HTMLDivElement | null = document.querySelector(
     ".modal-vue-modal-content"
   );
@@ -311,7 +314,7 @@ function createOptionInputs() {
   crossTableModal.insertBefore(wrapper, closeBtn);
 }
 
-function addClassToCrossTableCell(crossTableCell: HTMLDivElement) {
+function addClassToCrossTableCell(crossTableCell: HTMLDivElement): void {
   crossTableCell.classList.add("ccc-cell-grid");
   if (enginesAmount === 2) {
     crossTableCell.classList.add("one-v-one");
@@ -320,7 +323,7 @@ function addClassToCrossTableCell(crossTableCell: HTMLDivElement) {
   }
 }
 
-function applyStylesToGrid() {
+function applyStylesToGrid(): void {
   const rows = getPairsPerRowAmount();
 
   document.body.style.setProperty(
@@ -329,7 +332,7 @@ function applyStylesToGrid() {
   );
 }
 
-function getPairsPerRowAmount() {
+function getPairsPerRowAmount(): number | "" {
   const is1v1 = enginesAmount === 2;
   const rows = is1v1
     ? UserSettings.custom.pairsPerRowDuel
@@ -344,7 +347,7 @@ function getPairsPerRowAmount() {
 window.addEventListener("keydown", keydownHandler);
 
 const validKeyCodes = ["Escape", "KeyG", "KeyC", "KeyS", "KeyU"] as const;
-function keydownHandler(e: KeyboardEvent) {
+function keydownHandler(e: KeyboardEvent): void {
   // @ts-ignore
   if (!validKeyCodes.includes(e.code)) return;
 
@@ -396,14 +399,14 @@ function keydownHandler(e: KeyboardEvent) {
   }
 }
 
-function openCrossTableWithKeyboard(container: HTMLElement) {
+function openCrossTableWithKeyboard(container: HTMLElement): void {
   const crossTableBtn = container?.querySelector("button");
   if (!crossTableBtn) return;
 
   crossTableBtn.click();
 }
 
-function openCrossTableFromOtherTab() {
+function openCrossTableFromOtherTab(): void {
   const divWithBtn = document.querySelectorAll(
     ".selection-panel-container + div"
   )[2];
@@ -428,7 +431,7 @@ function openCrossTableFromOtherTab() {
   });
 }
 
-function closeModalsOnKeydownHandler() {
+function closeModalsOnKeydownHandler(): void {
   // * ccc modals and popups
   const crossTableModal = document.querySelector(".modal-vue-modal-content");
   const tournamentsList = document.querySelector(".bottomtable-resultspopup");
@@ -487,7 +490,7 @@ function closeModalsOnKeydownHandler() {
   }
 }
 
-function openCrossTableHandler() {
+function openCrossTableHandler(): void {
   try {
     const crossTableModal: HTMLDivElement | null = document.querySelector(
       ".modal-vue-modal-content"
@@ -505,12 +508,7 @@ function openCrossTableHandler() {
   }
 }
 
-// todo delete
-// ! --------------------
-// ! --------------------
-// ! dev ----------------
-
-function handleSwitchEvent(field: BooleanKeys<state_types.UserSettings>) {
+function handleSwitchEvent(field: BooleanKeys<user_config.settings>): void {
   UserSettings.custom[field] = !UserSettings.custom[field];
 
   convertCrossTable();
@@ -520,7 +518,7 @@ function handleSwitchEvent(field: BooleanKeys<state_types.UserSettings>) {
   });
 }
 
-function toggleAllowKeyboardShortcuts() {
+function toggleAllowKeyboardShortcuts(): void {
   const { allowKeyboardShortcuts } = UserSettings.custom;
   ExtensionHelper.localStorage.setState({ allowKeyboardShortcuts });
 
@@ -528,7 +526,7 @@ function toggleAllowKeyboardShortcuts() {
 }
 
 observeScheduleClick();
-function observeScheduleClick() {
+function observeScheduleClick(): void {
   // container with schedule entries
   const container = _DOM_Store.bottomPanel.querySelector(
     ".selection-panel-container + div"
@@ -543,7 +541,7 @@ function observeScheduleClick() {
   });
 }
 
-function createGameScheduleLinks() {
+function createGameScheduleLinks(): void {
   const container: HTMLDivElement | null = _DOM_Store.bottomPanel.querySelector(
     ".schedule-container"
   );
@@ -571,10 +569,10 @@ function createGameScheduleLinks() {
   });
 }
 
-function handleLabelListeners(label: HTMLLabelElement) {
+function handleLabelListeners(label: HTMLLabelElement): void {
   const attr = label.getAttribute(
     "data-name"
-  ) as BooleanKeys<state_types.UserSettings>;
+  ) as BooleanKeys<user_config.settings>;
 
   label.addEventListener("change", () => {
     handleSwitchEvent(attr);
@@ -588,7 +586,7 @@ function handleLabelListeners(label: HTMLLabelElement) {
   });
 }
 
-function shareModalCb() {
+function shareModalCb(): void {
   updateShareModalFENInput()._bind(addListenersToShareFENInput);
   addDownloadGameLogsBtn();
 
@@ -625,7 +623,7 @@ _DOM_Store.scheduleBtn.addEventListener("click", () => {
   scrollToCurrentGame();
 });
 
-function scrollToCurrentGame() {
+function scrollToCurrentGame(): void {
   const currentGame =
     _DOM_Store.bottomPanel.querySelector(".schedule-in-progress") ??
     _DOM_Store.bottomPanel.querySelector(".ccc-current-game");
@@ -643,7 +641,7 @@ function scrollToCurrentGame() {
   }
 }
 
-function updateShareModalFENInput() {
+function updateShareModalFENInput(): Maybe {
   const shareModal = _DOM_Store.mainContainer.querySelector(
     ".ui_modal-component"
   );
@@ -666,7 +664,7 @@ function updateShareModalFENInput() {
     });
 }
 
-function addDownloadGameLogsBtn() {
+function addDownloadGameLogsBtn(): Maybe {
   return new Maybe(document.querySelector(".ui_modal-component"))
     ._bind((modal: HTMLDivElement) => {
       const btn = modal.querySelector(".ccc-download-logs-btn");
@@ -717,7 +715,7 @@ function addDownloadGameLogsBtn() {
     });
 }
 
-function addListenersToShareFENInput(input: HTMLInputElement) {
+function addListenersToShareFENInput(input: HTMLInputElement): Maybe {
   const listenerAdded = input.getAttribute("data-listener-added");
 
   if (!listenerAdded) {
@@ -736,7 +734,7 @@ function addListenersToShareFENInput(input: HTMLInputElement) {
 observeEndOfLoadMain();
 ExtensionHelper.messages.sendReady();
 
-function observeEndOfLoadMain() {
+function observeEndOfLoadMain(): void {
   const mainContentContainer =
     document.querySelector(".cpu-champs-page-main") ?? _DOM_Store.mainContainer;
 
@@ -756,7 +754,7 @@ function observeEndOfLoadMain() {
     // mutation observer events are microtasks themselves.
     // this is needed (?) just in case
     queueMicrotask(() => {
-      ExtractPageData.getEventLinks();
+      ExtractPageData.setEventIdToState();
 
       createGameScheduleLinks();
     });
@@ -766,9 +764,3 @@ function observeEndOfLoadMain() {
     childList: true,
   });
 }
-
-// todo
-// document.addEventListener("visibilitychange", () => {
-//   const hidden = document.hidden;
-//   console.log("changed, visible = ", !hidden);
-// });

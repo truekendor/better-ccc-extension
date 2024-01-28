@@ -83,7 +83,7 @@ class _State {
   static isEventActive: boolean | null = null;
   static totalGamesInTheEvent: number | null = null;
 
-  static get eventId() {
+  static get eventId(): string | null {
     return this.tabEventId || this.webpageEventId;
   }
 }
@@ -95,7 +95,7 @@ class _State {
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class UserSettings {
-  static default: state_types.UserSettings = {
+  static default: user_config.settings = {
     ptnml: true,
     elo: true,
     pairsPerRow: 5,
@@ -108,9 +108,10 @@ class UserSettings {
     displayEngineNames: true,
     materialCount: true,
     drawnPairNeutralColorWL: true,
+    clearQueryStringOnCurrentGame: true,
   } as const;
 
-  static custom: state_types.UserSettings = {
+  static custom: user_config.settings = {
     ptnml: true,
     elo: true,
     pairsPerRow: 5,
@@ -123,10 +124,11 @@ class UserSettings {
     displayEngineNames: true,
     materialCount: true,
     drawnPairNeutralColorWL: true,
+    clearQueryStringOnCurrentGame: true,
   };
 
   // todo add description and logic or delete
-  private static initValuesInExtensionLocalStorage() {
+  private static initValuesInExtensionLocalStorage(): void {
     //
   }
 }

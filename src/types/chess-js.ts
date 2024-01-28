@@ -1,4 +1,5 @@
-namespace chess_js {
+// eslint-disable-next-line @typescript-eslint/no-namespace, @typescript-eslint/no-unused-vars
+namespace ChessJS {
   export type Color = "w" | "b";
   export type PieceSymbol = "p" | "n" | "b" | "r" | "q" | "k";
 

@@ -41,8 +41,8 @@ type Browsers = typeof chrome | typeof browser;
 type Tab = chrome.tabs.Tab | browser.tabs.Tab;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare namespace state_types {
-  export type UserSettings = {
+declare namespace user_config {
+  export type settings = {
     ptnml: boolean;
     elo: boolean;
     pairsPerRow: number | "";
@@ -57,12 +57,13 @@ declare namespace state_types {
     materialCount: boolean;
     // todo rename
     drawnPairNeutralColorWL: boolean;
+    clearQueryStringOnCurrentGame: boolean;
     // todo
     // calcAdditionalStats: boolean
     // visualSettings: _dev_VisualSettings
   };
 
-  type _dev_VisualSettings = {
+  type visual_settings = {
     doubleLossBgColor: string;
     doubleLossFontColor: string;
     doubleWinBgColor: string;
@@ -73,8 +74,6 @@ declare namespace state_types {
     lossFontColor: string;
   };
 }
-
-type BooleanUserOptions = Partial<OnlyBoolean<state_types.UserSettings>>;
 
 type AdditionalStats = {
   longestLossless: number;
@@ -113,7 +112,7 @@ type ChessPieces = Prettify<ChessPieceUpper | ChessPieceLower>;
 // * chess state types
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-declare namespace CustomChess {
+declare namespace MyChess {
   export type GameData = {
     /**
      * todo add description
@@ -147,11 +146,5 @@ declare namespace CustomChess {
     getTrimFenAtIndex: (index: number) => string | null;
 
     setPGN: (pgn: string[]) => void;
-  };
-
-  export type TranspositionObject = {
-    currentPly: number;
-    reversePly: number;
-    fen: string;
   };
 }

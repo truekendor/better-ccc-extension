@@ -1,6 +1,7 @@
 // these formulas are taken from https://3dkingdoms.com/chess/elo.htm
 // and I have no idea how they work
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ELO {
   private static confidenceIntervals = {
     default: 0.95,
@@ -10,25 +11,24 @@ class ELO {
     4: 0.999936657516334,
     5: 0.999999426696856,
     6: 0.999999998026825,
-  };
+  } as const;
 
   static confidence = this.confidenceIntervals["2"];
 
-  static calculateEloFromPercent(percent: number) {
-    const percentage = percent / 100;
-    const eloDiff = (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
-
-    let Sign = "";
-    if (eloDiff > 0) {
-      Sign = "+";
-    }
+  static calculateEloFromPercent(percent: number): string {
+    const eloDiff = this.calculateEloDifference(percent / 100);
+    const sign = eloDiff > 0 ? "+" : "";
 
     const eloDiffAsString = formatter.format(eloDiff);
 
-    return `${Sign}${eloDiffAsString}`;
+    return `${sign}${eloDiffAsString}`;
   }
 
-  static calculateErrorMargin(wins: number, draws: number, losses: number) {
+  static calculateErrorMargin(
+    wins: number,
+    draws: number,
+    losses: number
+  ): string {
     const total = wins + draws + losses;
     const winP = wins / total;
     const drawP = draws / total;
@@ -56,11 +56,11 @@ class ELO {
     return `${errorMargin}`;
   }
 
-  private static calculateEloDifference(percentage: number) {
+  private static calculateEloDifference(percentage: number): number {
     return (-400 * Math.log(1 / percentage - 1)) / Math.LN10;
   }
 
-  private static calculateInverseErrorFunction(x: number) {
+  private static calculateInverseErrorFunction(x: number): number {
     const a: number = (8 * (Math.PI - 3)) / (3 * Math.PI * (4 - Math.PI));
     const y: number = Math.log(1 - x * x);
     const z: number = 2 / (Math.PI * a) + y / 2;
@@ -72,7 +72,7 @@ class ELO {
     return ret;
   }
 
-  private static phiInv(p: number) {
+  private static phiInv(p: number): number {
     return Math.sqrt(2) * this.calculateInverseErrorFunction(2 * p - 1);
   }
 }

@@ -70,7 +70,7 @@
  */
 
 // eslint-disable-next-line @typescript-eslint/no-namespace, @typescript-eslint/no-unused-vars
-namespace chess_js {
+namespace ChessJS {
   const WHITE = "w" as const;
   const BLACK = "b" as const;
 
@@ -240,7 +240,9 @@ namespace chess_js {
     return color === WHITE ? BLACK : WHITE;
   }
 
-  function validateFen(fen: string) {
+  function validateFen(
+    fen: string
+  ): { ok: boolean; error: string } | { readonly ok: true; error?: undefined } {
     // 1st criterion: 6 space-seperated fields?
     const tokens = fen.split(/\s+/);
     if (tokens.length !== 6) {
@@ -375,7 +377,7 @@ namespace chess_js {
   /**
    * this function is used to uniquely identify ambiguous moves
    */
-  function getDisambiguator(move: InternalMove, moves: InternalMove[]) {
+  function getDisambiguator(move: InternalMove, moves: InternalMove[]): string {
     const from = move.from;
     const to = move.to;
     const piece = move.piece;
@@ -436,7 +438,7 @@ namespace chess_js {
     piece: PieceSymbol,
     captured: PieceSymbol | undefined = undefined,
     flags: number = BITS.NORMAL
-  ) {
+  ): void {
     const r = rank(to);
 
     if (piece === PAWN && (r === RANK_1 || r === RANK_8)) {
@@ -464,7 +466,7 @@ namespace chess_js {
     }
   }
 
-  function inferPieceType(san: string) {
+  function inferPieceType(san: string): PieceSymbol | undefined {
     let pieceType = san.charAt(0);
     if (pieceType >= "a" && pieceType <= "h") {
       const matches = san.match(/[a-h]\d.*[a-h]\d/);
@@ -483,7 +485,7 @@ namespace chess_js {
   /**
    * parses all of the decorators out of a SAN string
    */
-  function strippedSan(move: string) {
+  function strippedSan(move: string): string {
     return move.replace(/=/, "").replace(/[+#]?[?!]*$/, "");
   }
 
@@ -507,8 +509,7 @@ namespace chess_js {
       this.load(fen);
     }
 
-    // ! ****
-    protected clear(keepHeaders = false) {
+    protected clear(keepHeaders = false): void {
       this._board = new Array<Piece>(128);
       this._kings = { w: EMPTY, b: EMPTY };
       this._turn = WHITE;
@@ -531,7 +532,7 @@ namespace chess_js {
           position === "length"
             ? Object.keys(target).length // length for unit testing
             : target?.[this._trimFen(position)] || 0,
-        set: (target, position: string, count: number) => {
+        set: (target, position: string, count: number): true => {
           const trimmedFen = this._trimFen(position);
           if (count === 0) delete target[trimmedFen];
           else target[trimmedFen] = count;
@@ -548,7 +549,7 @@ namespace chess_js {
       return fen.split(" ").slice(0, 4).join(" ");
     }
 
-    protected load(fen: string, keepHeaders = false) {
+    protected load(fen: string, keepHeaders = false): void {
       let tokens = fen.split(/\s+/);
 
       // append commonly omitted fen tokens
@@ -614,7 +615,7 @@ namespace chess_js {
      * Note, the en passant square is only included
      * if the side-to-move can legally capture en passant.
      */
-    protected fen() {
+    protected fen(): string {
       let empty = 0;
       let fen = "";
 
@@ -722,7 +723,7 @@ namespace chess_js {
      * is equal to the default position, the SetUp and FEN are deleted the setup
      * is only updated if history.length is zero, ie moves haven't been made.
      */
-    protected _updateSetup(fen: string) {
+    protected _updateSetup(fen: string): void {
       if (this._history.length > 0) return;
 
       if (fen !== DEFAULT_POSITION) {
@@ -737,18 +738,18 @@ namespace chess_js {
     /**
      * Reset the board to the initial starting position.
      */
-    protected reset() {
+    protected reset(): void {
       this.load(DEFAULT_POSITION);
     }
-    // ! ****
-    protected get(square: Square) {
+
+    protected get(square: Square): Piece {
       return this._board[Ox88[square]] || false;
     }
-    // ! ****
+
     protected put(
       { type, color }: { type: PieceSymbol; color: Color },
       square: Square
-    ) {
+    ): boolean {
       if (this._put({ type, color }, square)) {
         this._updateCastlingRights();
         this._updateEnPassantSquare();
@@ -761,7 +762,7 @@ namespace chess_js {
     protected _put(
       { type, color }: { type: PieceSymbol; color: Color },
       square: Square
-    ) {
+    ): boolean {
       // check for piece
       if (SYMBOLS.indexOf(type.toLowerCase()) === -1) {
         return false;
@@ -801,8 +802,7 @@ namespace chess_js {
       return true;
     }
 
-    // ! ****
-    protected remove(square: Square) {
+    protected remove(square: Square): Piece {
       const piece = this.get(square);
       delete this._board[Ox88[square]];
       if (piece && piece.type === KING) {
@@ -816,7 +816,7 @@ namespace chess_js {
       return piece;
     }
 
-    protected _updateCastlingRights() {
+    protected _updateCastlingRights(): void {
       const whiteKingInPlace =
         this._board[Ox88.e1]?.type === KING &&
         this._board[Ox88.e1]?.color === WHITE;
@@ -857,7 +857,7 @@ namespace chess_js {
       }
     }
 
-    protected _updateEnPassantSquare() {
+    protected _updateEnPassantSquare(): void {
       if (this._epSquare === EMPTY) {
         return;
       }
@@ -876,17 +876,20 @@ namespace chess_js {
         return;
       }
 
-      const canCapture = (square: number) =>
-        !(square & 0x88) &&
-        this._board[square]?.color === this._turn &&
-        this._board[square]?.type === PAWN;
+      const canCapture = (square: number): boolean => {
+        return (
+          !(square & 0x88) &&
+          this._board[square]?.color === this._turn &&
+          this._board[square]?.type === PAWN
+        );
+      };
 
       if (!attackers.some(canCapture)) {
         this._epSquare = EMPTY;
       }
     }
 
-    protected _attacked(color: Color, square: number) {
+    protected _attacked(color: Color, square: number): boolean {
       for (let i = Ox88.a8; i <= Ox88.h1; i++) {
         // did we run off the end of the board
         if (i & 0x88) {
@@ -941,38 +944,32 @@ namespace chess_js {
       return false;
     }
 
-    protected _isKingAttacked(color: Color) {
+    protected _isKingAttacked(color: Color): boolean {
       const square = this._kings[color];
       return square === -1 ? false : this._attacked(swapColor(color), square);
     }
 
-    // ! ****
-    protected isAttacked(square: Square, attackedBy: Color) {
+    protected isAttacked(square: Square, attackedBy: Color): boolean {
       return this._attacked(attackedBy, Ox88[square]);
     }
 
-    // ! ****
-    protected isCheck() {
+    protected isCheck(): boolean {
       return this._isKingAttacked(this._turn);
     }
 
-    // ! ****
-    protected inCheck() {
+    protected inCheck(): boolean {
       return this.isCheck();
     }
 
-    // ! ****
-    protected isCheckmate() {
+    protected isCheckmate(): boolean {
       return this.isCheck() && this._moves().length === 0;
     }
 
-    // ! ****
-    protected isStalemate() {
+    protected isStalemate(): boolean {
       return !this.isCheck() && this._moves().length === 0;
     }
 
-    // ! ****
-    protected isInsufficientMaterial() {
+    protected isInsufficientMaterial(): boolean {
       /*
        * k.b. vs k.b. (of opposite colors) with mate in 1:
        * 8/8/8/8/1b6/8/B1k5/K7 b - - 0 1
@@ -1034,17 +1031,15 @@ namespace chess_js {
       return false;
     }
 
-    protected _getRepetitionCount() {
+    protected _getRepetitionCount(): number {
       return this._positionCounts[this.fen()];
     }
 
-    // ! ****
     protected isThreefoldRepetition(): boolean {
       return this._getRepetitionCount() >= 3;
     }
 
-    // ! ****
-    protected isDraw() {
+    protected isDraw(): boolean {
       return (
         this._halfMoves >= 100 || // 50 moves per side = 100 half moves
         this.isStalemate() ||
@@ -1053,8 +1048,7 @@ namespace chess_js {
       );
     }
 
-    // ! ****
-    protected isGameOver() {
+    protected isGameOver(): boolean {
       return this.isCheckmate() || this.isStalemate() || this.isDraw();
     }
 
@@ -1066,7 +1060,7 @@ namespace chess_js {
       legal?: boolean;
       piece?: PieceSymbol;
       square?: Square;
-    } = {}) {
+    } = {}): InternalMove[] {
       const forSquare = square ? (square.toLowerCase() as Square) : undefined;
       const forPiece = piece?.toLowerCase();
 
@@ -1257,7 +1251,7 @@ namespace chess_js {
     protected move(
       move: string | { from: string; to: string; promotion?: string },
       { strict = false }: { strict?: boolean } = {}
-    ) {
+    ): Move {
       /*
        * The move function can be called with in the following parameters:
        *
@@ -1314,7 +1308,7 @@ namespace chess_js {
       return prettyMove;
     }
 
-    protected _push(move: InternalMove) {
+    protected _push(move: InternalMove): void {
       this._history.push({
         move,
         kings: { b: this._kings.b, w: this._kings.w },
@@ -1326,7 +1320,7 @@ namespace chess_js {
       });
     }
 
-    protected _makeMove(move: InternalMove) {
+    protected _makeMove(move: InternalMove): void {
       const us = this._turn;
       const them = swapColor(us);
       this._push(move);
@@ -1422,8 +1416,7 @@ namespace chess_js {
       this._turn = them;
     }
 
-    // ! ****
-    protected undo() {
+    protected undo(): Move | null {
       const move = this._undoMove();
       if (move) {
         const prettyMove = this._makePretty(move);
@@ -1433,7 +1426,7 @@ namespace chess_js {
       return null;
     }
 
-    protected _undoMove() {
+    protected _undoMove(): InternalMove | null {
       const old = this._history.pop();
       if (old === undefined) {
         return null;
@@ -1488,11 +1481,10 @@ namespace chess_js {
       return move;
     }
 
-    // ! ****
     protected pgn({
       newline = "\n",
       maxWidth = 0,
-    }: { newline?: string; maxWidth?: number } = {}) {
+    }: { newline?: string; maxWidth?: number } = {}): string {
       /*
        * using the specification from http://www.chessclub.com/help/PGN-spec
        * example for html usage: .pgn({ max_width: 72, newline_char: "<br />" })
@@ -1515,7 +1507,7 @@ namespace chess_js {
         result.push(newline);
       }
 
-      const appendComment = (moveString: string) => {
+      const appendComment = (moveString: string): string => {
         const comment = this._comments[this.fen()];
         if (typeof comment !== "undefined") {
           const delimiter = moveString.length > 0 ? " " : "";
@@ -1587,7 +1579,7 @@ namespace chess_js {
       }
 
       // TODO (jah): huh?
-      const strip = function () {
+      const strip = function (): boolean {
         if (result.length > 0 && result[result.length - 1] === " ") {
           result.pop();
           return true;
@@ -1596,7 +1588,7 @@ namespace chess_js {
       };
 
       // NB: this does not preserve comment whitespace.
-      const wrapComment = function (width: number, move: string) {
+      const wrapComment = function (width: number, move: string): number {
         for (const token of move.split(" ")) {
           if (!token) {
             continue;
@@ -1648,7 +1640,7 @@ namespace chess_js {
       return result.join("");
     }
 
-    protected header(...args: string[]) {
+    protected header(...args: string[]): Record<string, string> {
       for (let i = 0; i < args.length; i += 2) {
         if (typeof args[i] === "string" && typeof args[i + 1] === "string") {
           this._header[args[i]] = args[i + 1];
@@ -1657,14 +1649,13 @@ namespace chess_js {
       return this._header;
     }
 
-    // ! ****
     protected loadPgn(
       pgn: string,
       {
         strict = false,
         newlineChar = "\r?\n",
       }: { strict?: boolean; newlineChar?: string } = {}
-    ) {
+    ): void {
       function mask(str: string): string {
         return str.replace(/\\/g, "\\");
       }
@@ -1789,12 +1780,12 @@ namespace chess_js {
           : decodeURIComponent("%" + (s.match(/.{1,2}/g) || []).join("%"));
       }
 
-      const encodeComment = function (s: string) {
+      const encodeComment = function (s: string): string {
         s = s.replace(new RegExp(mask(newlineChar), "g"), " ");
         return `{${toHex(s.slice(1, s.length - 1))}}`;
       };
 
-      const decodeComment = function (s: string) {
+      const decodeComment = function (s: string): string | undefined {
         if (s.startsWith("{") && s.endsWith("}")) {
           return fromHex(s.slice(1, s.length - 1));
         }
@@ -1889,7 +1880,7 @@ namespace chess_js {
      * 4. ... Nge7 is overly disambiguated because the knight on c6 is pinned
      * 4. ... Ne7 is technically the valid SAN
      */
-    protected _moveToSan(move: InternalMove, moves: InternalMove[]) {
+    protected _moveToSan(move: InternalMove, moves: InternalMove[]): string {
       let output = "";
 
       if (move.flags & BITS.KSIDE_CASTLE) {
@@ -2106,7 +2097,7 @@ namespace chess_js {
       return move;
     }
 
-    protected turn() {
+    protected turn(): Color {
       return this._turn;
     }
 
@@ -2114,7 +2105,10 @@ namespace chess_js {
     protected history({ verbose }: { verbose: true }): Move[];
     protected history({ verbose }: { verbose: false }): string[];
     protected history({ verbose }: { verbose: boolean }): string[] | Move[];
-    protected history({ verbose = false }: { verbose?: boolean } = {}) {
+    protected history({ verbose = false }: { verbose?: boolean } = {}): (
+      | string
+      | Move
+    )[] {
       const reversedHistory = [];
       const moveHistory = [];
 
@@ -2139,11 +2133,11 @@ namespace chess_js {
       return moveHistory;
     }
 
-    protected _pruneComments() {
+    protected _pruneComments(): void {
       const reversedHistory = [];
       const currentComments: Record<string, string> = {};
 
-      const copyComment = (fen: string) => {
+      const copyComment = (fen: string): void => {
         if (fen in this._comments) {
           currentComments[fen] = this._comments[fen];
         }
@@ -2166,28 +2160,28 @@ namespace chess_js {
       this._comments = currentComments;
     }
 
-    protected getComment() {
+    protected getComment(): string {
       return this._comments[this.fen()];
     }
 
-    protected setComment(comment: string) {
+    protected setComment(comment: string): void {
       this._comments[this.fen()] = comment.replace("{", "[").replace("}", "]");
     }
 
-    protected deleteComment() {
+    protected deleteComment(): string {
       const comment = this._comments[this.fen()];
       delete this._comments[this.fen()];
       return comment;
     }
 
-    protected getComments() {
+    protected getComments(): { fen: string; comment: string }[] {
       this._pruneComments();
       return Object.keys(this._comments).map((fen: string) => {
         return { fen: fen, comment: this._comments[fen] };
       });
     }
 
-    protected deleteComments() {
+    protected deleteComments(): { fen: string; comment: string }[] {
       this._pruneComments();
       return Object.keys(this._comments).map((fen) => {
         const comment = this._comments[fen];
@@ -2196,13 +2190,13 @@ namespace chess_js {
       });
     }
 
-    protected moveNumber() {
+    protected moveNumber(): number {
       return this._moveNumber;
     }
   }
 
   class CustomChess extends Chess {
-    private gameState: CustomChess.GameData = {
+    private gameState: MyChess.GameData = {
       FenHistoryFull: [],
       FenHistoryTrimmed: [],
       pgn: null,
@@ -2217,7 +2211,7 @@ namespace chess_js {
      * Note, the en passant square is only included
      * if the side-to-move can legally capture en passant.
      */
-    protected get FEN_TRIMMED() {
+    protected get FEN_TRIMMED(): string {
       return this._trimFen(this.fen());
     }
 
@@ -2226,12 +2220,12 @@ namespace chess_js {
      * Note, the en passant square is only included
      * if the side-to-move can legally capture en passant.
      */
-    protected get FEN_FULL() {
+    protected get FEN_FULL(): string {
       return this.fen();
     }
 
     // the names _move and move are already taken
-    private mkMove(move: string) {
+    private mkMove(move: string): void {
       this.move(move);
 
       this.gameState.FenHistoryFull.push(this.FEN_FULL);
@@ -2242,14 +2236,17 @@ namespace chess_js {
      * Resets the board to the initial starting position
      * and clears FEN history
      */
-    private mkReset() {
+    private mkReset(): void {
       this.actions.clearFenHistory();
       this.reset();
+      if (this.gameState.pgn) {
+        this.gameState.pgn.length = 0;
+      }
     }
 
     // todo rewrite this
-    get fields() {
-      const fields: CustomChess.GameDataFields = {
+    get fields(): MyChess.GameDataFields {
+      const fields: MyChess.GameDataFields = {
         // *
         pgn: this.gameState.pgn,
         FenHistoryFull: this.gameState.FenHistoryFull,
@@ -2270,16 +2267,15 @@ namespace chess_js {
     }
 
     // todo rewrite this
-    get actions() {
-      const actions: CustomChess.GameDataActions = {
-        // todo delete?
+    get actions(): MyChess.GameDataActions {
+      const actions: MyChess.GameDataActions = {
         clearFenHistory: () => {
           this.gameState.FenHistoryFull.length = 0;
           this.gameState.FenHistoryTrimmed.length = 0;
         },
 
         getFullFenAtIndex: (index) => {
-          if (index <= 0) return chess_js.startingPosition;
+          if (index <= 0) return ChessJS.startingPosition;
 
           return this.gameState.FenHistoryFull?.[index] || null;
         },
@@ -2296,7 +2292,9 @@ namespace chess_js {
           });
         },
         resetPGN: () => {
-          this.fields.pgn = [];
+          this.gameState.pgn = [];
+          // this.fields.pgn = [];
+
           this.reset();
         },
       } as const;
@@ -2305,8 +2303,8 @@ namespace chess_js {
     }
   }
 
-  /** creates a new instance the of MyChess class */
-  export function chess(fen = DEFAULT_POSITION) {
+  /** creates a new instance of the CustomChess class */
+  export function chess(fen = DEFAULT_POSITION): CustomChess {
     return new CustomChess(fen);
   }
 

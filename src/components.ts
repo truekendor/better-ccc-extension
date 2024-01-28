@@ -5,7 +5,7 @@
 namespace components {
   /**  provides methods for creating crosstable elements */
   export class CrossTable {
-    static crExtensionSettingsBtn() {
+    static crExtensionSettingsBtn(): HTMLButtonElement {
       const extensionSettingsBtn = document.createElement("button");
       const gearSVG = SVG.Icons.gear;
 
@@ -22,7 +22,7 @@ namespace components {
       return extensionSettingsBtn;
     }
 
-    private static crExtensionSettingsModal() {
+    private static crExtensionSettingsModal(): void {
       const crossTableModal = document.querySelector(
         ".modal-vue-modal-content"
       )!;
@@ -80,8 +80,8 @@ namespace components {
     }
 
     private static crExtensionSettingRow<
-      T extends BooleanKeys<state_types.UserSettings>
-    >(key: T, description: string) {
+      T extends BooleanKeys<user_config.settings>
+    >(key: T, description: string): HTMLDivElement {
       const row = document.createElement("div");
       row.classList.add("_row");
 
@@ -100,7 +100,6 @@ namespace components {
 
       input.addEventListener("change", () => {
         UserSettings.custom[key] = !UserSettings.custom[key];
-        // ExtensionHelper.localStorage.setState(key, userSettings[key]);
         ExtensionHelper.localStorage.setState({
           [key]: UserSettings.custom[key],
         });
@@ -113,7 +112,7 @@ namespace components {
       return row;
     }
 
-    static crEngineNames() {
+    static crEngineNames(): void {
       const engines = document.querySelectorAll(".crosstable-name");
 
       if (!engines) return;
@@ -136,7 +135,7 @@ namespace components {
       });
     }
 
-    static crPTNMLStat(ptnml: PTNML) {
+    static crPTNMLStat(ptnml: PTNML): HTMLDivElement {
       const ptnmlWrapper = this.crStatWrapperElement();
       ptnmlWrapper.classList.add("ccc-ptnml-wrapper");
 
@@ -155,7 +154,7 @@ namespace components {
       return ptnmlWrapper;
     }
 
-    static crWDLStat(wdlArray: WDL) {
+    static crWDLStat(wdlArray: WDL): HTMLDivElement {
       const wdlWrapper = this.crStatWrapperElement();
       wdlWrapper.classList.add("ccc-wdl-wrapper");
 
@@ -170,8 +169,8 @@ namespace components {
 
     static crSettingsSwitch(
       text: string,
-      field: BooleanKeys<state_types.UserSettings>
-    ) {
+      field: BooleanKeys<user_config.settings>
+    ): HTMLLabelElement {
       const label = document.createElement("label");
       const switchInput = document.createElement("input");
 
@@ -198,7 +197,7 @@ namespace components {
      *
      * selectors: `ccc-form` & `ccc-row-input`
      */
-    static crPairsPerRowForm() {
+    static crPairsPerRowForm(): HTMLFormElement {
       const formElement = document.createElement("form");
       const rowAmountInput = document.createElement("input");
 
@@ -225,13 +224,11 @@ namespace components {
         );
 
         if (enginesAmount === 2) {
-          // ExtensionHelper.localStorage.setState("pairsPerRowDuel", value || "");
           ExtensionHelper.localStorage.setState({
             pairsPerRowDuel: value || "",
           });
           UserSettings.custom.pairsPerRowDuel = value;
         } else {
-          // ExtensionHelper.localStorage.setState("pairsPerRow", value || "");
           ExtensionHelper.localStorage.setState({
             pairsPerRow: value || "",
           });
@@ -249,7 +246,7 @@ namespace components {
       stats: AdditionalStats,
       index_1: number,
       index_2: number
-    ) {
+    ): HTMLDivElement {
       const additionalStatsBtn = document.createElement("div");
       additionalStatsBtn.classList.add("ccc-info-button");
 
@@ -289,7 +286,7 @@ namespace components {
       stats: AdditionalStats,
       index_1: number,
       index_2: number
-    ) {
+    ): HTMLDivElement {
       const mainContainer = document.createElement("div");
       mainContainer.classList.add("ccc-info-panel");
       mainContainer.innerHTML = "";
@@ -358,7 +355,7 @@ namespace components {
       return mainContainer;
     }
 
-    private static crWaveWrapper() {
+    private static crWaveWrapper(): HTMLDivElement {
       const waveContainer = document.createElement("div");
       const waveFiller = document.createElement("div");
       const wave = document.createElement("div");
@@ -393,7 +390,7 @@ namespace components {
     /**
      * creates row with 100% width for PTNML or Elo stat
      */
-    private static crStatRow(info: string, stat: string) {
+    private static crStatRow(info: string, stat: string): HTMLDivElement {
       const row = document.createElement("div");
       const pInfo = document.createElement("p");
       const pStat = document.createElement("p");
@@ -409,7 +406,7 @@ namespace components {
       return row;
     }
 
-    private static crPTNMLEntries(element: HTMLDivElement, ptnml: PTNML) {
+    private static crPTNMLEntries(element: HTMLDivElement, ptnml: PTNML): void {
       let ptnmlTextContent = "";
       ptnmlTextContent += `${ptnml[0]}, `;
       ptnmlTextContent += `${ptnml[1]}, `;
@@ -423,7 +420,10 @@ namespace components {
     /**
      * creates elo and elo-error margin element
      */
-    private static crEloAndMarginElement(elo: string, margin: string) {
+    private static crEloAndMarginElement(
+      elo: string,
+      margin: string
+    ): HTMLDivElement {
       const wrapper = document.createElement("div");
       const eloElement = document.createElement("p");
       const marginElement = document.createElement("p");
@@ -449,7 +449,9 @@ namespace components {
     /**
      * creates WDL + ELO element
      */
-    private static crEloWDLElement(wdl: WDL) {
+    private static crEloWDLElement(
+      wdl: WDL
+    ): readonly [HTMLDivElement, HTMLDivElement | null] {
       const numberOfGames = wdl.reduce((amount, prev) => amount + prev, 0);
 
       const wdlElement = document.createElement("div");
@@ -494,7 +496,7 @@ namespace components {
     /**
      * creates containers for `PTNML` / `Elo` elements
      */
-    private static crStatWrapperElement() {
+    private static crStatWrapperElement(): HTMLDivElement {
       const wrapper = document.createElement("div");
       wrapper.classList.add("ccc-stat-wrapper");
 
@@ -509,10 +511,24 @@ namespace components {
      *
      * selector: `.ccc-captured-pieces-wrapper`
      */
-    static crMaterialCountWrapper() {
+    static crMaterialCountWrapper(): HTMLDivElement {
       const div = document.createElement("div");
       div.classList.add("ccc-captured-pieces-wrapper");
       return div;
+    }
+
+    /**
+     * fixed button for debug
+     */
+    static _dev_createFixedButton(): HTMLButtonElement {
+      const btn = document.createElement("button");
+      btn.classList.add("dev-fixed-button");
+
+      btn.textContent = "click";
+
+      document.body.append(btn);
+
+      return btn;
     }
   }
 }

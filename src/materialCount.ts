@@ -1,4 +1,4 @@
-(function () {
+(function (): void {
   const blackPiecesWrapper = components.MainWindow.crMaterialCountWrapper();
   const whitePiecesWrapper = components.MainWindow.crMaterialCountWrapper();
 
@@ -22,6 +22,7 @@
   });
 })();
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class CountMaterial {
   private static pieceAmountDefault: Record<ChessPieces, number> = {
     K: 1,
@@ -88,7 +89,7 @@ class CountMaterial {
     piecesLeft: 32,
   };
 
-  static countMaterial(fen: string) {
+  static countMaterial(fen: string): void {
     const keys = Utils.objectKeys(this.boardState);
 
     // reset boardState
@@ -215,7 +216,7 @@ class CountMaterial {
     }
   }
 
-  static get piecesLeft() {
+  static get piecesLeft(): number {
     return this.boardState.piecesLeft;
   }
 }
