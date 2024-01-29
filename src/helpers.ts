@@ -645,7 +645,9 @@ class ExtensionHelper {
   ): void {
     switch (key) {
       case "replaceClockSvg":
-        fixClockSVG();
+        if (UserSettings.custom.replaceClockSvg) {
+          fixClockSVG();
+        }
         break;
       case "allowKeyboardShortcuts":
         toggleAllowKeyboardShortcuts();
@@ -656,16 +658,17 @@ class ExtensionHelper {
         break;
       // todo
       case "addLinksToGameSchedule":
-      case "pgnFetch":
       case "displayEngineNames":
         break;
-      case "agreementHighlight":
+      case "deviationHighlight":
+      case "allowNetworkGameRequest":
       case "elo":
       case "ptnml":
       case "drawnPairNeutralColorWL":
         break;
       case "clearQueryStringOnCurrentGame":
         this.handlerClearQuery();
+
         break;
       default:
         console.log(key satisfies never);
@@ -690,10 +693,11 @@ class ExtensionHelper {
    */
   private static handlerClearQuery(): void {
     document.addEventListener("click", (e) => {
-      if (!e.target) return;
-      console.log("click", e.target);
+      if (!e.target || !UserSettings.custom.clearQueryStringOnCurrentGame) {
+        return;
+      }
 
-      // @ts-ignore
+      // @ts-expect-error idk why there is no classList on event target
       if (e.target?.classList?.contains("schedule-in-progress")) {
         new MessagePass({
           type: "remove_query",
@@ -747,6 +751,9 @@ class Utils {
     console.log(e?.message ?? e);
   }
 
+  /**
+   *
+   */
   public static log(
     message: string | number,
     color: keyof typeof this.colorMap

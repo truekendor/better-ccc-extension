@@ -65,7 +65,7 @@ function observeEndOfLoad(): void {
       // todo delete this?
       // todo debug and see if this even needed
       if (chessReverse.fields.pgn) {
-        FindReverseDeviation.findTranspositions();
+        FindTranspositions.findTranspositions();
         HighlightReverseDeviation.highlight();
       }
     }, 100);
@@ -84,12 +84,8 @@ function observeGameEnded(): void {
       ".movetable-gameResult"
     );
     if (!gameResultDiv) {
-      Utils.log("no gameresult div", "pRed");
       return;
     }
-
-    Utils.log("game eneded!", "orange");
-    Utils.log("game eneded!", "orange");
 
     const pgn = ExtractPageData.getPGNFromMoveTable();
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
@@ -116,17 +112,13 @@ function observeGameStarted(): void {
       ".movetable-gameResult"
     );
     if (gameResultDiv) {
-      Utils.log("no gameresult", "pRed");
       return;
     }
 
-    FindReverseDeviation.reset();
+    FindTranspositions.reset();
 
-    chessCurrent.actions.clearFenHistory();
-    chessCurrent.actions.resetPGN();
-
-    chessReverse.actions.clearFenHistory();
-    chessReverse.actions.resetPGN();
+    chessCurrent.actions.reset();
+    chessReverse.actions.reset();
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
 
@@ -252,9 +244,9 @@ browserPrefix.runtime.onMessage.addListener(function (
     if (type === "reverse_pgn_response") {
       const {
         pgn: reversePGN,
-        gameNumber,
         reverseGameNumber,
         eventId,
+        // gameNumber,
       } = payload;
       const currentPGN = ExtractPageData.getPGNFromMoveTable();
 
@@ -264,10 +256,7 @@ browserPrefix.runtime.onMessage.addListener(function (
       }
 
       chessCurrent.actions.setPGN(currentPGN);
-      chessCurrent.fields.gameNumber = gameNumber;
-
       chessReverse.actions.setPGN(reversePGN);
-      chessReverse.fields.gameNumber = reverseGameNumber;
 
       ChessGamesCache.cacheFromObject({
         pgn: reversePGN,
@@ -344,8 +333,8 @@ class TranspositionsObjectPool {
 }
 
 // todo rename?
-class FindReverseDeviation {
-  private static sequentialAgreementLength: number = -1;
+class FindTranspositions {
+  private static sequentialAgreementLength: number = 0;
   private static transpositionsObjectPool = new TranspositionsObjectPool();
 
   private static currentGameFenMap = new Map<string, number>();
@@ -432,6 +421,8 @@ class HighlightReverseDeviation {
 
   // todo add description
   static highlight(): void {
+    // todo change this
+    if (FindTranspositions.agreementLength < 16) return;
     if (!chessReverse.fields.pgn || chessReverse.fields.pgn.length < 20) {
       return;
     }
@@ -447,7 +438,7 @@ class HighlightReverseDeviation {
     this.moveTableElementList.length = 0;
     this.moveTableElementList.push(...ExtractPageData.getMovesElements());
 
-    FindReverseDeviation.findTranspositions();
+    FindTranspositions.findTranspositions();
     this.highlight();
   }
 
@@ -465,9 +456,9 @@ class HighlightReverseDeviation {
     const reversePGN = chessReverse.fields.pgn;
 
     this.moveTableElementList.forEach((moveElement, index) => {
-      if (index < FindReverseDeviation.agreementLength) {
+      if (index < FindTranspositions.agreementLength) {
         moveElement.classList.add("ccc-move-agree");
-      } else if (index === FindReverseDeviation.agreementLength) {
+      } else if (index === FindTranspositions.agreementLength) {
         const reverseMove = reversePGN![index];
 
         moveElement.classList.add("ccc-data-move");
@@ -477,41 +468,37 @@ class HighlightReverseDeviation {
   }
 
   private static highlightTranspositions(): void {
-    if (!chessReverse.fields.pgn) {
-      return;
-    }
+    FindTranspositions.transpositions.forEach((transpositionObject, index) => {
+      this.moveTableElementList[transpositionObject.currentPly].classList.add(
+        "ccc-move-agree"
+      );
 
-    FindReverseDeviation.transpositions.forEach(
-      (transpositionObject, index) => {
-        this.moveTableElementList[transpositionObject.currentPly].classList.add(
-          "ccc-move-agree"
-        );
+      const isLastTransposition =
+        FindTranspositions.transpositions.length === index + 1;
 
-        const isLastTransposition =
-          FindReverseDeviation.transpositions.length === index + 1;
-
-        if (!isLastTransposition) {
-          return;
-        }
-
-        const reverseFenIndex = chessReverse.fields.FenHistoryTrimmed.indexOf(
-          transpositionObject.fen
-        );
-        const reverseMove = chessReverse.fields.pgn![reverseFenIndex + 1];
-
-        const moveElement =
-          this.moveTableElementList[transpositionObject.currentPly + 1];
-
-        const moveNumber = (reverseFenIndex + (reverseFenIndex % 2)) / 2 + 1;
-
-        moveElement.title = `Deviated at ${moveNumber}. ${
-          reverseFenIndex % 2 === 1 ? " " : " .."
-        }${reverseMove}`;
-
-        moveElement.classList.add("ccc-data-move");
-        moveElement.setAttribute("data-move", reverseMove);
+      if (!isLastTransposition) {
+        return;
       }
-    );
+
+      const reverseFenIndex = chessReverse.fields.FenHistoryTrimmed.indexOf(
+        transpositionObject.fen
+      );
+      const reverseMove = chessReverse.fields.pgn![reverseFenIndex + 1];
+
+      const moveElement =
+        this.moveTableElementList[transpositionObject.currentPly + 1];
+
+      if (!moveElement) return;
+
+      const moveNumber = (reverseFenIndex + (reverseFenIndex % 2)) / 2 + 1;
+
+      moveElement.title = `Deviated at ${moveNumber}. ${
+        reverseFenIndex % 2 === 1 ? " " : " .."
+      }${reverseMove}`;
+
+      moveElement.classList.add("ccc-data-move");
+      moveElement.setAttribute("data-move", reverseMove);
+    });
   }
 }
 
@@ -722,7 +709,10 @@ function initStateValues(): void {
 }
 
 function initMaterialCount(): void {
-  const currentFEN = chessCurrent.fields.lastFull;
+  const currentFEN =
+    chessCurrent.fields.FenHistoryFull[
+      chessCurrent.fields.FenHistoryFull.length - 1
+    ];
   CountMaterial.countMaterial(currentFEN || ChessJS.trimmedStartPos);
 }
 

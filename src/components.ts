@@ -516,19 +516,77 @@ namespace components {
       div.classList.add("ccc-captured-pieces-wrapper");
       return div;
     }
+  }
 
-    /**
-     * fixed button for debug
-     */
-    static _dev_createFixedButton(): HTMLButtonElement {
-      const btn = document.createElement("button");
-      btn.classList.add("dev-fixed-button");
+  type GameResult = "win" | "draw" | "loss";
 
-      btn.textContent = "click";
+  export class CrosstableStylesPreview {
+    private static scoreMap: Record<GameResult, string> = {
+      win: "1",
+      loss: "½",
+      draw: "0",
+    } as const;
 
-      document.body.append(btn);
+    private static extensionClasses: Record<GameResult, string> = {
+      win: "ccc-win",
+      draw: "ccc-draw",
+      loss: "ccc-loss",
+    } as const;
 
-      return btn;
+    private static defaultClasses: Record<GameResult, string> = {
+      win: "win",
+      draw: "draw",
+      loss: "loss",
+    } as const;
+
+    private static pairEncode = {
+      0: "loss",
+      1: "win-loss",
+      2: "draw-draw",
+      3: "won",
+    };
+
+    // prettier-ignore
+    private static mockEventResult: (keyof typeof this.pairEncode)[] = [
+      2, 0, 3, 3, 2, 2, 0, 1, 3, 1,
+      3, 3, 3, 3, 2, 2, 1, 3, 3, 1,
+      3, 0, 3, 3, 3, 3, 3, 1, 2, 1,
+      3, 3, 2, 2, 2, 2, 2, 1, 1, 3,
+    ];
+
+    static crMockGameCell(): HTMLDivElement {
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("ccc-cell-grid");
+      wrapper.style.setProperty("--custom-column-amount", "20");
+
+      for (let i = 0; i < 120; i++) {
+        //
+      }
+
+      return wrapper;
+    }
+
+    static crMockGamePair<T extends GameResult>(
+      gameResult1: T,
+      gameResult2: T
+    ): [HTMLDivElement, HTMLDivElement] {
+      // ccc-win
+      // ccc-loss
+      // ccc-draw
+      // win
+      // loss
+      // draw
+
+      const game1 = document.createElement("div");
+      const game2 = document.createElement("div");
+
+      game1.id = "ccc-result";
+      game2.id = "ccc-result";
+
+      game1.textContent = this.scoreMap[gameResult1];
+      game2.textContent = this.scoreMap[gameResult2];
+
+      return [game1, game2];
     }
   }
 }

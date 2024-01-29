@@ -12,12 +12,14 @@
         "styles/style.css",
         "styles/captured-pieces.css",
         "styles/default-ccc.css",
-        "styles/pairs-per-row-media.css"
+        "styles/pairs-per-row-media.css",
+        "styles/dev-panel.css"
       ],
       "js": [
         "chess-js.js",
         "helpers.js",
         "components.js",
+        "debug-panel.js",
         "elo.js",
         "store.js",
         "clockFix.js",

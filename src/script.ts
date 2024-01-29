@@ -36,13 +36,31 @@ async function loadUserSettings(): Promise<void> {
       keys.forEach((key) => {
         UserSettings.custom[key] = state[key] ?? UserSettings.default[key];
       });
+
+      // init settings in store with default valuesc
+      const allKeys = Utils.objectKeys(UserSettings.custom);
+      allKeys.forEach((key) => {
+        browserPrefix.storage.local.get(key).then((value) => {
+          if (Utils.objectKeys(value).length !== 0) {
+            return;
+          }
+          browserPrefix.storage.local.set({
+            [key]: UserSettings.default[key],
+          });
+        });
+      });
     })
     .catch(Utils.logError);
 
-  if (UserSettings.custom.replaceClockSvg) {
-    fixClockSVG();
-  }
+  const keys = Utils.objectKeys(UserSettings.custom);
+  keys.forEach((key) => {
+    if (key === "pairsPerRow" || key === "pairsPerRowDuel") {
+      return;
+    }
+    ExtensionHelper.applyUserSettings(key);
+  });
 
+  // todo move to that one Promise.all
   ExtensionHelper.localStorage
     .getState(["pairsPerRow", "pairsPerRowDuel"])
     .then((result) => {
@@ -176,7 +194,6 @@ function convertCell(cell: HTMLTableCellElement): void {
   if (enginesAmount <= 8) {
     const caretSvg = cell.querySelector(".ccc-info-button");
 
-    // todo delete
     if (!caretSvg) {
       const additionalInfoWrapper =
         components.CrossTable.crAdditionalStatButton(stats, index_1, index_2);

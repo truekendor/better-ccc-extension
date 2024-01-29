@@ -2196,7 +2196,7 @@ namespace ChessJS {
   }
 
   class CustomChess extends Chess {
-    private gameState: MyChess.GameData = {
+    private gameState: CustomChess.GameData = {
       FenHistoryFull: [],
       FenHistoryTrimmed: [],
       pgn: null,
@@ -2232,48 +2232,20 @@ namespace ChessJS {
       this.gameState.FenHistoryTrimmed.push(this.FEN_TRIMMED);
     }
 
-    /**
-     * Resets the board to the initial starting position
-     * and clears FEN history
-     */
-    private mkReset(): void {
-      this.actions.clearFenHistory();
-      this.reset();
-      if (this.gameState.pgn) {
-        this.gameState.pgn.length = 0;
-      }
-    }
-
     // todo rewrite this
-    get fields(): MyChess.GameDataFields {
-      const fields: MyChess.GameDataFields = {
-        // *
+    get fields(): CustomChess.GameData {
+      const fields: CustomChess.GameData = {
         pgn: this.gameState.pgn,
         FenHistoryFull: this.gameState.FenHistoryFull,
         FenHistoryTrimmed: this.gameState.FenHistoryTrimmed,
-        // *
-        lastTrimmed:
-          this.gameState.FenHistoryTrimmed[
-            this.gameState.FenHistoryTrimmed.length - 1
-          ],
-        lastFull:
-          this.gameState.FenHistoryFull[
-            this.gameState.FenHistoryFull.length - 1
-          ],
-        gameNumber: null,
       } as const;
 
       return fields;
     }
 
     // todo rewrite this
-    get actions(): MyChess.GameDataActions {
-      const actions: MyChess.GameDataActions = {
-        clearFenHistory: () => {
-          this.gameState.FenHistoryFull.length = 0;
-          this.gameState.FenHistoryTrimmed.length = 0;
-        },
-
+    get actions(): CustomChess.GameDataActions {
+      const actions: CustomChess.GameDataActions = {
         getFullFenAtIndex: (index) => {
           if (index <= 0) return ChessJS.startingPosition;
 
@@ -2283,17 +2255,19 @@ namespace ChessJS {
           return this.gameState.FenHistoryTrimmed?.[index] || null;
         },
         setPGN: (pgn: string[]) => {
-          this.mkReset();
+          this.actions.reset();
 
-          this.gameState.pgn = pgn;
+          this.gameState.pgn = pgn.concat();
 
           this.gameState.pgn.forEach((move) => {
             this.mkMove(move);
           });
         },
-        resetPGN: () => {
+        reset: () => {
+          this.gameState.FenHistoryFull.length = 0;
+          this.gameState.FenHistoryTrimmed.length = 0;
+
           this.gameState.pgn = [];
-          // this.fields.pgn = [];
 
           this.reset();
         },

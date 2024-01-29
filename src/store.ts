@@ -96,34 +96,46 @@ class _State {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class UserSettings {
   static default: user_config.settings = {
+    // crosstable stat rules
     ptnml: true,
     elo: true,
+    // crosstable styles
+    displayEngineNames: true,
+    drawnPairNeutralColorWL: true,
     pairsPerRow: 5,
     pairsPerRowDuel: 10,
-    allowKeyboardShortcuts: true,
-    agreementHighlight: true,
-    pgnFetch: true,
+
+    // deviation highlight rules
+    allowNetworkGameRequest: true,
+    deviationHighlight: true,
+
+    // other rules
     addLinksToGameSchedule: true,
+    allowKeyboardShortcuts: true,
     replaceClockSvg: true,
-    displayEngineNames: true,
     materialCount: true,
-    drawnPairNeutralColorWL: true,
     clearQueryStringOnCurrentGame: true,
   } as const;
 
   static custom: user_config.settings = {
+    // crosstable stat rules
     ptnml: true,
     elo: true,
+    // crosstable styles
+    displayEngineNames: true,
+    drawnPairNeutralColorWL: true,
     pairsPerRow: 5,
     pairsPerRowDuel: 10,
-    allowKeyboardShortcuts: true,
-    agreementHighlight: true,
-    pgnFetch: true,
+
+    // deviation highlight rules
+    allowNetworkGameRequest: true,
+    deviationHighlight: true,
+
+    // other rules
     addLinksToGameSchedule: true,
+    allowKeyboardShortcuts: true,
     replaceClockSvg: true,
-    displayEngineNames: true,
     materialCount: true,
-    drawnPairNeutralColorWL: true,
     clearQueryStringOnCurrentGame: true,
   };
 
