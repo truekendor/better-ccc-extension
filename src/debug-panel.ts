@@ -4,7 +4,7 @@ class DebugPanel {
   private static currentRow: HTMLTableRowElement;
   private static bookPlyLength = 16;
 
-  private static _ = this.crDebugPanel();
+  // private static _ = this.crDebugPanel();
 
   private static pgnCurrent: readonly string[] = [
     "e4",
