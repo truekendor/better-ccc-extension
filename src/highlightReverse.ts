@@ -15,6 +15,10 @@ observeGameEnded();
 
 // * =========================
 // * observers
+
+/**
+ *
+ */
 function observeEndOfLoad(): void {
   const mainContentContainer =
     document.querySelector(".cpu-champs-page-main") ?? _DOM_Store.mainContainer;
@@ -40,33 +44,19 @@ function observeEndOfLoad(): void {
         !gameResultDiv && UserSettings.custom.clearQueryStringOnCurrentGame;
 
       if (queryRemovalNeeded) {
-        new MessagePass({
+        new ExtensionMessage({
           type: "remove_query",
           payload: null,
         }).sendToBg();
       }
 
-      if (gameResultDiv && _State.eventId) {
-        const eventId = _State.eventId;
-        const pgn = ExtractPageData.getPGNFromMoveTable();
-
-        ExtractPageData.getCurrentGameNumber().then((gameNumber) => {
-          ChessGamesCache.cacheFromObject({
-            eventId,
-            gameNumber,
-            pgn,
-            type: "full-game",
-          });
-        });
+      if (gameResultDiv && UserSettings.custom.highlightReverseDeviation) {
+        handleOnloadGameCaching();
       }
 
-      _dev_request_game();
-
-      // todo delete this?
-      // todo debug and see if this even needed
-      if (chessReverse.fields.pgn) {
-        FindTranspositions.findTranspositions();
-        HighlightReverseDeviation.highlight();
+      if (UserSettings.custom.highlightReverseDeviation) {
+        console.log("request end of load");
+        _dev_requestReverseGame();
       }
     }, 100);
   });
@@ -140,7 +130,6 @@ function observeGameStarted(): void {
 
 // * -----------------
 // *
-
 function observeMoveScrolled(): void {
   const observer = new MutationObserver(() => {
     observer.disconnect();
@@ -177,12 +166,12 @@ function observeMovePlayed(): void {
     observer.disconnect();
     updateShareModalFENInput()._bind(addListenersToShareFENInput);
 
-    {
-      const pgn = ExtractPageData.getPGNFromMoveTable();
-      chessCurrent.actions.setPGN(pgn);
+    const pgn = ExtractPageData.getPGNFromMoveTable();
+    chessCurrent.actions.setPGN(pgn);
 
-      HighlightReverseDeviation.findTranspositionsAndHighlight();
-    }
+    HighlightReverseDeviation.findTranspositionsAndHighlight();
+
+    //
     observer.observe(movesTable, {
       childList: true,
       subtree: true,
@@ -207,6 +196,10 @@ browserPrefix.runtime.onMessage.addListener(function (
     const { type, payload } = message;
 
     if (type === "response_interceptor") {
+      if (!UserSettings.custom.highlightReverseDeviation) {
+        return;
+      }
+
       const { details } = payload;
       const cccArchiveURL = "https://cccc.chess.com/archive";
 
@@ -224,14 +217,33 @@ browserPrefix.runtime.onMessage.addListener(function (
     }
 
     if (type === "tab_update") {
-      const { event, game } = payload;
-
-      _State.tabEventId = event;
-      _State.gameNumberTab = game;
-
-      if (!chessReverse.fields.pgn) {
+      if (!UserSettings.custom.highlightReverseDeviation) {
         return;
       }
+
+      const { event, game: gameNumber } = payload;
+
+      _State.tabEventId = event;
+      _State.gameNumberTab = gameNumber;
+
+      new Promise((res) => {
+        if (gameNumber) {
+          res(gameNumber);
+        } else {
+          ExtractPageData.getCurrentGameNumber().then((gameNumber) =>
+            res(gameNumber)
+          );
+        }
+      }).then((gameNumber) => {
+        const reverseGameCache = ChessGamesCache.getGame(
+          getReverseGameNumber(gameNumber as number)
+        );
+        if (!reverseGameCache) {
+          _dev_requestReverseGame();
+          return;
+        }
+        chessReverse.actions.setPGN(reverseGameCache.pgn);
+      });
 
       // todo replace with some logic
       setTimeout(() => {
@@ -242,6 +254,10 @@ browserPrefix.runtime.onMessage.addListener(function (
     }
 
     if (type === "reverse_pgn_response") {
+      if (!UserSettings.custom.highlightReverseDeviation) {
+        return;
+      }
+
       const {
         pgn: reversePGN,
         reverseGameNumber,
@@ -421,6 +437,9 @@ class HighlightReverseDeviation {
 
   // todo add description
   static highlight(): void {
+    if (!UserSettings.custom.highlightReverseDeviation) {
+      return;
+    }
     // todo change this
     if (FindTranspositions.agreementLength < 16) return;
     if (!chessReverse.fields.pgn || chessReverse.fields.pgn.length < 20) {
@@ -433,6 +452,9 @@ class HighlightReverseDeviation {
 
   // todo add description
   static findTranspositionsAndHighlight(): void {
+    if (!UserSettings.custom.highlightReverseDeviation) {
+      return;
+    }
     this.clearMoveTableClasses();
 
     this.moveTableElementList.length = 0;
@@ -442,10 +464,13 @@ class HighlightReverseDeviation {
     this.highlight();
   }
 
-  private static clearMoveTableClasses(): void {
+  static clearMoveTableClasses(): void {
     const moves = ExtractPageData.getMovesElements();
 
     moves.forEach((move) => {
+      if (move.getAttribute("title")) {
+        move.removeAttribute("title");
+      }
       move.classList.remove("ccc-move-agree");
       move.classList.remove("ccc-data-move");
       move.removeAttribute("data-move");
@@ -457,9 +482,11 @@ class HighlightReverseDeviation {
 
     this.moveTableElementList.forEach((moveElement, index) => {
       if (index < FindTranspositions.agreementLength) {
+        moveElement.title = "same move as in the reverse game";
         moveElement.classList.add("ccc-move-agree");
       } else if (index === FindTranspositions.agreementLength) {
         const reverseMove = reversePGN![index];
+        moveElement.title = `move played in the reverse game: ${reverseMove}`;
 
         moveElement.classList.add("ccc-data-move");
         moveElement.setAttribute("data-move", reverseMove);
@@ -505,9 +532,7 @@ class HighlightReverseDeviation {
 // todo rename
 class ExtractPageData {
   /**
-   * @todo make it fail if webpage is not in focus
-   * @todo move to _State as private method?
-   * the only ~reliable way to get current game number from webpage
+   *  somewhat reliable way to get current game number from webpage
    */
   static async getCurrentGameNumber(): Promise<number> {
     // todo ?
@@ -575,7 +600,6 @@ class ExtractPageData {
   }
 
   /**
-   * todo redo/name
    * sets latest event id from web pages event list to state
    */
   static setEventIdToState(): void {
@@ -722,25 +746,29 @@ function getReverseGameNumber(currentGameNumber: number): number {
   return currentGameNumber + offset;
 }
 
+const requestsNumber: Record<number, true> = {};
+
 // todo delete?
-async function _dev_request_game(): Promise<void> {
+async function _dev_requestReverseGame(): Promise<void> {
   const gameNumber = await ExtractPageData.getCurrentGameNumber();
   const eventId = _State.eventId;
 
   if (!eventId) {
-    console.log("event id is null");
     return;
   }
 
-  const message: message_pass.message = {
+  if (requestsNumber[gameNumber]) {
+    return;
+  }
+  requestsNumber[gameNumber] = true;
+
+  new ExtensionMessage({
     type: "reverse_pgn_request",
     payload: {
       event: eventId,
       gameNumber: gameNumber,
     },
-  };
-
-  ExtensionHelper.messages.sendMessage(message);
+  }).sendToBg();
 }
 
 // todo move to index.d.ts
@@ -750,20 +778,7 @@ type GameCacheEntry = {
 };
 
 class ChessGamesCache {
-  // ? cache structure example:
-  // {
-  //  ---- game number ----
-  //   22: {
-  //       pgn: ['e4', 'e5', ...]
-  //       type: 'full-game'
-  //     },
-  //   45: {
-  //       pgn: ['g4', 'd5', ...]
-  //       type: 'intermediate-cache'
-  //     }
-  // }
-  // todo make private
-  static cache = new Map<number, GameCacheEntry>();
+  public static cache = new Map<number, GameCacheEntry>();
   private static currentEventId: string;
 
   static async cacheCurrent(): Promise<void> {
@@ -814,4 +829,22 @@ class ChessGamesCache {
 
     return this.cache.get(gameNumber)!;
   }
+}
+
+function handleOnloadGameCaching(): void {
+  if (!_State.eventId) {
+    return;
+  }
+
+  const eventId = _State.eventId;
+  const pgn = ExtractPageData.getPGNFromMoveTable();
+
+  ExtractPageData.getCurrentGameNumber().then((gameNumber) => {
+    ChessGamesCache.cacheFromObject({
+      eventId,
+      gameNumber,
+      pgn,
+      type: "full-game",
+    });
+  });
 }

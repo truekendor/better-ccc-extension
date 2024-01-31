@@ -49,41 +49,97 @@ namespace components {
         e.stopPropagation();
       });
 
-      // todo delete
-      // ! mock
-      // ! mock
-      // ! mock
-      const option_1 = this.crExtensionSettingRow(
-        "displayEngineNames",
-        "engine names"
-      );
-      const option_2 = this.crExtensionSettingRow(
-        "addLinksToGameSchedule",
-        "links to schedule"
-      );
-      const option_3 = this.crExtensionSettingRow(
-        "materialCount",
-        "material count"
-      );
-      const option_4 = this.crExtensionSettingRow(
-        "replaceClockSvg",
-        "replace clock"
-      );
-      const option_5 = this.crExtensionSettingRow(
-        "allowKeyboardShortcuts",
-        "keyboard shortcuts"
-      );
+      modalWrapper.append(
+        this.crLineSeparator("crosstable"),
+        // * ======
 
-      modalWrapper.append(option_1, option_2, option_3, option_4, option_5);
+        this.crExtensionSettingRow({
+          key: "displayEngineNames",
+          description: "engine names",
+          tooltip: "",
+        }),
+        // todo change this
+        this.crExtensionSettingRow({
+          key: "drawnPairNeutralColorWL",
+          description: "neutral color",
+          tooltip: "",
+        }),
+        // * ======
+        this.crLineSeparator("main"),
+        // * ======
+
+        this.crExtensionSettingRow({
+          key: "materialCount",
+          description: "Show captured pieces",
+          tooltip: "show/hide captured pieces",
+        }),
+        this.crExtensionSettingRow({
+          key: "allowKeyboardShortcuts",
+          description: "Keyboard shortcuts",
+          tooltip: "",
+        }),
+        this.crExtensionSettingRow({
+          key: "highlightReverseDeviation",
+          description: "highlight reverse deviation",
+          // todo
+          tooltip:
+            "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic 25-200kb per game",
+        }),
+        // * ======
+        this.crLineSeparator("other"),
+        // * ======
+
+        this.crExtensionSettingRow({
+          key: "addLinksToGameSchedule",
+          description: "links to schedule",
+          tooltip: "",
+        }),
+        this.crExtensionSettingRow({
+          key: "replaceClockSvg",
+          description: "replace clock svg",
+          tooltip: "Replaces brocken clock svg",
+        }),
+        this.crExtensionSettingRow({
+          key: "clearQueryStringOnCurrentGame",
+          description: "clear query string",
+          tooltip: "Automatically removes event id from browser search query",
+        })
+      );
 
       crossTableModal.append(modalBackdrop);
     }
 
-    private static crExtensionSettingRow<
-      T extends BooleanKeys<user_config.settings>
-    >(key: T, description: string): HTMLDivElement {
-      const row = document.createElement("div");
+    private static crLineSeparator(categoryName: string): HTMLDivElement {
+      const wrapper = document.createElement("div");
+
+      const title = document.createElement("h3");
+      const line = document.createElement("div");
+
+      title.textContent = categoryName;
+      wrapper.append(title, line);
+
+      wrapper.classList.add("_dev_wrapper");
+      title.classList.add("_dev_title");
+      line.classList.add("_dev_line");
+
+      return wrapper;
+    }
+
+    private static crExtensionSettingRow({
+      key,
+      description,
+      tooltip,
+    }: {
+      key: BooleanKeys<user_config.settings>;
+      description: string;
+      tooltip: string;
+    }): HTMLLabelElement {
+      const row = document.createElement("label");
       row.classList.add("_row");
+      row.htmlFor = `ccc-${key}`;
+      if (tooltip) {
+        row.title = tooltip;
+      }
 
       const descriptionElem = document.createElement("p");
       descriptionElem.classList.add("_desc");
@@ -93,6 +149,7 @@ namespace components {
       const input = document.createElement("input");
       input.classList.add("ccc-input");
       input.tabIndex = 1000;
+      input.id = `ccc-${key}`;
 
       input.type = "checkbox";
 
@@ -420,7 +477,7 @@ namespace components {
     /**
      * creates elo and elo-error margin element
      */
-    private static crEloAndMarginElement(
+    private static crEloAndErrMarginElement(
       elo: string,
       margin: string
     ): HTMLDivElement {
@@ -485,7 +542,7 @@ namespace components {
 
         margin = `±${margin}`;
 
-        eloWrapper = this.crEloAndMarginElement(elo, margin);
+        eloWrapper = this.crEloAndErrMarginElement(elo, margin);
       }
 
       wdlElement.append(w, d, l);

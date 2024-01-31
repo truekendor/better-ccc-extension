@@ -90,7 +90,6 @@ class _State {
 
 /**
  * @todo add description
- * @todo move to its own state
  * user settings state
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -107,7 +106,7 @@ class UserSettings {
 
     // deviation highlight rules
     allowNetworkGameRequest: true,
-    deviationHighlight: true,
+    highlightReverseDeviation: true,
 
     // other rules
     addLinksToGameSchedule: true,
@@ -129,7 +128,7 @@ class UserSettings {
 
     // deviation highlight rules
     allowNetworkGameRequest: true,
-    deviationHighlight: true,
+    highlightReverseDeviation: true,
 
     // other rules
     addLinksToGameSchedule: true,
@@ -138,9 +137,4 @@ class UserSettings {
     materialCount: true,
     clearQueryStringOnCurrentGame: true,
   };
-
-  // todo add description and logic or delete
-  private static initValuesInExtensionLocalStorage(): void {
-    //
-  }
 }

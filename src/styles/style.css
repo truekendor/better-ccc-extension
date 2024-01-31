@@ -55,8 +55,12 @@
 .crosstable-results-cell {
   position: relative;
 
-  border: 1px solid hsla(0, 0%, 100%, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
   border-top: transparent;
+}
+
+.crosstable-results-cell:not(.crosstable-empty):not(:has(div)) {
+  min-width: 60px;
 }
 
 .crosstable-result-wrapper.ccc-cell-grid {
@@ -326,7 +330,7 @@ table > tr:nth-child(2n) .ccc-draw {
   align-items: center;
   grid-template-columns: repeat(4, auto);
 
-  gap: 1.9rem;
+  gap: 1.3rem;
 
   height: var(--ccc-modal-pd-top);
 
@@ -759,15 +763,17 @@ table > tr:nth-child(2n) .ccc-draw {
 
   gap: 10px;
 
-  padding: 10px;
+  padding: 22px 16px;
 
   flex-direction: column;
 
   background-color: #222;
   width: 250px;
-  height: 300px;
+  height: max-content;
 
   cursor: auto;
+
+  border-radius: 5px;
 }
 
 .ccc-extension-settings-btn {
@@ -830,4 +836,35 @@ table > tr:nth-child(2n) .ccc-draw {
 
 .schedule-in-progress > * {
   pointer-events: none;
+}
+
+/* todo rename */
+._dev_wrapper {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+._dev_title {
+  color: gainsboro;
+  text-wrap: nowrap;
+}
+
+._dev_line {
+  position: relative;
+
+  width: 100%;
+}
+
+._dev_line::after {
+  content: "";
+  position: absolute;
+
+  transform: translateX(-50%);
+  top: 50%;
+  left: 50%;
+
+  background-color: gray;
+  width: 90%;
+  height: 1px;
 }

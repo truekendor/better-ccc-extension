@@ -210,6 +210,7 @@ class DebugPanel {
       console.log("agree len: ", FindTranspositions.agreementLength);
       console.log("chess current :", chessCurrent);
       console.log("chess reverse :", chessReverse);
+      console.log("game cache :", ChessGamesCache.cache);
     });
 
     return btn;
@@ -287,21 +288,6 @@ class DebugPanel {
 
   // * ====================
   // * button methods
-  // todo move to button callbacks?
-
-  private static makeAllMoves(): void {
-    let currentRow: HTMLTableRowElement = document.createElement("tr");
-
-    for (let i = 0; i < this.pgnCurrent.length; i++) {
-      if (i % 2 === 0) {
-        currentRow = this.crTableRow((i % 2) + 1);
-        _DOM_Store.movesTable.append(currentRow);
-      }
-      const moveElement = this.crMoveElement(i);
-
-      currentRow.append(moveElement);
-    }
-  }
 
   private static playBookMoves(): void {
     for (let i = 0; i < this.bookPlyLength; i++) {

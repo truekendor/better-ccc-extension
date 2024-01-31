@@ -29,6 +29,7 @@ async function loadUserSettings(): Promise<void> {
       "displayEngineNames",
       "materialCount",
       "clearQueryStringOnCurrentGame",
+      "highlightReverseDeviation",
     ])
     .then((state) => {
       const keys = Utils.objectKeys(state);
@@ -59,6 +60,10 @@ async function loadUserSettings(): Promise<void> {
     }
     ExtensionHelper.applyUserSettings(key);
   });
+
+  if (UserSettings.custom.highlightReverseDeviation) {
+    ExtensionHelper.messages.sendReady();
+  }
 
   // todo move to that one Promise.all
   ExtensionHelper.localStorage
@@ -191,7 +196,8 @@ function convertCell(cell: HTMLTableCellElement): void {
   );
   const [ptnml, wdlArray, stats] = CrosstableHelper.calculateStats(scoresArray);
 
-  if (enginesAmount <= 8) {
+  // eslint-disable-next-line no-constant-condition
+  if (enginesAmount <= 8 && false) {
     const caretSvg = cell.querySelector(".ccc-info-button");
 
     if (!caretSvg) {
@@ -749,7 +755,6 @@ function addListenersToShareFENInput(input: HTMLInputElement): Maybe {
 }
 
 observeEndOfLoadMain();
-ExtensionHelper.messages.sendReady();
 
 function observeEndOfLoadMain(): void {
   const mainContentContainer =

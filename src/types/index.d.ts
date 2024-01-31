@@ -54,7 +54,7 @@ declare namespace user_config {
     drawnPairNeutralColorWL: boolean;
 
     // deviation highlight rules
-    deviationHighlight: boolean;
+    highlightReverseDeviation: boolean;
     allowNetworkGameRequest: boolean;
 
     // other

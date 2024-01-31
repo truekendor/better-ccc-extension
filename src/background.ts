@@ -38,7 +38,7 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
     } else if (type === "reverse_pgn_request") {
       const { gameNumber, event } = payload;
 
-      requestReverseGame(gameNumber, event).catch((e) => {
+      _bg_requestReverseGame(gameNumber, event).catch((e) => {
         console.log("Game fetch error: ", e?.message ?? e);
       });
     } else if (type === "request_tb_eval") {
@@ -83,10 +83,10 @@ _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 
     if (!game || !event) return;
 
-    // todo delete this
-    requestReverseGame(game, event).catch((e: any) =>
-      console.log("Fetch error: ", e)
-    );
+    // // todo delete this
+    // requestReverseGame(game, event).catch((e: any) =>
+    //   console.log("Fetch error: ", e)
+    // );
 
     return false;
   } catch (e) {
@@ -167,7 +167,7 @@ async function onLoadHandler(): Promise<false | undefined> {
   }
 }
 
-async function requestReverseGame(
+async function _bg_requestReverseGame(
   gameNumber: number,
   event: string
 ): Promise<void> {
@@ -349,9 +349,6 @@ class TB7Score {
   }
 }
 
-// todo delete
-// const tbScore = new TB7Score();
-
 /**
  * sends a message to the content scripts
  */
@@ -389,8 +386,3 @@ chrome.webRequest.onCompleted.addListener(
     urls: listenToUrls,
   }
 );
-
-// todo
-// _bg_browserPrefix.windows.onFocusChanged.addListener((windowId) => {
-//
-// });

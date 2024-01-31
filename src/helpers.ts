@@ -591,13 +591,13 @@ class CrosstableHelper {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ExtensionHelper {
   private static messageMethods = {
-    sendMessage(message: message_pass.message) {
+    sendMessage: (message: message_pass.message) => {
       // @ts-ignore
       return browserPrefix.runtime.sendMessage(message) as Promise<unknown>;
     },
 
     /** sends ready to BG script on document load */
-    sendReady() {
+    sendReady: () => {
       const message: message_pass.message = {
         type: "onload",
         payload: null,
@@ -654,13 +654,15 @@ class ExtensionHelper {
         break;
       case "materialCount":
         this.handleMaterialCountCase();
-
+        break;
+      case "highlightReverseDeviation":
+        if (!UserSettings.custom.highlightReverseDeviation) {
+          HighlightReverseDeviation.clearMoveTableClasses();
+        }
         break;
       // todo
       case "addLinksToGameSchedule":
       case "displayEngineNames":
-        break;
-      case "deviationHighlight":
       case "allowNetworkGameRequest":
       case "elo":
       case "ptnml":
@@ -668,7 +670,6 @@ class ExtensionHelper {
         break;
       case "clearQueryStringOnCurrentGame":
         this.handlerClearQuery();
-
         break;
       default:
         console.log(key satisfies never);
@@ -699,7 +700,7 @@ class ExtensionHelper {
 
       // @ts-expect-error idk why there is no classList on event target
       if (e.target?.classList?.contains("schedule-in-progress")) {
-        new MessagePass({
+        new ExtensionMessage({
           type: "remove_query",
           payload: null,
         }).sendToBg();
@@ -710,7 +711,7 @@ class ExtensionHelper {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 // todo add description
-class MessagePass {
+class ExtensionMessage {
   private message: message_pass.message;
 
   constructor(obg: message_pass.message) {
