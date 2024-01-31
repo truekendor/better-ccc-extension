@@ -1,312 +1,388 @@
-/// <reference types="./" />
-/// <reference path="./index.d.ts" />
+/// <reference types="./types" />
+/// <reference path="./types/index.d.ts" />
+/// <reference path="./types/lila-tb.ts" />
+/// <reference path="./types/chess-com.d.ts" />
+/// <reference path="./types/chess-js.ts" />
 
-// @ts-ignore
-const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
+// todo fix this
+const _bg_browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
-let allowFetching = true;
-const eventList: EventListItem[] = [];
+// const abortController = new AbortController();
 
-const getEventPromise = getEventList();
-function getEventList() {
-  return (
-    fetch("https://cccc.chess.com/event-list")
-      .then((res) => {
-        return res.json();
-      })
-      .then((res: EventListItem[]) => {
-        eventList.length = 0;
-        eventList.push(...res);
-      })
-      // .then(() => getCurrentTab())
-      // .then((tab) => {
-      //   if (!tab) return;
-
-      //   let eventName = getEventNameFromURL(tab) ?? eventList[0].id;
-
-      //   console.log("LOCAL TAB", tab);
-      //   console.log("LOG FROM EVENT LIST!", eventName);
-
-      //   chrome.tabs.query(
-      //     { active: true, currentWindow: true },
-
-      //     function (tabs) {
-      //       if (!tabs[0].id) return;
-      //       const message: RuntimeMessage = {
-      //         type: "event_name_changed",
-      //         payload: {
-      //           eventName,
-      //         },
-      //       };
-
-      //       console.log("IS TAB FROM BG???", tabs[0]);
-      //       chrome.tabs.sendMessage(tabs[0].id, message);
-
-      //       return true;
-      //     }
-      //   );
-      // })
-      .catch((e: any) => console.log(e?.message))
-  );
-}
-
-chrome.runtime.onMessage.addListener(function (
-  message: RuntimeMessage,
-  sender,
-  senderResponse
+_bg_browserPrefix.runtime.onMessage.addListener(function (
+  message: message_pass.message
+  // sender,
+  // senderResponse
 ) {
   try {
-    if (eventList.length === 0) return true;
-
     const { type, payload } = message;
 
-    if (type === "get_pgn") {
-      getPGNHandler(payload).then((res) => {
-        if (!res) return true;
-        senderResponse(res);
+    if (type === "remove_query") {
+      _bg_browserPrefix.tabs.query({ currentWindow: true, active: true });
+      getCurrentTab().then((tab) => {
+        if (!tab || !tab.id || !tab.url) return;
+
+        const { event, game } = URLHelper.getEventAndGame(tab);
+
+        if (event && !game) {
+          const replaceUrl = tab.url.replace(`event=${event}`, "");
+
+          // @ts-ignore
+          _bg_browserPrefix.tabs.update(tab.id, { url: replaceUrl });
+        }
       });
-    } else if (type === "onload") {
-      onLoadHandler();
     }
 
-    return true;
+    if (type === "onload") {
+      onLoadHandler();
+    } else if (type === "reverse_pgn_request") {
+      const { gameNumber, event } = payload;
+
+      _bg_requestReverseGame(gameNumber, event).catch((e) => {
+        console.log("Game fetch error: ", e?.message ?? e);
+      });
+    } else if (type === "request_tb_eval") {
+      // const { fen, currentPly } = payload;
+      // requestTBScoreHandler(fen, currentPly)
+      //   .then((res) => {
+      //     senderResponse(res);
+      //   })
+      //   .catch((e) => console.log("TB fetch error: ", e?.message ?? e));
+    }
+
+    return false;
   } catch (e: any) {
-    console.log(e?.message);
+    console.log(e?.message ?? e);
   }
 });
 
 // to request agreement from random CCC games
-chrome.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
-  if (!changeInfo.url) return;
+_bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
+  try {
+    if (!changeInfo.url) {
+      return false;
+    }
 
-  // TODO rewrite getEventAndGame to always return event Name
-  const info = getEventAndGame(tab);
+    if (
+      !changeInfo.url.includes("chess.com/computer-chess-championship") &&
+      !changeInfo.url.includes("chess.com/ccc")
+    ) {
+      return;
+    }
 
-  if (!info) return;
+    const { event, game } = URLHelper.getEventAndGame(tab);
 
-  const { event, game } = info;
+    const message: message_pass.message = {
+      type: "tab_update",
+      payload: {
+        event,
+        game,
+      },
+    };
+    _sendMessageToContent(message);
 
-  if (!event || !game || game % 2 === 1) return;
+    if (!game || !event) return;
 
-  fetch(getGameUrl(event, game - 1))
-    .then((res) => {
-      return res.json();
-    })
-    .then((res: ChessComGameResponse) => {
-      if (!res) {
-        throw new Error("No response");
-      }
-      let pgn = getMovesFromPgn(res.pgn);
+    // // todo delete this
+    // requestReverseGame(game, event).catch((e: any) =>
+    //   console.log("Fetch error: ", e)
+    // );
 
-      return pgn.split(" ").filter((el) => el !== "" && el !== " ");
-    })
-    .then((pgn) => {
-      const data: RuntimeMessage = {
-        type: "response_pgn",
-        payload: {
-          pgn,
-          gameNumber: game,
-        },
-      };
-
-      chrome.tabs.query(
-        { active: true, currentWindow: true },
-
-        function (tabs) {
-          if (!tabs[0].id) return;
-          chrome.tabs.sendMessage(tabs[0].id, data);
-        }
-      );
-    })
-    .catch((err) => console.log("Error at bg: ", err.message));
-
-  // return true;
+    return false;
+  } catch (e) {
+    console.log("tab updated error", e);
+  }
 });
 
-async function getCurrentTab() {
+async function getCurrentTab(): Promise<
+  browser.tabs.Tab | chrome.tabs.Tab | undefined
+> {
   try {
-    const queryOptions = { active: true, currentWindow: true };
-    const [tab] = await chrome.tabs.query(queryOptions);
+    const chromeTab = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
 
-    return tab;
+    if (chromeTab?.[0]) {
+      return chromeTab[0];
+    }
+
+    const firefoxTab = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    return firefoxTab[0];
   } catch (e: any) {
-    console.log(e?.message);
+    console.log(e?.message ?? e);
   }
 }
 
-// gets CCC tab queries
-// such as name of the event
-// and game number
-async function onLoadHandler() {
+async function onLoadHandler(): Promise<false | undefined> {
   try {
     const tab = await getCurrentTab();
-    if (!tab) return;
 
-    const info = getEventAndGame(tab);
-    const eventName = getEventNameFromURL(tab) ?? eventList[0].id;
-    if (eventName) {
-      console.log("ON LOAD HANDLER", eventName);
+    if (!tab || !tab.id) return false;
 
-      chrome.tabs.query(
-        { active: true, currentWindow: true },
+    const { event, game } = URLHelper.getEventAndGame(tab);
 
-        function (tabs) {
-          if (!tabs[0].id) return;
+    const message: message_pass.message = {
+      type: "tab_update",
+      payload: {
+        event,
+        game,
+      },
+    };
 
-          const message: RuntimeMessage = {
-            type: "event_name",
-            payload: {
-              eventName,
-            },
-          };
-          console.log("MESSAGE TO SEND!", message);
-          chrome.tabs.sendMessage(tabs[0].id, message);
-        }
-      );
-    } else {
-      return;
-    }
-    if (!info) return;
+    _sendMessageToContent(message);
 
-    const { event, game } = info;
+    if (game && event) {
+      const reverseGameNumber = game % 2 === 1 ? game + 1 : game - 1;
 
-    if (!event || !game || game % 2 === 1) return;
+      const urlToFetch = URLHelper.getArchiveGameURL(event, reverseGameNumber);
+      const data = await fetch(urlToFetch);
+      const response = (await data.json()) as chess_com.game_response;
 
-    const gameLogsRaw = await fetch(getGameUrl(event, game - 1));
-    const gameLogs = await gameLogsRaw.json();
+      if (!response) {
+        console.log("game not found");
+        return;
+      }
 
-    let pgnRaw: string = getMovesFromPgn(gameLogs.pgn);
-    const pgn: string[] = pgnRaw
-      .split(" ")
-      .filter((el) => el !== "" && el !== " ");
-
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      if (!tabs[0].id) return;
-      const message: RuntimeMessage = {
-        type: "response_pgn",
+      const message: message_pass.message = {
+        type: "reverse_pgn_response",
         payload: {
-          pgn,
+          pgn: getMovesFromPgn(response.pgn),
+          reverseGameNumber,
           gameNumber: game,
+          eventId: event,
         },
       };
 
-      chrome.tabs.sendMessage(tabs[0].id, message);
-    });
+      _sendMessageToContent(message);
+    }
+
+    return false;
   } catch (e: any) {
     console.log(e?.message);
   }
 }
 
-function getEventAndGame(tab: Tab): EventAndGame | null {
-  const url = tab?.url;
-  // get # query
-  // @ts-ignore
-  if (!url || !url.includes("computer-chess-championship")) {
-    return null;
-  }
-  const textAfterHash = url?.split("#")?.[1];
+async function _bg_requestReverseGame(
+  gameNumber: number,
+  event: string
+): Promise<void> {
+  const reverseGameNumber =
+    gameNumber % 2 === 0 ? gameNumber - 1 : gameNumber + 1;
 
-  if (!textAfterHash) return null;
+  const response = await fetch(
+    URLHelper.getArchiveGameURL(event, reverseGameNumber)
+  );
 
-  const allHashQueries = textAfterHash?.split("&");
-  const queries = allHashQueries.map((query) => {
-    return query.split("=");
-  });
+  if (!response.ok) throw new Error("No response");
 
-  let game;
-  let event;
+  const result = (await response.json()) as chess_com.game_response;
+  if (!result) throw new Error("Result is null");
+  if (!result.pgn) throw new Error("No pgn");
 
-  queries.forEach((el) => {
-    if (el[0] === "event") {
-      event = el[1];
-      return;
-    }
-    if (el[0] === "game") {
-      game = parseInt(el[1]);
-    }
-  });
+  const pgnArray = getMovesFromPgn(result.pgn);
 
-  if (!event || !game) return null;
+  const message: message_pass.message = {
+    type: "reverse_pgn_response",
+    payload: {
+      gameNumber,
+      reverseGameNumber,
+      pgn: pgnArray,
+      eventId: event,
+    },
+  };
 
-  return { event, game };
+  _sendMessageToContent(message);
 }
 
-function getEventNameFromURL(tab: Tab): string | null {
-  const url = tab?.url;
-  // get # query
-  // @ts-ignore
-  if (!url || !url.includes("computer-chess-championship")) {
-    return null;
-  }
-  const textAfterHash = url?.split("#")?.[1];
+// async function requestTBScoreHandler(fen: string, ply: number): {
+//   // const tbResponse = await tbScore.requestTBScoreStandard(fen);
 
-  if (!textAfterHash) return null;
+//   // const message: message_pass.message = {
+//   //   type: "response_tb_standard",
+//   //   payload: {
+//   //     response: tbResponse || null,
+//   //     ply,
+//   //   },
+//   // };
 
-  const allHashQueries = textAfterHash?.split("&");
-  const queries = allHashQueries.map((query) => {
-    return query.split("=");
-  });
+//   // return message;
+// }
 
-  let eventName;
+/**
+ * returns moves string that looks like this
+ * 1. e4 e5 2. Nf3 Nc6 3. Nf6 ...
+ */
+function getMovesFromPgn(pgn: string): string[] {
+  const data: string[] = pgn.split("\n");
+  const pgnString = data[data.length - 1]!;
 
-  queries.forEach((el) => {
-    if (el[0] === "event") {
-      eventName = el[1];
-      return;
-    }
-  });
-
-  console.log("Get_EVENT_NAME_FUNC", eventName);
-  if (!eventName) return null;
-
-  return eventName;
-}
-
-function getGameUrl(eventId: string, gameNumber: number): string {
-  return `https://cccc.chess.com/archive?event=${eventId}&game=${gameNumber}`;
-}
-
-function getPGNHandler(
-  payload: Partial<RuntimeMessagePayload>
-): Promise<null | RuntimeMessage> {
-  if (!payload?.gameNumber || payload.gameNumber % 2 === 1) {
-    return Promise.resolve(null);
-  }
-
-  return fetch(getGameUrl(eventList[0].id, payload.gameNumber))
-    .then((res) => {
-      if (!res.ok) throw new Error("No response");
-
-      return res.json();
-    })
-    .then((res: ChessComGameResponse) => {
-      if (!res) return null;
-
-      const pgn = getMovesFromPgn(res.pgn);
-
-      const movesArray: string[] = pgn
-        .split(" ")
-        .filter((el) => el !== "" && el !== " ");
-
-      if (!movesArray.length) return null;
-      const message: RuntimeMessage = {
-        type: "response_pgn",
-        payload: {
-          pgn: movesArray ?? null,
-        },
-      };
-
-      return message;
-    });
+  return parsePGNMoves(pgnString);
 }
 
 /**
- * @returns Moves string in this format:
- *  "1. e4 e5 2. Nf3 Nf6 3. d4 d5 4. ..."
+ * returns string[] with moves in SAN format
+ * ['e4', 'e5', 'Ke2', 'Ke7', 'Na3', ...]
  */
-function getMovesFromPgn(pgn: string): string {
-  const data: string[] = pgn.split("\n");
-  const pgnString = data[data.length - 1];
-
-  return pgnString;
+function parsePGNMoves(pgn: string): string[] {
+  return (
+    pgn
+      .split(" ")
+      // removes whitespaces
+      .filter((el) => el !== "" && el !== " ")
+      // filter potential comments
+      .filter(
+        (el) => !el.includes("{") && !el.includes("[") && !el.includes("*")
+      )
+      // filter move numbers and game result
+      .filter((val) => {
+        if (!val.match(/^\d/gi)) return val;
+      })
+  );
 }
+
+// todo add description
+class URLHelper {
+  static getEventAndGame(tab: Tab): {
+    event: string | null;
+    game: number | null;
+  } {
+    const url = tab?.url;
+
+    // get "#" query params
+    const textAfterHash = url?.split("#")?.[1];
+
+    const eventAndGame: {
+      event: string | null;
+      game: number | null;
+    } = {
+      event: null,
+      game: null,
+    };
+
+    if (
+      !url ||
+      !url.includes("computer-chess-championship") ||
+      !textAfterHash
+    ) {
+      return eventAndGame;
+    }
+
+    const allHashQueries = textAfterHash?.split("&");
+    const queries = allHashQueries.map((query) => {
+      return query.split("=");
+    });
+
+    try {
+      queries.forEach((el) => {
+        if (el[0] === "event") {
+          if (!el[1]) throw new Error("Event name is empty");
+
+          eventAndGame.event = el[1];
+          return;
+        }
+        if (el[0] === "game") {
+          if (!el[1]) throw new Error("Game number is empty");
+
+          eventAndGame.game = parseInt(el[1]);
+        }
+      });
+    } catch (e: any) {
+      console.log(e?.message ?? e);
+    }
+
+    return eventAndGame;
+  }
+
+  static getArchiveGameURL(eventId: string, gameNumber: number): string {
+    return `https://cccc.chess.com/archive?event=${eventId}&game=${gameNumber}`;
+  }
+}
+
+// todo add description
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class TB7Score {
+  private controller = new AbortController();
+
+  // todo move to the URLHelper ?
+  private urlBase = "https://tablebase.lichess.ovh/standard";
+  private urlStandard = `${this.urlBase}?fen=`;
+  private urlMainline = `${this.urlBase}/mainline?fen=`;
+
+  async requestTBScoreStandard(
+    fen: string
+  ): Promise<lila.standard_response | undefined> {
+    try {
+      const requestURL = `${this.urlStandard}${fen}`;
+
+      const response = await fetch(requestURL, {
+        signal: this.controller.signal,
+      });
+
+      const result = await response.json();
+      return result as lila.standard_response;
+    } catch (e: any) {
+      console.log("failed to request standard tb score: ", e?.message ?? e);
+    }
+  }
+
+  async requestTBScoreMainline(
+    fen: string
+  ): Promise<lila.mainline_response | undefined> {
+    try {
+      const requestURL = `${this.urlMainline}${fen}`;
+
+      const response = await fetch(requestURL, {
+        signal: this.controller.signal,
+      });
+
+      const result = await response.json();
+
+      return result as lila.mainline_response;
+    } catch (e: any) {
+      console.log(e?.message ?? e);
+    }
+  }
+}
+
+/**
+ * sends a message to the content scripts
+ */
+async function _sendMessageToContent(
+  message: message_pass.message
+): Promise<any> {
+  const tab = await getCurrentTab();
+  if (!tab || !tab.id) return;
+
+  return _bg_browserPrefix.tabs.sendMessage(tab.id, message);
+}
+
+const listenToUrls = [
+  "https://cccc.chess.com/archive*",
+  "http://cccc.chess.com/archive*",
+  "http://cccc.chess.com/*",
+  "https://cccc.chess.com/*",
+  "https://wwww.chess.com/*",
+  "http://wwww.chess.com/*",
+];
+
+chrome.webRequest.onCompleted.addListener(
+  (details) => {
+    if (!details.url.startsWith("https://cccc")) return;
+    const message: message_pass.message = {
+      type: "response_interceptor",
+      payload: {
+        details: details,
+      },
+    };
+
+    _sendMessageToContent(message);
+  },
+  {
+    urls: listenToUrls,
+  }
+);

@@ -1,9 +1,12 @@
 {
   "scripts": {
-    "build": "tsc src/highlight.ts src/background.ts src/script.ts src/chess.ts src/popup.ts --lib \"es2016, dom\""
+    "dev": "tsc --watch"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.241",
-    "@types/firefox-webext-browser": "^111.0.1"
+    "@types/firefox-webext-browser": "^111.0.1",
+    "@typescript-eslint/eslint-plugin": "^6.18.1",
+    "@typescript-eslint/parser": "^6.18.1",
+    "eslint": "^8.56.0"
   }
 }

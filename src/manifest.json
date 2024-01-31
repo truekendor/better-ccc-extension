@@ -4,9 +4,29 @@
   "version": "1.1.0",
   "content_scripts": [
     {
-      "matches": ["*://www.chess.com/*computer-chess-championship*"],
-      "css": ["styles.css"],
-      "js": ["script.js", "highlight.js", "popup.js"],
+      "matches": [
+        "*://www.chess.com/computer-chess-championship*",
+        "*://www.chess.com/ccc*"
+      ],
+      "css": [
+        "styles/style.css",
+        "styles/captured-pieces.css",
+        "styles/default-ccc.css",
+        "styles/pairs-per-row-media.css",
+        "styles/dev-panel.css"
+      ],
+      "js": [
+        "chess-js.js",
+        "helpers.js",
+        "components.js",
+        "debug-panel.js",
+        "elo.js",
+        "store.js",
+        "clockFix.js",
+        "script.js",
+        "highlightReverse.js",
+        "materialCount.js"
+      ],
       "run_at": "document_end"
     }
   ],
@@ -18,8 +38,6 @@
     "48": "icons/icon_48.png",
     "32": "icons/icon_32.png"
   },
-  "permissions": ["scripting", "storage", "tabs", "activeTab"],
-  "action": {
-    "default_popup": "popup.html"
-  }
+  "permissions": ["scripting", "storage", "tabs", "activeTab", "webRequest"],
+  "host_permissions": ["https://cccc.chess.com/*", "https://www.chess.com/*"]
 }
