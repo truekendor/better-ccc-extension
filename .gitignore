@@ -1,10 +1,8 @@
-src/script.js
+# ignore .js by default
+src/*.js
+src/types/*.js
 
-firefox_dev
-firefox_dev_v2
-firefox_dev_v3
-<<<<<<< HEAD
-=======
-
->>>>>>> 358f69327a1c1094a51b50843788c615db8a7e58
+# ==========
+firefox_dev*
 node_modules
+.vscode

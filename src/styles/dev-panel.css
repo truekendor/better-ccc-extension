@@ -1,0 +1,28 @@
+.ccc-dev-panel-wrapper {
+  position: fixed;
+
+  left: 0;
+  bottom: 0;
+
+  padding: 10px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+
+  gap: 5px;
+
+  width: 400px;
+  min-height: 200px;
+  height: auto;
+
+  background-color: rgb(246, 113, 89);
+
+  z-index: 99999999;
+}
+
+._dev-log-btn {
+  grid-column: span 1;
+
+  grid-row-start: 5;
+}
