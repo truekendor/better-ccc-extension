@@ -75,16 +75,16 @@ class _DOM_Store {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class _State {
-  static tabEventId: string | null = null;
-  static webpageEventId: string | null = null;
+  static eventIdTab: string | null = null;
+  static eventIdWebpage: string | null = null;
 
   static gameNumberTab: number | null = null;
 
   static isEventActive: boolean | null = null;
-  static totalGamesInTheEvent: number | null = null;
+  static gamesInTotal: number | null = null;
 
   static get eventId(): string | null {
-    return this.tabEventId || this.webpageEventId;
+    return this.eventIdTab || this.eventIdWebpage;
   }
 }
 

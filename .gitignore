@@ -1,6 +1,6 @@
 # ignore .js by default
 src/*.js
-src/types/*.js
+src/*/*.js
 
 # ==========
 firefox_dev*

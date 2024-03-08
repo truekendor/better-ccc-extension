@@ -3,12 +3,12 @@
   --ccc-blue-light-hsl: hsl(var(--ccc-blue-light-raw));
 }
 
-.crosstable-results-cell:not(:empty) {
+.crosstable-results-cell {
   /* for fonts in won/lost game pairs */
   --ccc-loss-font-color: hsl(0, 100%, 72%);
   --ccc-win-font-color: hsl(121, 51%, 62%);
 
-  --ccc-double-win-font-color: hsl(108, 75%, 89%);
+  --ccc-double-win-font-color: hsl(107, 58%, 95%);
   --ccc-double-loss-font-color: hsl(0, 100%, 87%);
 
   /* default chesscom win font color */
@@ -33,7 +33,7 @@
   --ccc-err-margin-clr: var(--ccc-light-gray);
 }
 
-.crosstable-crosstable:not(:empty) {
+.crosstable-crosstable {
   max-width: unset !important;
   width: min-content !important;
 }
@@ -459,8 +459,9 @@ table > tr:nth-child(2n) .ccc-draw {
 @media (max-width: 450px) {
   .ccc-options-wrapper {
     display: flex;
-    /* flex-direction: column; */
     overflow-x: scroll;
+
+    margin-inline-start: 1rem;
   }
 
   ::-webkit-scrollbar-thumb {
@@ -489,7 +490,11 @@ table > tr:nth-child(2n) .ccc-draw {
   }
 
   .ccc-options-wrapper > :last-child {
-    min-width: 150px;
+    min-width: 90px;
+  }
+
+  .ccc-extension-settings-btn {
+    justify-content: start;
   }
 
   button.modal-close {
@@ -788,11 +793,18 @@ table > tr:nth-child(2n) .ccc-draw {
   height: 30px;
   cursor: pointer;
 
+  max-width: 30px;
+  max-height: 30px;
+
   padding: 2px;
 }
 
 .ccc-extension-settings-btn > svg {
   width: 100%;
+
+  max-width: 30px;
+  max-height: 30px;
+
   fill: rgb(104, 104, 104);
 }
 

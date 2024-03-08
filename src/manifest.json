@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "better-ccc",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "content_scripts": [
     {
       "matches": [
@@ -17,10 +17,18 @@
       ],
       "js": [
         "chess-js.js",
-        "helpers.js",
+        "helpers/utils.js",
+        "helpers/reverseGameNumber.js",
+        "helpers/extractPageData.js",
+        "helpers/crossTable.js",
+        "helpers/extensionHelpers.js",
+        "helpers/mutationObservers.js",
+        "helpers/chessGameCache.js",
+        "helpers/svg.js",
+        "helpers/elo.js",
+        "helpers/findTranspositions.js",
         "components.js",
         "debug-panel.js",
-        "elo.js",
         "store.js",
         "clockFix.js",
         "script.js",
@@ -38,6 +46,6 @@
     "48": "icons/icon_48.png",
     "32": "icons/icon_32.png"
   },
-  "permissions": ["scripting", "storage", "tabs", "activeTab", "webRequest"],
+  "permissions": ["scripting", "storage", "tabs", "activeTab"],
   "host_permissions": ["https://cccc.chess.com/*", "https://www.chess.com/*"]
 }

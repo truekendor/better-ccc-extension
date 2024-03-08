@@ -81,7 +81,7 @@ namespace components {
         this.crExtensionSettingRow({
           key: "highlightReverseDeviation",
           description: "highlight reverse deviation",
-          // todo
+          // todo enhance tooltip
           tooltip:
             "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic 25-200kb per game",
         }),
@@ -133,6 +133,7 @@ namespace components {
       key: BooleanKeys<user_config.settings>;
       description: string;
       tooltip: string;
+      experivental?: boolean;
     }): HTMLLabelElement {
       const row = document.createElement("label");
       row.classList.add("_row");
@@ -562,7 +563,7 @@ namespace components {
   }
 
   // todo rename
-  export class MainWindow {
+  export class Page {
     /**
      * creates wrapper for captured pieces SVGs
      *
