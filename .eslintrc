@@ -14,6 +14,7 @@
     "@typescript-eslint/triple-slash-reference": "off",
     "@typescript-eslint/no-namespace": "warn",
     "@typescript-eslint/ban-ts-comment": "warn",
-    "@typescript-eslint/no-explicit-any": "warn"
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/explicit-function-return-type": [""]
   }
 }
