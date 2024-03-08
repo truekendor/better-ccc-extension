@@ -18,7 +18,7 @@
       "js": [
         "chess-js.js",
         "helpers/utils.js",
-        "helpers/reverseGameNumber.js",
+        "helpers/gamePairHelper.js",
         "helpers/extractPageData.js",
         "helpers/crossTable.js",
         "helpers/extensionHelpers.js",
@@ -33,7 +33,7 @@
         "clockFix.js",
         "script.js",
         "highlightReverse.js",
-        "materialCount.js"
+        "capturedPiecesCount.js"
       ],
       "run_at": "document_end"
     }

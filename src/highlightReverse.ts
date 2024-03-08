@@ -36,7 +36,7 @@ class OnMessageHandlers {
     })) as number;
 
     const reverseGameCache = ChessGamesCache.getGame(
-      GameNumberHelper.getReverseGameNumber(gameNumber)
+      GamePairHelper.getReverseGameNumber(gameNumber)
     );
 
     if (!reverseGameCache) {
@@ -230,7 +230,7 @@ class HighlightReverseDeviation {
     await Utils.doubleAnimationFramePromise();
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
-    const reverseGameNumber = GameNumberHelper.getReverseGameNumber(gameNumber);
+    const reverseGameNumber = GamePairHelper.getReverseGameNumber(gameNumber);
 
     const reverseGameCache = ChessGamesCache.getGame(reverseGameNumber);
 

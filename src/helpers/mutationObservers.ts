@@ -79,7 +79,7 @@ class ChessGameObservers {
         return;
       }
       const gameCache = ChessGamesCache.getGame(
-        GameNumberHelper.getReverseGameNumber(gameNumber)
+        GamePairHelper.getReverseGameNumber(gameNumber)
       );
 
       if (gameCache) {
