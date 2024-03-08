@@ -2,6 +2,7 @@
 src/*.js
 src/*/*.js
 
+
 # ==========
 firefox_dev*
 node_modules
