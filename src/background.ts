@@ -7,8 +7,6 @@
 // todo fix this
 const _bg_browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
-// const abortController = new AbortController();
-
 _bg_browserPrefix.runtime.onMessage.addListener(function (
   message: message_pass.message
   // sender,
@@ -56,7 +54,6 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
   }
 });
 
-// to request agreement from random CCC games
 _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
   try {
     if (!changeInfo.url) {
@@ -82,11 +79,6 @@ _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
     _sendMessageToContent(message);
 
     if (!game || !event) return;
-
-    // // todo delete this
-    // requestReverseGame(game, event).catch((e: any) =>
-    //   console.log("Fetch error: ", e)
-    // );
 
     return false;
   } catch (e) {
@@ -145,7 +137,7 @@ async function onLoadHandler(): Promise<false | undefined> {
 
       if (!response) {
         console.log("game not found");
-        return;
+        return false;
       }
 
       const message: message_pass.message = {
@@ -356,33 +348,8 @@ async function _sendMessageToContent(
   message: message_pass.message
 ): Promise<any> {
   const tab = await getCurrentTab();
-  if (!tab || !tab.id) return;
+  if (!tab || !tab.id) return false;
 
-  return _bg_browserPrefix.tabs.sendMessage(tab.id, message);
+  _bg_browserPrefix.tabs.sendMessage(tab.id, message);
+  return false;
 }
-
-const listenToUrls = [
-  "https://cccc.chess.com/archive*",
-  "http://cccc.chess.com/archive*",
-  "http://cccc.chess.com/*",
-  "https://cccc.chess.com/*",
-  "https://wwww.chess.com/*",
-  "http://wwww.chess.com/*",
-];
-
-chrome.webRequest.onCompleted.addListener(
-  (details) => {
-    if (!details.url.startsWith("https://cccc")) return;
-    const message: message_pass.message = {
-      type: "response_interceptor",
-      payload: {
-        details: details,
-      },
-    };
-
-    _sendMessageToContent(message);
-  },
-  {
-    urls: listenToUrls,
-  }
-);

@@ -4,6 +4,7 @@ class DebugPanel {
   private static currentRow: HTMLTableRowElement;
   private static bookPlyLength = 16;
 
+  // todo delete/comment this
   // private static _ = this.crDebugPanel();
 
   private static pgnCurrent: readonly string[] = [
@@ -205,7 +206,7 @@ class DebugPanel {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
 
-      Utils.log("debug button logs", "orange");
+      Utils.log("debug logs", "orange");
       console.log("transpositions: ", FindTranspositions.transpositions);
       console.log("agree len: ", FindTranspositions.agreementLength);
       console.log("chess current :", chessCurrent);
@@ -256,7 +257,7 @@ class DebugPanel {
         _DOM_Store.movesTableContainer.removeChild(gameResult);
       }
 
-      Utils.removeAllChildNodes(_DOM_Store.movesTable);
+      Utils.removeChildNodes(_DOM_Store.movesTable);
     });
 
     return btn;

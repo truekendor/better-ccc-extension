@@ -1,6 +1,6 @@
 (function (): void {
-  const blackPiecesWrapper = components.MainWindow.crMaterialCountWrapper();
-  const whitePiecesWrapper = components.MainWindow.crMaterialCountWrapper();
+  const blackPiecesWrapper = components.Page.crMaterialCountWrapper();
+  const whitePiecesWrapper = components.Page.crMaterialCountWrapper();
 
   const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
     ".enginedata-clock-wrapper"
@@ -89,6 +89,8 @@ class CountMaterial {
     piecesLeft: 32,
   };
 
+  // todo rename
+  // todo add description
   static countMaterial(fen: string): void {
     const keys = Utils.objectKeys(this.boardState);
 
@@ -125,8 +127,8 @@ class CountMaterial {
       this.boardState.piecesLeft -= diff;
     });
 
-    Utils.removeAllChildNodes(this.whitePiecesWrapper);
-    Utils.removeAllChildNodes(this.blackPiecesWrapper);
+    Utils.removeChildNodes(this.whitePiecesWrapper);
+    Utils.removeChildNodes(this.blackPiecesWrapper);
 
     keys.forEach((key) => {
       if (

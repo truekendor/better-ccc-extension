@@ -773,16 +773,44 @@ function observeEndOfLoadMain(): void {
       scrollToCurrentGame();
     }
 
-    // mutation observer events are microtasks themselves.
-    // this is needed (?) just in case
-    queueMicrotask(() => {
-      ExtractPageData.setEventIdToState();
-
-      createGameScheduleLinks();
+    // todo rewrite in .then chain and move
+    // todo to a separate function like 'get event id from webpage'
+    // todo move to ExtractPageData?
+    ExtractPageData.getEventIdWebpage().then(() => {
+      // todo change name
+      const isMobile = document.getElementById("#cpu-champs-page-ccc");
+      if (!isMobile) {
+        scrollToCurrentGame();
+      }
     });
   });
 
   observer.observe(mainContentContainer, {
     childList: true,
+  });
+}
+
+// !!!!! todo delete _DEV
+
+waitForEventName();
+function waitForEventName() {
+  const eventNameSpan = _DOM_Store.bottomPanel.querySelector(
+    ".bottomtable-eventname > span"
+  ) as HTMLSpanElement;
+
+  console.log("event span", eventNameSpan);
+  const observer = new MutationObserver((e) => {
+    console.log("eee", e);
+    console.log("text content:", eventNameSpan.textContent);
+
+    setTimeout(() => {
+      ExtractPageData.getEventIdWebpage().then(() => {
+        Utils.log(`event id: ${_State.eventId}`, "red");
+      });
+    }, 500);
+  });
+  observer.observe(eventNameSpan, {
+    characterData: true,
+    subtree: true,
   });
 }

@@ -61,9 +61,11 @@ function fixClockSVG(): void {
       clockSVG.classList[command]("ccc-hide");
     });
 
-    timerTickObserver.observe(remainingTime, {
+    timerTickObserver.observe(clock, {
       characterData: true,
       subtree: true,
+      attributes: true,
+      attributeFilter: ["style"],
     });
   });
 }
