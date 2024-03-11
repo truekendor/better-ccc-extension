@@ -808,8 +808,7 @@ table > tr:nth-child(2n) .ccc-draw {
   fill: rgb(104, 104, 104);
 }
 
-/* todo change class name */
-._row {
+.ccc-extension-settings_row {
   --ccc-input-width: 3rem;
   --ccc-input-height: 1.4rem;
 
@@ -818,14 +817,14 @@ table > tr:nth-child(2n) .ccc-draw {
 
   display: flex;
   justify-content: center;
+  align-items: center;
 
   width: 100%;
 
   color: #c7c7c7;
 }
 
-/* todo change class name */
-._desc {
+.ccc-extension-settings_description {
   margin-inline-end: auto;
 }
 

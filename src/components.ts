@@ -1,176 +1,13 @@
 /// <reference types="./types" />
 /// <reference path="./types/index.d.ts" />
 
+/**
+ * handles extension components creation methods
+ */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-namespace
 namespace components {
   /**  provides methods for creating crosstable elements */
   export class CrossTable {
-    static crExtensionSettingsBtn(): HTMLButtonElement {
-      const extensionSettingsBtn = document.createElement("button");
-      const gearSVG = SVG.Icons.gear;
-
-      extensionSettingsBtn.title = "Extension settings";
-
-      extensionSettingsBtn.classList.add("ccc-extension-settings-btn");
-      extensionSettingsBtn.append(gearSVG);
-
-      extensionSettingsBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        components.CrossTable.crExtensionSettingsModal();
-      });
-
-      return extensionSettingsBtn;
-    }
-
-    private static crExtensionSettingsModal(): void {
-      const crossTableModal = document.querySelector(
-        ".modal-vue-modal-content"
-      )!;
-
-      const modalBackdrop = document.createElement("div");
-      const modalWrapper = document.createElement("div");
-
-      modalBackdrop.classList.add("ccc-options-backdrop");
-      modalWrapper.classList.add("ccc-options-modal");
-
-      modalWrapper.tabIndex = 1;
-
-      modalBackdrop.append(modalWrapper);
-
-      modalBackdrop.addEventListener(
-        "click",
-        () => {
-          crossTableModal.removeChild(modalBackdrop);
-        },
-        { once: true }
-      );
-
-      modalWrapper.addEventListener("click", (e) => {
-        e.stopPropagation();
-      });
-
-      modalWrapper.append(
-        this.crLineSeparator("crosstable"),
-        // * ======
-
-        this.crExtensionSettingRow({
-          key: "displayEngineNames",
-          description: "engine names",
-          tooltip: "",
-        }),
-        // todo change this
-        this.crExtensionSettingRow({
-          key: "drawnPairNeutralColorWL",
-          description: "neutral color",
-          tooltip: "",
-        }),
-        // * ======
-        this.crLineSeparator("main"),
-        // * ======
-
-        this.crExtensionSettingRow({
-          key: "materialCount",
-          description: "Show captured pieces",
-          tooltip: "show/hide captured pieces",
-        }),
-        this.crExtensionSettingRow({
-          key: "allowKeyboardShortcuts",
-          description: "Keyboard shortcuts",
-          tooltip: "",
-        }),
-        this.crExtensionSettingRow({
-          key: "highlightReverseDeviation",
-          description: "highlight reverse deviation",
-          // todo enhance tooltip
-          tooltip:
-            "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic 25-200kb per game",
-        }),
-        // * ======
-        this.crLineSeparator("other"),
-        // * ======
-
-        this.crExtensionSettingRow({
-          key: "addLinksToGameSchedule",
-          description: "links to schedule",
-          tooltip: "",
-        }),
-        this.crExtensionSettingRow({
-          key: "replaceClockSvg",
-          description: "replace clock svg",
-          tooltip: "Replaces brocken clock svg",
-        }),
-        this.crExtensionSettingRow({
-          key: "clearQueryStringOnCurrentGame",
-          description: "clear query string",
-          tooltip: "Automatically removes event id from browser search query",
-        })
-      );
-
-      crossTableModal.append(modalBackdrop);
-    }
-
-    private static crLineSeparator(categoryName: string): HTMLDivElement {
-      const wrapper = document.createElement("div");
-
-      const title = document.createElement("h3");
-      const line = document.createElement("div");
-
-      title.textContent = categoryName;
-      wrapper.append(title, line);
-
-      wrapper.classList.add("_dev_wrapper");
-      title.classList.add("_dev_title");
-      line.classList.add("_dev_line");
-
-      return wrapper;
-    }
-
-    private static crExtensionSettingRow({
-      key,
-      description,
-      tooltip,
-    }: {
-      key: BooleanKeys<user_config.settings>;
-      description: string;
-      tooltip: string;
-      experivental?: boolean;
-    }): HTMLLabelElement {
-      const row = document.createElement("label");
-      row.classList.add("_row");
-      row.htmlFor = `ccc-${key}`;
-      if (tooltip) {
-        row.title = tooltip;
-      }
-
-      const descriptionElem = document.createElement("p");
-      descriptionElem.classList.add("_desc");
-
-      descriptionElem.textContent = description;
-
-      const input = document.createElement("input");
-      input.classList.add("ccc-input");
-      input.tabIndex = 1000;
-      input.id = `ccc-${key}`;
-
-      input.type = "checkbox";
-
-      input.checked =
-        UserSettings.customSettings[key] ?? UserSettings.defaultSettings[key];
-
-      input.addEventListener("change", () => {
-        UserSettings.customSettings[key] = !UserSettings.customSettings[key];
-        ExtensionHelper.localStorage.setState({
-          [key]: UserSettings.customSettings[key],
-        });
-
-        ExtensionHelper.applyUserSettings(key);
-      });
-
-      row.append(descriptionElem, input);
-
-      return row;
-    }
-
     static crEngineNames(): void {
       const engines = document.querySelectorAll(".crosstable-name");
 
@@ -562,6 +399,7 @@ namespace components {
     }
   }
 
+  // placeholder, will be populated later
   export class Webpage {
     /**
      * creates wrapper for captured pieces SVGs
@@ -572,6 +410,174 @@ namespace components {
       const div = document.createElement("div");
       div.classList.add("ccc-captured-pieces-wrapper");
       return div;
+    }
+  }
+
+  export class ExtensionSettings {
+    static crExtensionSettingsBtn(): HTMLButtonElement {
+      const extensionSettingsBtn = document.createElement("button");
+      const gearSVG = SVG.Icons.gear;
+
+      extensionSettingsBtn.title = "Extension settings";
+
+      extensionSettingsBtn.classList.add("ccc-extension-settings-btn");
+      extensionSettingsBtn.append(gearSVG);
+
+      extensionSettingsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.crExtensionSettingsModal();
+      });
+
+      return extensionSettingsBtn;
+    }
+
+    private static crExtensionSettingsModal(): void {
+      const crossTableModal = document.querySelector(
+        ".modal-vue-modal-content"
+      )!;
+
+      const modalBackdrop = document.createElement("div");
+      const modalWrapper = document.createElement("div");
+
+      modalBackdrop.classList.add("ccc-options-backdrop");
+      modalWrapper.classList.add("ccc-options-modal");
+
+      modalWrapper.tabIndex = 1;
+
+      modalBackdrop.append(modalWrapper);
+
+      modalBackdrop.addEventListener(
+        "click",
+        () => {
+          crossTableModal.removeChild(modalBackdrop);
+        },
+        { once: true }
+      );
+
+      modalWrapper.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+
+      modalWrapper.append(
+        this.crLineSeparator("crosstable"),
+        // * ======
+
+        this.crExtensionSettingRow({
+          key: "displayEngineNames",
+          description: "engine names",
+          tooltip: "",
+        }),
+        // todo change this
+        this.crExtensionSettingRow({
+          key: "drawnPairNeutralColorWL",
+          description: "neutral color",
+          tooltip: "",
+        }),
+        // * ======
+        this.crLineSeparator("main"),
+        // * ======
+
+        this.crExtensionSettingRow({
+          key: "materialCount",
+          description: "Show captured pieces",
+          tooltip: "show/hide captured pieces",
+        }),
+        this.crExtensionSettingRow({
+          key: "allowKeyboardShortcuts",
+          description: "Keyboard shortcuts",
+          tooltip: "",
+        }),
+        this.crExtensionSettingRow({
+          key: "highlightReverseDeviation",
+          description: "highlight reverse deviation",
+          // todo enhance tooltip
+          tooltip:
+            "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic 25-200kb per game",
+        }),
+        // * ======
+        this.crLineSeparator("other"),
+        // * ======
+
+        this.crExtensionSettingRow({
+          key: "addLinksToGameSchedule",
+          description: "links to schedule",
+          tooltip: "",
+        }),
+        this.crExtensionSettingRow({
+          key: "replaceClockSvg",
+          description: "replace clock svg",
+          tooltip: "Replaces brocken clock svg",
+        }),
+        this.crExtensionSettingRow({
+          key: "clearQueryStringOnCurrentGame",
+          description: "clear query string",
+          tooltip: "Automatically removes event id from browser search query",
+        })
+      );
+
+      crossTableModal.append(modalBackdrop);
+    }
+
+    private static crLineSeparator(categoryName: string): HTMLDivElement {
+      const wrapper = document.createElement("div");
+
+      const title = document.createElement("h3");
+      const line = document.createElement("div");
+
+      title.textContent = categoryName;
+      wrapper.append(title, line);
+
+      wrapper.classList.add("_dev_wrapper");
+      title.classList.add("_dev_title");
+      line.classList.add("_dev_line");
+
+      return wrapper;
+    }
+
+    private static crExtensionSettingRow({
+      key,
+      description,
+      tooltip,
+    }: {
+      key: BooleanKeys<user_config.settings>;
+      description: string;
+      tooltip: string;
+      experivental?: boolean;
+    }): HTMLLabelElement {
+      const row = document.createElement("label");
+      row.classList.add("ccc-extension-settings_row");
+      row.htmlFor = `ccc-${key}`;
+      if (tooltip) {
+        row.title = tooltip;
+      }
+
+      const descriptionElem = document.createElement("p");
+      descriptionElem.classList.add("ccc-extension-settings_description");
+
+      descriptionElem.textContent = description;
+
+      const input = document.createElement("input");
+      input.classList.add("ccc-input");
+      input.tabIndex = 1000;
+      input.id = `ccc-${key}`;
+
+      input.type = "checkbox";
+
+      input.checked =
+        UserSettings.customSettings[key] ?? UserSettings.defaultSettings[key];
+
+      input.addEventListener("change", () => {
+        UserSettings.customSettings[key] = !UserSettings.customSettings[key];
+        ExtensionHelper.localStorage.setState({
+          [key]: UserSettings.customSettings[key],
+        });
+
+        ExtensionHelper.applyUserSettings(key);
+      });
+
+      row.append(descriptionElem, input);
+
+      return row;
     }
   }
 }

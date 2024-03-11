@@ -327,7 +327,8 @@ function createOptionInputs(): void {
   const eloLabel = components.CrossTable.crSettingsSwitch("WDL + Elo", "elo");
   const ptnmlLabel = components.CrossTable.crSettingsSwitch("Ptnml", "ptnml");
 
-  const extensionSettingsBtn = components.CrossTable.crExtensionSettingsBtn();
+  const extensionSettingsBtn =
+    components.ExtensionSettings.crExtensionSettingsBtn();
 
   wrapper.append(pairsPerRowForm, eloLabel, ptnmlLabel, extensionSettingsBtn);
 

@@ -181,11 +181,11 @@ class WebpageObservers {
             ".movetable-gameResult"
           );
 
-        const queryRemovalNeeded =
+        const removeTabHashQuery =
           isCurrentGameActive &&
           UserSettings.customSettings.clearQueryStringOnCurrentGame;
 
-        if (queryRemovalNeeded) {
+        if (removeTabHashQuery) {
           new ExtensionMessage({
             type: "remove_query",
             payload: null,
@@ -199,6 +199,8 @@ class WebpageObservers {
           this.handleOnloadGameCaching();
         }
 
+        // todo still not working properly in firefox
+        // todo implement re-try logic
         this.waitForEventName().then(async (value) => {
           await new Promise((res) => {
             setTimeout(res, 1);
