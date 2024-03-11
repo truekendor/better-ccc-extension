@@ -35,33 +35,33 @@ async function loadUserSettings(): Promise<void> {
       const keys = Utils.objectKeys(state);
 
       keys.forEach((key) => {
-        UserSettings.custom[key] = state[key] ?? UserSettings.default[key];
+        UserSettings.customSettings[key] =
+          state[key] ?? UserSettings.defaultSettings[key];
       });
 
       // init settings in store with default valuesc
-      const allKeys = Utils.objectKeys(UserSettings.custom);
+      const allKeys = Utils.objectKeys(UserSettings.customSettings);
       allKeys.forEach((key) => {
         browserPrefix.storage.local.get(key).then((value) => {
           if (Utils.objectKeys(value).length !== 0) {
             return;
           }
           browserPrefix.storage.local.set({
-            [key]: UserSettings.default[key],
+            [key]: UserSettings.defaultSettings[key],
           });
         });
       });
     })
     .catch(Utils.logError);
 
-  const keys = Utils.objectKeys(UserSettings.custom);
+  const keys = Utils.objectKeys(UserSettings.customSettings);
   keys.forEach((key) => {
     if (key === "pairsPerRow" || key === "pairsPerRowDuel") {
       return;
     }
     ExtensionHelper.applyUserSettings(key);
   });
-
-  if (UserSettings.custom.highlightReverseDeviation) {
+  if (UserSettings.customSettings.highlightReverseDeviation) {
     ExtensionHelper.messages.sendReady();
   }
 
@@ -69,11 +69,11 @@ async function loadUserSettings(): Promise<void> {
   ExtensionHelper.localStorage
     .getState(["pairsPerRow", "pairsPerRowDuel"])
     .then((result) => {
-      UserSettings.custom.pairsPerRow =
-        result.pairsPerRow ?? UserSettings.default.pairsPerRow;
+      UserSettings.customSettings.pairsPerRow =
+        result.pairsPerRow ?? UserSettings.defaultSettings.pairsPerRow;
 
-      UserSettings.custom.pairsPerRowDuel =
-        result.pairsPerRowDuel ?? UserSettings.default.pairsPerRowDuel;
+      UserSettings.customSettings.pairsPerRowDuel =
+        result.pairsPerRowDuel ?? UserSettings.defaultSettings.pairsPerRowDuel;
     });
 }
 
@@ -109,7 +109,7 @@ function convertCrossTable(): void {
       observeInitial();
     }
 
-    if (UserSettings.custom.displayEngineNames) {
+    if (UserSettings.customSettings.displayEngineNames) {
       components.CrossTable.crEngineNames();
     }
 
@@ -211,8 +211,8 @@ function convertCell(cell: HTMLTableCellElement): void {
   const ptnmlElement = cellHeader.querySelector(".ccc-ptnml-wrapper");
   const eloWdlElement = cellHeader.querySelector(".ccc-wdl-wrapper");
 
-  const ptnmlAction = !UserSettings.custom["ptnml"] ? "add" : "remove";
-  const eloAction = !UserSettings.custom["elo"] ? "add" : "remove";
+  const ptnmlAction = !UserSettings.customSettings["ptnml"] ? "add" : "remove";
+  const eloAction = !UserSettings.customSettings["elo"] ? "add" : "remove";
 
   if (!ptnmlElement) {
     const ptnmlWrapper = components.CrossTable.crPTNMLStat(ptnml);
@@ -358,8 +358,8 @@ function applyStylesToGrid(): void {
 function getPairsPerRowAmount(): number | "" {
   const is1v1 = enginesAmount === 2;
   const rows = is1v1
-    ? UserSettings.custom.pairsPerRowDuel
-    : UserSettings.custom.pairsPerRow;
+    ? UserSettings.customSettings.pairsPerRowDuel
+    : UserSettings.customSettings.pairsPerRow;
 
   return rows;
 }
@@ -376,13 +376,13 @@ function keydownHandler(e: KeyboardEvent): void {
 
   // enable/disable keyboard shortcuts
   if (e.code === "KeyU" && e.shiftKey && e.ctrlKey) {
-    UserSettings.custom.allowKeyboardShortcuts =
-      !UserSettings.custom.allowKeyboardShortcuts;
+    UserSettings.customSettings.allowKeyboardShortcuts =
+      !UserSettings.customSettings.allowKeyboardShortcuts;
     toggleAllowKeyboardShortcuts();
 
     return;
   }
-  if (!UserSettings.custom.allowKeyboardShortcuts) return;
+  if (!UserSettings.customSettings.allowKeyboardShortcuts) return;
 
   // open crosstable
   if (e.code === "KeyC" && !e.ctrlKey) {
@@ -532,20 +532,20 @@ function openCrossTableHandler(): void {
 }
 
 function handleSwitchEvent(field: BooleanKeys<user_config.settings>): void {
-  UserSettings.custom[field] = !UserSettings.custom[field];
+  UserSettings.customSettings[field] = !UserSettings.customSettings[field];
 
   convertCrossTable();
 
   ExtensionHelper.localStorage.setState({
-    [field]: UserSettings.custom[field],
+    [field]: UserSettings.customSettings[field],
   });
 }
 
 function toggleAllowKeyboardShortcuts(): void {
-  const { allowKeyboardShortcuts } = UserSettings.custom;
+  const { allowKeyboardShortcuts } = UserSettings.customSettings;
   ExtensionHelper.localStorage.setState({ allowKeyboardShortcuts });
 
-  UserSettings.custom.allowKeyboardShortcuts = allowKeyboardShortcuts;
+  UserSettings.customSettings.allowKeyboardShortcuts = allowKeyboardShortcuts;
 }
 
 observeScheduleClick();
@@ -569,7 +569,7 @@ function createGameScheduleLinks(): void {
     ".schedule-container"
   );
 
-  if (!UserSettings.custom.addLinksToGameSchedule || !container) return;
+  if (!UserSettings.customSettings.addLinksToGameSchedule || !container) return;
 
   const links = Array.from(container.children);
 
@@ -604,7 +604,7 @@ function handleLabelListeners(label: HTMLLabelElement): void {
   label.addEventListener("keydown", (e) => {
     if (e.code !== "Enter") return;
 
-    label.querySelector("input")!.checked = !UserSettings.custom[attr];
+    label.querySelector("input")!.checked = !UserSettings.customSettings[attr];
     handleSwitchEvent(attr);
   });
 }
@@ -752,65 +752,4 @@ function addListenersToShareFENInput(input: HTMLInputElement): Maybe {
   }
 
   return new Maybe(null);
-}
-
-observeEndOfLoadMain();
-
-function observeEndOfLoadMain(): void {
-  const mainContentContainer =
-    document.querySelector(".cpu-champs-page-main") ?? _DOM_Store.mainContainer;
-
-  _DOM_Store.scheduleBtn.click();
-
-  if (!mainContentContainer) {
-    return;
-  }
-
-  const observer = new MutationObserver(() => {
-    observer.disconnect();
-
-    if (!document.getElementById("#cpu-champs-page-ccc")) {
-      scrollToCurrentGame();
-    }
-
-    // todo rewrite in .then chain and move
-    // todo to a separate function like 'get event id from webpage'
-    // todo move to ExtractPageData?
-    ExtractPageData.getEventIdWebpage().then(() => {
-      // todo change name
-      const isMobile = document.getElementById("#cpu-champs-page-ccc");
-      if (!isMobile) {
-        scrollToCurrentGame();
-      }
-    });
-  });
-
-  observer.observe(mainContentContainer, {
-    childList: true,
-  });
-}
-
-// !!!!! todo delete _DEV
-
-waitForEventName();
-function waitForEventName() {
-  const eventNameSpan = _DOM_Store.bottomPanel.querySelector(
-    ".bottomtable-eventname > span"
-  ) as HTMLSpanElement;
-
-  console.log("event span", eventNameSpan);
-  const observer = new MutationObserver((e) => {
-    console.log("eee", e);
-    console.log("text content:", eventNameSpan.textContent);
-
-    setTimeout(() => {
-      ExtractPageData.getEventIdWebpage().then(() => {
-        Utils.log(`event id: ${_State.eventId}`, "red");
-      });
-    }, 500);
-  });
-  observer.observe(eventNameSpan, {
-    characterData: true,
-    subtree: true,
-  });
 }

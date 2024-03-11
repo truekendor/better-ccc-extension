@@ -28,11 +28,11 @@
         "helpers/elo.js",
         "helpers/findTranspositions.js",
         "components.js",
-        "debug-panel.js",
+        "helpers/debug-panel.js",
         "store.js",
         "clockFix.js",
         "script.js",
-        "highlightReverse.js",
+        "highlightDeviation.js",
         "capturedPiecesCount.js"
       ],
       "run_at": "document_end"

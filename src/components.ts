@@ -154,12 +154,13 @@ namespace components {
 
       input.type = "checkbox";
 
-      input.checked = UserSettings.custom[key] ?? UserSettings.default[key];
+      input.checked =
+        UserSettings.customSettings[key] ?? UserSettings.defaultSettings[key];
 
       input.addEventListener("change", () => {
-        UserSettings.custom[key] = !UserSettings.custom[key];
+        UserSettings.customSettings[key] = !UserSettings.customSettings[key];
         ExtensionHelper.localStorage.setState({
-          [key]: UserSettings.custom[key],
+          [key]: UserSettings.customSettings[key],
         });
 
         ExtensionHelper.applyUserSettings(key);
@@ -242,7 +243,7 @@ namespace components {
       switchInput.classList.add("ccc-input");
       switchInput.type = "checkbox";
 
-      switchInput.checked = UserSettings.custom[field] ?? true;
+      switchInput.checked = UserSettings.customSettings[field] ?? true;
 
       label.append(switchInput);
 
@@ -268,8 +269,8 @@ namespace components {
       rowAmountInput.min = "0";
       rowAmountInput.value = `${
         enginesAmount === 2
-          ? UserSettings.custom.pairsPerRowDuel
-          : UserSettings.custom.pairsPerRow
+          ? UserSettings.customSettings.pairsPerRowDuel
+          : UserSettings.customSettings.pairsPerRow
       }`;
       formElement.append(rowAmountInput);
 
@@ -285,12 +286,12 @@ namespace components {
           ExtensionHelper.localStorage.setState({
             pairsPerRowDuel: value || "",
           });
-          UserSettings.custom.pairsPerRowDuel = value;
+          UserSettings.customSettings.pairsPerRowDuel = value;
         } else {
           ExtensionHelper.localStorage.setState({
             pairsPerRow: value || "",
           });
-          UserSettings.custom.pairsPerRow = value;
+          UserSettings.customSettings.pairsPerRow = value;
         }
       });
 
@@ -465,8 +466,7 @@ namespace components {
     }
 
     private static crPTNMLEntries(element: HTMLDivElement, ptnml: PTNML): void {
-      let ptnmlTextContent = "";
-      ptnmlTextContent += `${ptnml[0]}, `;
+      let ptnmlTextContent = `${ptnml[0]}, `;
       ptnmlTextContent += `${ptnml[1]}, `;
       ptnmlTextContent += `${ptnml[2]}, `;
       ptnmlTextContent += `${ptnml[3]}, `;
@@ -562,8 +562,7 @@ namespace components {
     }
   }
 
-  // todo rename
-  export class Page {
+  export class Webpage {
     /**
      * creates wrapper for captured pieces SVGs
      *
@@ -573,78 +572,6 @@ namespace components {
       const div = document.createElement("div");
       div.classList.add("ccc-captured-pieces-wrapper");
       return div;
-    }
-  }
-
-  type GameResult = "win" | "draw" | "loss";
-
-  export class CrosstableStylesPreview {
-    private static scoreMap: Record<GameResult, string> = {
-      win: "1",
-      loss: "½",
-      draw: "0",
-    } as const;
-
-    private static extensionClasses: Record<GameResult, string> = {
-      win: "ccc-win",
-      draw: "ccc-draw",
-      loss: "ccc-loss",
-    } as const;
-
-    private static defaultClasses: Record<GameResult, string> = {
-      win: "win",
-      draw: "draw",
-      loss: "loss",
-    } as const;
-
-    private static pairEncode = {
-      0: "loss",
-      1: "win-loss",
-      2: "draw-draw",
-      3: "won",
-    };
-
-    // prettier-ignore
-    private static mockEventResult: (keyof typeof this.pairEncode)[] = [
-      2, 0, 3, 3, 2, 2, 0, 1, 3, 1,
-      3, 3, 3, 3, 2, 2, 1, 3, 3, 1,
-      3, 0, 3, 3, 3, 3, 3, 1, 2, 1,
-      3, 3, 2, 2, 2, 2, 2, 1, 1, 3,
-    ];
-
-    static crMockGameCell(): HTMLDivElement {
-      const wrapper = document.createElement("div");
-      wrapper.classList.add("ccc-cell-grid");
-      wrapper.style.setProperty("--custom-column-amount", "20");
-
-      for (let i = 0; i < 120; i++) {
-        //
-      }
-
-      return wrapper;
-    }
-
-    static crMockGamePair<T extends GameResult>(
-      gameResult1: T,
-      gameResult2: T
-    ): [HTMLDivElement, HTMLDivElement] {
-      // ccc-win
-      // ccc-loss
-      // ccc-draw
-      // win
-      // loss
-      // draw
-
-      const game1 = document.createElement("div");
-      const game2 = document.createElement("div");
-
-      game1.id = "ccc-result";
-      game2.id = "ccc-result";
-
-      game1.textContent = this.scoreMap[gameResult1];
-      game2.textContent = this.scoreMap[gameResult2];
-
-      return [game1, game2];
     }
   }
 }

@@ -1,6 +1,6 @@
 (function (): void {
-  const blackPiecesWrapper = components.Page.crMaterialCountWrapper();
-  const whitePiecesWrapper = components.Page.crMaterialCountWrapper();
+  const blackPiecesWrapper = components.Webpage.crMaterialCountWrapper();
+  const whitePiecesWrapper = components.Webpage.crMaterialCountWrapper();
 
   const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
     ".enginedata-clock-wrapper"
