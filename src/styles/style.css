@@ -489,11 +489,8 @@ table > tr:nth-child(2n) .ccc-draw {
     flex-shrink: 0;
   }
 
-  .ccc-options-wrapper > :last-child {
-    min-width: 90px;
-  }
-
-  .ccc-extension-settings-btn {
+  button.ccc-extension-settings-btn {
+    min-width: 150px;
     justify-content: start;
   }
 
