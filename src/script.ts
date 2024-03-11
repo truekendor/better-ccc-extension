@@ -647,6 +647,8 @@ _DOM_Store.scheduleBtn.addEventListener("click", () => {
   scrollToCurrentGame();
 });
 
+// todo move to closure / state
+let initialScroll = true;
 function scrollToCurrentGame(): void {
   const currentGame =
     _DOM_Store.bottomPanel.querySelector(".schedule-in-progress") ??
@@ -662,6 +664,13 @@ function scrollToCurrentGame(): void {
     currentGame.scrollIntoView();
   } else if (lastGame) {
     lastGame.scrollIntoView();
+  }
+
+  const isMobile = document.querySelector("#cpu-champs-page-ccc");
+  if (isMobile && initialScroll) {
+    initialScroll = false;
+
+    window.scrollBy(0, -10000);
   }
 }
 
@@ -753,4 +762,47 @@ function addListenersToShareFENInput(input: HTMLInputElement): Maybe {
   }
 
   return new Maybe(null);
+}
+
+// ! todo move this to components or something
+setTimeout(() => {
+  const isMobile = document.querySelector("#cpu-champs-page-ccc");
+
+  if (isMobile) {
+    createExpandTwitchChatBtn();
+  }
+}, 100);
+
+function createExpandTwitchChatBtn() {
+  const tableWrapper: HTMLDivElement = document.querySelector(
+    "#righttable-righttable"
+  )!;
+
+  const content: HTMLDivElement = tableWrapper.querySelector(
+    "#righttable-content"
+  )!;
+
+  const twitchIFrame = content.querySelector("iframe")!;
+
+  tableWrapper.style.removeProperty("height");
+  content.style.removeProperty("height");
+  twitchIFrame.style.removeProperty("height");
+
+  const btn = document.createElement("button");
+  btn.style.marginTop = "25px";
+
+  tableWrapper.append(btn);
+
+  let counter = 0;
+
+  btn.textContent = "expand chat";
+
+  btn.addEventListener("click", () => {
+    const text = counter % 2 !== 0 ? "expand" : "shrink";
+
+    btn.textContent = `${text} chat`;
+    twitchIFrame.classList.toggle("ccc-expand");
+
+    counter += 1;
+  });
 }

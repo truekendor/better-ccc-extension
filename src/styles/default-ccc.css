@@ -118,6 +118,16 @@ tr.font-faded-white > td:nth-child(2) > div {
   }
 }
 
+@media (max-width: 970px) {
+  .chat-chat {
+    top: unset !important;
+  }
+
+  .chat-chat.ccc-expand {
+    height: 950px !important;
+  }
+}
+
 /* * ------------------------
 */
 

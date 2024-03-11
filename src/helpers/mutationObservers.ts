@@ -203,7 +203,7 @@ class WebpageObservers {
           await Utils.sleepAsync(25);
 
           await Utils.retry({
-            cb: this.onloadHandler,
+            cb: this.endOfLoadHandler,
             retryCount: 3,
             retryWaitTime: 500,
           });
@@ -222,7 +222,7 @@ class WebpageObservers {
     });
   }
 
-  private static async onloadHandler() {
+  private static async endOfLoadHandler() {
     await ExtractPageData.getEventIdWebpage();
 
     if (!_State.eventId) {

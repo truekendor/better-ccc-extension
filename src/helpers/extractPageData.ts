@@ -105,6 +105,7 @@ class ExtractPageData {
     );
   }
 
+  // todo add mutation observer that will observe childlist
   static async getEventIdWebpage() {
     const eventNameWrapper = _DOM_Store.bottomPanel.querySelector(
       ".bottomtable-event-name-wrapper"
