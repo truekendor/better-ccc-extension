@@ -230,9 +230,7 @@ class HighlightDeviation {
     HighlightDeviation.clearHighlight();
 
     // do not delete
-    await new Promise((res) => {
-      setTimeout(res, 1);
-    });
+    await Utils.sleepAsync(1);
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
     const reverseGameNumber = GamePairHelper.getReverseGameNumber(gameNumber);

@@ -199,25 +199,13 @@ class WebpageObservers {
           this.handleOnloadGameCaching();
         }
 
-        // todo still not working properly in firefox
-        // todo implement re-try logic
-        this.waitForEventName().then(async (value) => {
-          await new Promise((res) => {
-            setTimeout(res, 1);
-          });
+        this.waitForEventName().then(async () => {
+          await Utils.sleepAsync(25);
 
-          ExtractPageData.getEventIdWebpage().then(async () => {
-            Utils.log(`value: ${value}, eventId: ${_State.eventId}`, "red");
-            console.log(`value: ${value}, eventId: ${_State.eventId}`, "red");
-
-            const isMobile = document.querySelector("#cpu-champs-page-ccc");
-            if (!isMobile) {
-              scrollToCurrentGame();
-            }
-
-            if (UserSettings.customSettings.highlightReverseDeviation) {
-              ExtensionHelper.messages.requestReverseGame();
-            }
+          await Utils.retry({
+            cb: this.onloadHandler,
+            retryCount: 3,
+            retryWaitTime: 500,
           });
         });
 
@@ -232,6 +220,25 @@ class WebpageObservers {
         childList: true,
       });
     });
+  }
+
+  private static async onloadHandler() {
+    await ExtractPageData.getEventIdWebpage();
+
+    if (!_State.eventId) {
+      return false;
+    }
+
+    const isMobile = document.querySelector("#cpu-champs-page-ccc");
+    if (!isMobile) {
+      scrollToCurrentGame();
+    }
+
+    if (UserSettings.customSettings.highlightReverseDeviation) {
+      ExtensionHelper.messages.requestReverseGame();
+    }
+
+    return true;
   }
 
   private static handleOnloadGameCaching(): void {
@@ -283,32 +290,28 @@ class WebpageObservers {
 
   private static waitForEventName(): Promise<void> {
     return new Promise((res) => {
-      const eventNameSpan = _DOM_Store.bottomPanel.querySelector(
-        ".bottomtable-eventname > span"
+      const eventNameWrapper = _DOM_Store.bottomPanel.querySelector(
+        ".bottomtable-eventname"
       ) as HTMLSpanElement;
 
-      if (eventNameSpan.textContent) {
+      if (eventNameWrapper.textContent) {
         res();
         return;
       }
 
       const observer = new MutationObserver(() => {
-        if (!eventNameSpan.textContent) {
+        const eventSpan = eventNameWrapper.querySelector("span")!;
+        if (!eventSpan.textContent) {
           return;
         }
         observer.disconnect();
 
         res();
-
-        // setTimeout(() => {
-        //   ExtractPageData.getEventIdWebpage().then(() => {
-        //     Utils.log(`event id: ${_State.eventId}`, "red");
-        //   });
-        // }, 500);
       });
-      observer.observe(eventNameSpan, {
+      observer.observe(eventNameWrapper, {
         characterData: true,
         subtree: true,
+        childList: true,
       });
     });
   }
