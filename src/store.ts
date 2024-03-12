@@ -94,7 +94,7 @@ class _State {
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class UserSettings {
-  static default: user_config.settings = {
+  static defaultSettings: user_config.settings = {
     // crosstable stat rules
     ptnml: true,
     elo: true,
@@ -112,11 +112,11 @@ class UserSettings {
     addLinksToGameSchedule: true,
     allowKeyboardShortcuts: true,
     replaceClockSvg: true,
-    materialCount: true,
+    showCapturedPieces: true,
     clearQueryStringOnCurrentGame: true,
   } as const;
 
-  static custom: user_config.settings = {
+  static customSettings: user_config.settings = {
     // crosstable stat rules
     ptnml: true,
     elo: true,
@@ -134,7 +134,7 @@ class UserSettings {
     addLinksToGameSchedule: true,
     allowKeyboardShortcuts: true,
     replaceClockSvg: true,
-    materialCount: true,
+    showCapturedPieces: true,
     clearQueryStringOnCurrentGame: true,
   };
 }

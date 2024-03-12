@@ -46,6 +46,8 @@ namespace message_pass {
       pgn: string[] | null;
       gameNumber: number;
       reverseGameNumber: number;
+      // unused
+      // todo delete?
       eventId: string;
     }
   >;

@@ -48,16 +48,50 @@ class Utils {
     }
   }
 
-  public static doubleAnimationFrame(cb: (args: any) => any): void {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(cb);
+  public static doubleAnimationFramePromise(): Promise<void> {
+    return new Promise((res) => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => res());
+      });
     });
   }
 
-  public static doubleAnimationFramePromise(): Promise<void> {
+  public static sleepAsync(timeMs: number): Promise<void> {
     return new Promise((res) => {
-      this.doubleAnimationFrame(res);
+      setTimeout(res, timeMs);
     });
+  }
+
+  public static async retry({
+    cb,
+    retryCount,
+    retryWaitTime,
+  }: {
+    cb: (...args: any) => Promise<boolean>;
+    retryCount: number;
+    retryWaitTime: number;
+  }): Promise<boolean> {
+    if (retryCount <= 0) {
+      throw new Error("retry: retryCount must be >= 1");
+    }
+    if (retryWaitTime < 0) {
+      throw new Error("retry: retryWaitTime must be >= 0");
+    }
+
+    let result = false;
+
+    while (retryCount > 0) {
+      retryCount -= 1;
+      result = await cb();
+
+      if (result) {
+        break;
+      }
+
+      await Utils.sleepAsync(retryWaitTime);
+    }
+
+    return result;
   }
 }
 

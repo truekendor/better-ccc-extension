@@ -61,7 +61,7 @@ declare namespace user_config {
     addLinksToGameSchedule: boolean;
     allowKeyboardShortcuts: boolean;
     replaceClockSvg: boolean;
-    materialCount: boolean;
+    showCapturedPieces: boolean;
     clearQueryStringOnCurrentGame: boolean;
 
     // todo

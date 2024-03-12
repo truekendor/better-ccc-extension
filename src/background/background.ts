@@ -114,7 +114,9 @@ async function onLoadHandler(): Promise<false | undefined> {
   try {
     const tab = await getCurrentTab();
 
-    if (!tab || !tab.id) return false;
+    if (!tab || !tab.id) {
+      return false;
+    }
 
     const { event, game } = URLHelper.getEventAndGame(tab);
 
@@ -207,7 +209,9 @@ async function _bg_requestReverseGame(
 
 /**
  * returns moves string that looks like this
- * 1. e4 e5 2. Nf3 Nc6 3. Nf6 ...
+ * ```
+ * "1. e4 e5 2. Nf3 Nc6 3. Nf6 ..."
+ * ```
  */
 function getMovesFromPgn(pgn: string): string[] {
   const data: string[] = pgn.split("\n");
@@ -218,7 +222,9 @@ function getMovesFromPgn(pgn: string): string[] {
 
 /**
  * returns string[] with moves in SAN format
+ * ```
  * ['e4', 'e5', 'Ke2', 'Ke7', 'Na3', ...]
+ * ```
  */
 function parsePGNMoves(pgn: string): string[] {
   return (
@@ -347,9 +353,13 @@ class TB7Score {
 async function _sendMessageToContent(
   message: message_pass.message
 ): Promise<any> {
-  const tab = await getCurrentTab();
-  if (!tab || !tab.id) return false;
+  try {
+    const tab = await getCurrentTab();
+    if (!tab || !tab.id) return false;
 
-  _bg_browserPrefix.tabs.sendMessage(tab.id, message);
-  return false;
+    _bg_browserPrefix.tabs.sendMessage(tab.id, message);
+    return false;
+  } catch (e) {
+    console.log("send message error: ", e);
+  }
 }

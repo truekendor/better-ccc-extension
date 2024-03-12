@@ -1,6 +1,6 @@
 (function (): void {
-  const blackPiecesWrapper = components.Page.crMaterialCountWrapper();
-  const whitePiecesWrapper = components.Page.crMaterialCountWrapper();
+  const blackPiecesWrapper = components.Webpage.crMaterialCountWrapper();
+  const whitePiecesWrapper = components.Webpage.crMaterialCountWrapper();
 
   const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
     ".enginedata-clock-wrapper"
@@ -191,27 +191,27 @@ class CountMaterial {
 
     if (this.boardState.capturePoints > 0) {
       const blacksScore: HTMLSpanElement =
-        this.blackPiecesWrapper.querySelector("._ccc-score")!;
+        this.blackPiecesWrapper.querySelector("._ccc-capture-score")!;
 
       if (blacksScore) {
         blacksScore.textContent = "";
       }
 
       const span = document.createElement("span");
-      span.classList.add("_ccc-score");
+      span.classList.add("_ccc-capture-score");
 
       span.textContent += `+${Math.abs(this.boardState.capturePoints)}`;
       this.whitePiecesWrapper.append(span);
     } else if (this.boardState.capturePoints < 0) {
       const whitesScore: HTMLSpanElement =
-        this.whitePiecesWrapper.querySelector("._ccc-score")!;
+        this.whitePiecesWrapper.querySelector("._ccc-capture-score")!;
 
       if (whitesScore) {
         whitesScore.textContent = "";
       }
 
       const span = document.createElement("span");
-      span.classList.add("_ccc-score");
+      span.classList.add("_ccc-capture-score");
 
       span.textContent += `+${Math.abs(this.boardState.capturePoints)}`;
       this.blackPiecesWrapper.append(span);

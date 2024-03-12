@@ -1,5 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class CrosstableHelper {
+  // extensions css classes for gamepairs
   private static classNames = {
     doubleWin: "ccc-double-win",
     win: "ccc-win",

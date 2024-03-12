@@ -14,8 +14,9 @@ function fixClockSVG(): void {
     const brokenClockWrapper = container.lastElementChild!;
 
     // broken <object> element
-    const clock = brokenClockWrapper.firstElementChild! as HTMLObjectElement;
-    const remainingTime =
+    const clockElement =
+      brokenClockWrapper.firstElementChild! as HTMLObjectElement;
+    const remainingTimeElement =
       brokenClockWrapper.lastElementChild! as HTMLSpanElement;
 
     const clockSVG = SVG.Icons.clock;
@@ -25,43 +26,43 @@ function fixClockSVG(): void {
       clockSVG.classList.add("ccc-clock-black");
     }
 
-    brokenClockWrapper.insertBefore(clockSVG, remainingTime);
-    clock.classList.add("ccc-hide");
+    brokenClockWrapper.insertBefore(clockSVG, remainingTimeElement);
+    clockElement.classList.add("ccc-hide");
 
     const clockVisibilityObserver = new MutationObserver(() => {
       clockVisibilityObserver.disconnect();
 
-      clock.classList.add("ccc-hide");
+      clockElement.classList.add("ccc-hide");
       clockSVG.classList.add("ccc-hide");
 
-      const isHidden = clock.classList.contains("visibility-hidden");
+      const isHidden = clockElement.classList.contains("visibility-hidden");
 
       const command = isHidden ? "add" : "remove";
       clockSVG.classList[command]("ccc-hide");
 
-      clockVisibilityObserver.observe(clock, {
+      clockVisibilityObserver.observe(clockElement, {
         attributes: true,
         attributeOldValue: true,
         attributeFilter: ["class"],
       });
     });
 
-    clockVisibilityObserver.observe(clock, {
+    clockVisibilityObserver.observe(clockElement, {
       attributes: true,
       attributeOldValue: true,
       attributeFilter: ["class"],
     });
 
     const timerTickObserver = new MutationObserver(() => {
-      clock.classList.add("ccc-hide");
-      clockSVG.style.transform = clock.style.transform;
+      clockElement.classList.add("ccc-hide");
+      clockSVG.style.transform = clockElement.style.transform;
 
-      const isHidden = clock.classList.contains("visibility-hidden");
+      const isHidden = clockElement.classList.contains("visibility-hidden");
       const command = isHidden ? "add" : "remove";
       clockSVG.classList[command]("ccc-hide");
     });
 
-    timerTickObserver.observe(clock, {
+    timerTickObserver.observe(clockElement, {
       characterData: true,
       subtree: true,
       attributes: true,

@@ -13,7 +13,7 @@ ChessGameObservers.observeAll();
 class OnMessageHandlers {
   static async tabUpdateHandler(message: message_pass.message): Promise<void> {
     if (
-      !UserSettings.custom.highlightReverseDeviation ||
+      !UserSettings.customSettings.highlightReverseDeviation ||
       message.type !== "tab_update"
     ) {
       return;
@@ -36,14 +36,14 @@ class OnMessageHandlers {
     })) as number;
 
     const reverseGameCache = ChessGamesCache.getGame(
-      GameNumberHelper.getReverseGameNumber(gameNumber)
+      GamePairHelper.getReverseGameNumber(gameNumber)
     );
 
     if (!reverseGameCache) {
       chessCurrent.actions.reset();
       chessReverse.actions.reset();
 
-      HighlightReverseDeviation.clearMoveTableClasses();
+      HighlightDeviation.clearHighlight();
 
       ExtensionHelper.messages.requestReverseFor(gameNumber);
 
@@ -53,14 +53,14 @@ class OnMessageHandlers {
 
     ChessGameObservers.waitForNewGame().then(() => {
       if (reverseGameCache) {
-        HighlightReverseDeviation.findTranspositionsAndHighlight();
+        HighlightDeviation.findTranspositionsAndHighlight();
       }
     });
   }
 
   static pgnResponseHandler(message: message_pass.message): void {
     if (
-      !UserSettings.custom.highlightReverseDeviation ||
+      !UserSettings.customSettings.highlightReverseDeviation ||
       message.type !== "reverse_pgn_response"
     ) {
       return;
@@ -70,7 +70,6 @@ class OnMessageHandlers {
     const {
       pgn: reversePGN,
       reverseGameNumber,
-      eventId,
       // gameNumber,
     } = payload;
 
@@ -86,11 +85,10 @@ class OnMessageHandlers {
     chessCurrent.actions.setPGN(currentPGN);
     chessReverse.actions.setPGN(reversePGN);
 
-    HighlightReverseDeviation.findTranspositionsAndHighlight();
+    HighlightDeviation.findTranspositionsAndHighlight();
 
     ChessGamesCache.cacheFromObject({
       pgn: reversePGN,
-      eventId,
       gameNumber: reverseGameNumber,
       type: "full-game",
     });
@@ -119,12 +117,12 @@ browserPrefix.runtime.onMessage.addListener(function (
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-class HighlightReverseDeviation {
+class HighlightDeviation {
   private static moveTableElementList: HTMLTableCellElement[] = [];
 
   // todo add description
   static highlight(): void {
-    if (!UserSettings.custom.highlightReverseDeviation) {
+    if (!UserSettings.customSettings.highlightReverseDeviation) {
       return;
     }
 
@@ -140,7 +138,7 @@ class HighlightReverseDeviation {
 
   // todo add description
   static findTranspositionsAndHighlight(debugMessage = ""): void {
-    if (!UserSettings.custom.highlightReverseDeviation) {
+    if (!UserSettings.customSettings.highlightReverseDeviation) {
       return;
     }
 
@@ -148,15 +146,17 @@ class HighlightReverseDeviation {
       console.log(`find & highlight: ${debugMessage}`);
     }
 
-    this.clearMoveTableClasses();
+    this.clearHighlight();
 
     this.moveTableElementList.length = 0;
     this.moveTableElementList.push(...ExtractPageData.getMovesElements());
 
     FindTranspositions.find(chessCurrent, chessReverse);
+
+    this.highlight();
   }
 
-  static clearMoveTableClasses(): void {
+  static clearHighlight(): void {
     const moves = ExtractPageData.getMovesElements();
 
     moves.forEach((move) => {
@@ -227,23 +227,22 @@ class HighlightReverseDeviation {
       return;
     }
 
-    await Utils.doubleAnimationFramePromise();
+    HighlightDeviation.clearHighlight();
+
+    // do not delete
+    await Utils.sleepAsync(1);
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
-    const reverseGameNumber = GameNumberHelper.getReverseGameNumber(gameNumber);
+    const reverseGameNumber = GamePairHelper.getReverseGameNumber(gameNumber);
 
     const reverseGameCache = ChessGamesCache.getGame(reverseGameNumber);
 
     const currentPGN = ExtractPageData.getPGNFromMoveTable();
 
-    console.log("game number", gameNumber, "reverse", reverseGameNumber);
-    console.log("reverse game cache", reverseGameCache);
-
     const gameAlreadyInCache = ChessGamesCache.getGame(gameNumber);
     if (!gameAlreadyInCache) {
       if (ExtractPageData.getGameResultDiv()) {
         ChessGamesCache.cacheFromObject({
-          eventId: _State.eventId!,
           gameNumber,
           pgn: currentPGN.concat(),
           type: "full-game",
@@ -260,7 +259,7 @@ class HighlightReverseDeviation {
     chessCurrent.actions.setPGN(currentPGN);
     chessReverse.actions.setPGN(reverseGameCache.pgn);
 
-    HighlightReverseDeviation.findTranspositionsAndHighlight();
+    HighlightDeviation.findTranspositionsAndHighlight();
   });
 
   observer.observe(_DOM_Store.movesTable, {

@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-class GameNumberHelper {
+class GamePairHelper {
   static getReverseGameNumber(currentGameNumber: number): number {
     const offset = currentGameNumber % 2 === 0 ? -1 : 1;
 

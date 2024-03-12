@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ExtensionHelper {
-  // todo rewrite with static class instance
+  // todo rewrite with static class instance?
   private static messageMethods = {
     sendMessage: (message: message_pass.message) => {
       try {
@@ -76,7 +76,6 @@ class ExtensionHelper {
   // * =====================
   // * getters
 
-  // todo add return type
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   static get localStorage() {
     const localStorageMethods = {
@@ -108,19 +107,19 @@ class ExtensionHelper {
   ): void {
     switch (key) {
       case "replaceClockSvg":
-        if (UserSettings.custom.replaceClockSvg) {
+        if (UserSettings.customSettings.replaceClockSvg) {
           fixClockSVG();
         }
         break;
       case "allowKeyboardShortcuts":
         toggleAllowKeyboardShortcuts();
         break;
-      case "materialCount":
-        this.handleMaterialCountCase();
+      case "showCapturedPieces":
+        this.handleShowCapturedPieces();
         break;
       case "highlightReverseDeviation":
-        if (!UserSettings.custom.highlightReverseDeviation) {
-          HighlightReverseDeviation.clearMoveTableClasses();
+        if (!UserSettings.customSettings.highlightReverseDeviation) {
+          HighlightDeviation.clearHighlight();
         }
         break;
       // todo
@@ -135,17 +134,20 @@ class ExtensionHelper {
         this.handlerClearQuery();
         break;
       default:
+        // exhaustive check
         console.log(key satisfies never);
         break;
     }
   }
 
-  private static handleMaterialCountCase(): void {
+  private static handleShowCapturedPieces(): void {
     const capturedPiecesWrappers: NodeListOf<HTMLDivElement> =
       document.querySelectorAll(".ccc-captured-pieces-wrapper");
 
     capturedPiecesWrappers.forEach((wrapper) => {
-      const action = !UserSettings.custom.materialCount ? "add" : "remove";
+      const action = !UserSettings.customSettings.showCapturedPieces
+        ? "add"
+        : "remove";
 
       wrapper.classList[action]("ccc-hide");
     });
@@ -157,7 +159,10 @@ class ExtensionHelper {
    */
   private static handlerClearQuery(): void {
     document.addEventListener("click", (e) => {
-      if (!e.target || !UserSettings.custom.clearQueryStringOnCurrentGame) {
+      if (
+        !e.target ||
+        !UserSettings.customSettings.clearQueryStringOnCurrentGame
+      ) {
         return;
       }
 
@@ -172,7 +177,6 @@ class ExtensionHelper {
   }
 }
 
-// todo add description
 class ExtensionMessage {
   private message: message_pass.message;
 
@@ -180,14 +184,12 @@ class ExtensionMessage {
     this.message = message;
   }
 
-  sendToBg(): boolean {
+  sendToBg() {
     try {
-      // @ts-ignore
+      // @ts-expect-error "incompatible" browser return types
       browserPrefix.runtime.sendMessage(this.message) as Promise<unknown>;
-      return false;
     } catch (e) {
       Utils.logError(e);
-      return false;
     }
   }
 }

@@ -40,18 +40,12 @@ class ChessGameObservers {
 
       const pgn = ExtractPageData.getPGNFromMoveTable();
       const gameNumber = await ExtractPageData.getCurrentGameNumber();
-      const eventId = _State.eventId;
 
-      // todo delete?
-      // todo probably caching is already handled by globalObserver
-      if (eventId) {
-        ChessGamesCache.cacheFromObject({
-          eventId,
-          gameNumber,
-          pgn,
-          type: "full-game",
-        });
-      }
+      ChessGamesCache.cacheFromObject({
+        gameNumber,
+        pgn,
+        type: "full-game",
+      });
     });
 
     observer.observe(_DOM_Store.movesTableContainer, {
@@ -79,7 +73,7 @@ class ChessGameObservers {
         return;
       }
       const gameCache = ChessGamesCache.getGame(
-        GameNumberHelper.getReverseGameNumber(gameNumber)
+        GamePairHelper.getReverseGameNumber(gameNumber)
       );
 
       if (gameCache) {
@@ -108,7 +102,7 @@ class ChessGameObservers {
         CountMaterial.countMaterial(currentFEN);
       }
 
-      HighlightReverseDeviation.highlight();
+      HighlightDeviation.highlight();
 
       observer.observe(_DOM_Store.movesTable, {
         subtree: true,
@@ -138,9 +132,8 @@ class ChessGameObservers {
       const pgn = ExtractPageData.getPGNFromMoveTable();
       chessCurrent.actions.setPGN(pgn);
 
-      HighlightReverseDeviation.findTranspositionsAndHighlight();
+      HighlightDeviation.findTranspositionsAndHighlight();
 
-      //
       observer.observe(movesTable, {
         childList: true,
         subtree: true,
@@ -160,6 +153,8 @@ class WebpageObservers {
     const mainContentContainer =
       document.querySelector(".cpu-champs-page-main") ??
       _DOM_Store.mainContainer;
+
+    _DOM_Store.scheduleBtn.click();
 
     if (!mainContentContainer) {
       const pgn = ExtractPageData.getPGNFromMoveTable();
@@ -181,30 +176,41 @@ class WebpageObservers {
 
         createGameScheduleLinks();
 
-        const gameResultDiv = _DOM_Store.movesTableContainer.querySelector(
-          ".movetable-gameResult"
-        );
+        const isCurrentGameActive =
+          !_DOM_Store.movesTableContainer.querySelector(
+            ".movetable-gameResult"
+          );
 
-        const queryRemovalNeeded =
-          !gameResultDiv && UserSettings.custom.clearQueryStringOnCurrentGame;
+        const removeTabHashQuery =
+          isCurrentGameActive &&
+          UserSettings.customSettings.clearQueryStringOnCurrentGame;
 
-        if (queryRemovalNeeded) {
+        if (removeTabHashQuery) {
           new ExtensionMessage({
             type: "remove_query",
             payload: null,
           }).sendToBg();
         }
 
-        if (gameResultDiv && UserSettings.custom.highlightReverseDeviation) {
+        if (
+          isCurrentGameActive &&
+          UserSettings.customSettings.highlightReverseDeviation
+        ) {
           this.handleOnloadGameCaching();
         }
 
-        if (UserSettings.custom.highlightReverseDeviation) {
-          ExtensionHelper.messages.requestReverseGame();
-        }
+        this.waitForEventName().then(async () => {
+          await Utils.sleepAsync(25);
+
+          await Utils.retry({
+            cb: this.endOfLoadHandler,
+            retryCount: 3,
+            retryWaitTime: 500,
+          });
+        });
 
         if (chessReverse.fields.pgn) {
-          HighlightReverseDeviation.findTranspositionsAndHighlight();
+          HighlightDeviation.findTranspositionsAndHighlight();
         }
 
         res();
@@ -216,17 +222,34 @@ class WebpageObservers {
     });
   }
 
+  private static async endOfLoadHandler() {
+    await ExtractPageData.getEventIdWebpage();
+
+    if (!_State.eventId) {
+      return false;
+    }
+
+    const isMobile = document.querySelector("#cpu-champs-page-ccc");
+    if (!isMobile) {
+      scrollToCurrentGame();
+    }
+
+    if (UserSettings.customSettings.highlightReverseDeviation) {
+      ExtensionHelper.messages.requestReverseGame();
+    }
+
+    return true;
+  }
+
   private static handleOnloadGameCaching(): void {
     if (!_State.eventId) {
       return;
     }
 
-    const eventId = _State.eventId;
     const pgn = ExtractPageData.getPGNFromMoveTable();
 
     ExtractPageData.getCurrentGameNumber().then((gameNumber) => {
       ChessGamesCache.cacheFromObject({
-        eventId,
         gameNumber,
         pgn,
         type: "full-game",
@@ -263,5 +286,33 @@ class WebpageObservers {
         chessCurrent.fields.FenHistoryFull.length - 1
       ];
     CountMaterial.countMaterial(currentFEN || ChessJS.trimmedStartPos);
+  }
+
+  private static waitForEventName(): Promise<void> {
+    return new Promise((res) => {
+      const eventNameWrapper = _DOM_Store.bottomPanel.querySelector(
+        ".bottomtable-eventname"
+      ) as HTMLSpanElement;
+
+      if (eventNameWrapper.textContent) {
+        res();
+        return;
+      }
+
+      const observer = new MutationObserver(() => {
+        const eventSpan = eventNameWrapper.querySelector("span")!;
+        if (!eventSpan.textContent) {
+          return;
+        }
+        observer.disconnect();
+
+        res();
+      });
+      observer.observe(eventNameWrapper, {
+        characterData: true,
+        subtree: true,
+        childList: true,
+      });
+    });
   }
 }

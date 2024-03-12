@@ -18,7 +18,7 @@
       "js": [
         "chess-js.js",
         "helpers/utils.js",
-        "helpers/reverseGameNumber.js",
+        "helpers/gamePairHelper.js",
         "helpers/extractPageData.js",
         "helpers/crossTable.js",
         "helpers/extensionHelpers.js",
@@ -28,18 +28,18 @@
         "helpers/elo.js",
         "helpers/findTranspositions.js",
         "components.js",
-        "debug-panel.js",
+        "helpers/debug-panel.js",
         "store.js",
         "clockFix.js",
         "script.js",
-        "highlightReverse.js",
-        "materialCount.js"
+        "highlightDeviation.js",
+        "capturedPiecesCount.js"
       ],
       "run_at": "document_end"
     }
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background/background.js"
   },
   "icons": {
     "128": "icons/icon_128.png",

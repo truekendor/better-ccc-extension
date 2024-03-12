@@ -182,3 +182,13 @@
 .enginedata-clock-wrapper.enginedata-mobile > :nth-child(2) {
   padding-left: 10px;
 }
+
+.enginedata-container .enginedata-clock-wrapper.enginedata-mobile {
+  right: unset !important;
+}
+
+.enginedata-container
+  .enginedata-clock-wrapper.enginedata-mobile
+  .ccc-captured-pieces-wrapper {
+  translate: 20px;
+}
