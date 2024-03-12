@@ -34,21 +34,29 @@ async function loadUserSettings(): Promise<void> {
     .then((state) => {
       const keys = Utils.objectKeys(state);
 
+      // get user settings from extension local storage
       keys.forEach((key) => {
         UserSettings.customSettings[key] =
           state[key] ?? UserSettings.defaultSettings[key];
       });
 
-      // init settings in store with default valuesc
-      const allKeys = Utils.objectKeys(UserSettings.customSettings);
+      ExtensionHelper.localStorage.getState([
+        "addLinksToGameSchedule",
+        "allowKeyboardShortcuts",
+        "clearQueryStringOnCurrentGame",
+      ]);
+    })
+    .then(async () => {
+      // init absent settings in store with default values
+      const result = await ExtensionHelper.localStorage.getUserState();
+      const allKeys = Utils.objectKeys(result);
+
       allKeys.forEach((key) => {
-        browserPrefix.storage.local.get(key).then((value) => {
-          if (Utils.objectKeys(value).length !== 0) {
-            return;
-          }
-          browserPrefix.storage.local.set({
-            [key]: UserSettings.defaultSettings[key],
-          });
+        if (result[key] !== null && result[key] !== undefined) {
+          return;
+        }
+        ExtensionHelper.localStorage.setState({
+          [key]: UserSettings.defaultSettings[key],
         });
       });
     })
