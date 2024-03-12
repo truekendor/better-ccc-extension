@@ -2,7 +2,7 @@
 /// <reference path="./types/index.d.ts" />
 
 /**
- * handles extension components creation methods
+ * handles creation of extension components
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-namespace
 namespace components {
