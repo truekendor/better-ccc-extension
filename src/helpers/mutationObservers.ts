@@ -202,7 +202,7 @@ class WebpageObservers {
 
         const isMobile = document.querySelector("#cpu-champs-page-ccc");
         if (isMobile) {
-          components.Webpage.crExpandTwitchChatBtn();
+          components.Webpage.crTwitchChatExpandBtn();
         }
 
         this.waitForEventName().then(async () => {

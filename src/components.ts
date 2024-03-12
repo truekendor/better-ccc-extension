@@ -406,13 +406,13 @@ namespace components {
      *
      * selector: `.ccc-captured-pieces-wrapper`
      */
-    static crMaterialCountWrapper(): HTMLDivElement {
+    static crCapturedPiecesWrapper(): HTMLDivElement {
       const div = document.createElement("div");
       div.classList.add("ccc-captured-pieces-wrapper");
       return div;
     }
 
-    static crExpandTwitchChatBtn() {
+    static crTwitchChatExpandBtn() {
       const tableWrapper: HTMLDivElement = document.querySelector(
         "#righttable-righttable"
       )!;
