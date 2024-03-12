@@ -306,14 +306,6 @@ table > tr:nth-child(2n) .ccc-draw {
   /* --ccc-color: rgb(138, 138, 138); */
 }
 
-.loss:last-child:nth-child(2n + 1) {
-  --ccc-color: var(--color-text-loss);
-}
-
-.win:last-child:nth-child(2n + 1) {
-  --ccc-color: var(--color-text-win);
-}
-
 .ccc-loss-font {
   color: var(--ccc-loss-font-color);
   font-weight: 600;
