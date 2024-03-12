@@ -18,8 +18,6 @@ class ChessGameObservers {
         }
         observer.disconnect();
 
-        // todo delete?
-        // await Utils.doubleAnimationFramePromise();
         res();
       });
 

@@ -647,8 +647,6 @@ _DOM_Store.scheduleBtn.addEventListener("click", () => {
   scrollToCurrentGame();
 });
 
-// todo move to closure / state
-let initialScroll = true;
 function scrollToCurrentGame(): void {
   const currentGame =
     _DOM_Store.bottomPanel.querySelector(".schedule-in-progress") ??
@@ -664,13 +662,6 @@ function scrollToCurrentGame(): void {
     currentGame.scrollIntoView();
   } else if (lastGame) {
     lastGame.scrollIntoView();
-  }
-
-  const isMobile = document.querySelector("#cpu-champs-page-ccc");
-  if (isMobile && initialScroll) {
-    initialScroll = false;
-
-    window.scrollBy(0, -10000);
   }
 }
 
