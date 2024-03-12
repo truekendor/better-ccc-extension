@@ -112,7 +112,7 @@ class UserSettings {
     addLinksToGameSchedule: true,
     allowKeyboardShortcuts: true,
     replaceClockSvg: true,
-    materialCount: true,
+    showCapturedPieces: true,
     clearQueryStringOnCurrentGame: true,
   } as const;
 
@@ -134,7 +134,7 @@ class UserSettings {
     addLinksToGameSchedule: true,
     allowKeyboardShortcuts: true,
     replaceClockSvg: true,
-    materialCount: true,
+    showCapturedPieces: true,
     clearQueryStringOnCurrentGame: true,
   };
 }

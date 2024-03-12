@@ -27,7 +27,7 @@ async function loadUserSettings(): Promise<void> {
       "addLinksToGameSchedule",
       "replaceClockSvg",
       "displayEngineNames",
-      "materialCount",
+      "showCapturedPieces",
       "clearQueryStringOnCurrentGame",
       "highlightReverseDeviation",
     ])

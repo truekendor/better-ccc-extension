@@ -187,6 +187,8 @@
   right: unset !important;
 }
 
-.enginedata-container .ccc-captured-pieces-wrapper {
+.enginedata-container
+  .enginedata-clock-wrapper.enginedata-mobile
+  .ccc-captured-pieces-wrapper {
   translate: 20px;
 }

@@ -464,13 +464,15 @@ namespace components {
 
         this.crExtensionSettingRow({
           key: "displayEngineNames",
-          description: "engine names",
+          // todo add description and tooltip
+          description: "TBA engine names",
           tooltip: "",
         }),
         // todo change this
         this.crExtensionSettingRow({
           key: "drawnPairNeutralColorWL",
-          description: "neutral color",
+          // todo
+          description: "TBA neutral color",
           tooltip: "",
         }),
         // * ======
@@ -478,13 +480,14 @@ namespace components {
         // * ======
 
         this.crExtensionSettingRow({
-          key: "materialCount",
+          key: "showCapturedPieces",
           description: "Show captured pieces",
           tooltip: "show/hide captured pieces",
         }),
         this.crExtensionSettingRow({
           key: "allowKeyboardShortcuts",
           description: "Keyboard shortcuts",
+          // todo add tooltip
           tooltip: "",
         }),
         this.crExtensionSettingRow({

@@ -114,8 +114,8 @@ class ExtensionHelper {
       case "allowKeyboardShortcuts":
         toggleAllowKeyboardShortcuts();
         break;
-      case "materialCount":
-        this.handleMaterialCountCase();
+      case "showCapturedPieces":
+        this.handleShowCapturedPieces();
         break;
       case "highlightReverseDeviation":
         if (!UserSettings.customSettings.highlightReverseDeviation) {
@@ -134,17 +134,18 @@ class ExtensionHelper {
         this.handlerClearQuery();
         break;
       default:
+        // exhaustive check
         console.log(key satisfies never);
         break;
     }
   }
 
-  private static handleMaterialCountCase(): void {
+  private static handleShowCapturedPieces(): void {
     const capturedPiecesWrappers: NodeListOf<HTMLDivElement> =
       document.querySelectorAll(".ccc-captured-pieces-wrapper");
 
     capturedPiecesWrappers.forEach((wrapper) => {
-      const action = !UserSettings.customSettings.materialCount
+      const action = !UserSettings.customSettings.showCapturedPieces
         ? "add"
         : "remove";
 

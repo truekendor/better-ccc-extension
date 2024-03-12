@@ -48,15 +48,11 @@ class Utils {
     }
   }
 
-  public static doubleAnimationFrame(cb: (args: any) => any): void {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(cb);
-    });
-  }
-
   public static doubleAnimationFramePromise(): Promise<void> {
     return new Promise((res) => {
-      this.doubleAnimationFrame(res);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => res());
+      });
     });
   }
 
