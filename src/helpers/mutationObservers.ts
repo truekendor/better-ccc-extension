@@ -12,13 +12,14 @@ class ChessGameObservers {
    */
   static waitForNewGame(): Promise<void> {
     return new Promise((res) => {
-      const observer = new MutationObserver((entries) => {
+      const observer = new MutationObserver(async (entries) => {
         if (entries.length < 40) {
           return;
         }
         observer.disconnect();
 
-        Utils.doubleAnimationFrame(res);
+        await Utils.doubleAnimationFramePromise();
+        res();
       });
 
       observer.observe(_DOM_Store.movesTable, {
@@ -197,6 +198,11 @@ class WebpageObservers {
           UserSettings.customSettings.highlightReverseDeviation
         ) {
           this.handleOnloadGameCaching();
+        }
+
+        const isMobile = document.querySelector("#cpu-champs-page-ccc");
+        if (isMobile) {
+          components.Webpage.crExpandTwitchChatBtn();
         }
 
         this.waitForEventName().then(async () => {

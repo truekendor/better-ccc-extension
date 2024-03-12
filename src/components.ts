@@ -411,6 +411,40 @@ namespace components {
       div.classList.add("ccc-captured-pieces-wrapper");
       return div;
     }
+
+    static crExpandTwitchChatBtn() {
+      const tableWrapper: HTMLDivElement = document.querySelector(
+        "#righttable-righttable"
+      )!;
+
+      const content: HTMLDivElement = tableWrapper.querySelector(
+        "#righttable-content"
+      )!;
+
+      const twitchIFrame = content.querySelector("iframe")!;
+
+      tableWrapper.style.removeProperty("height");
+      content.style.removeProperty("height");
+      twitchIFrame.style.removeProperty("height");
+
+      const btn = document.createElement("button");
+      btn.style.marginTop = "25px";
+
+      tableWrapper.append(btn);
+
+      let counter = 0;
+
+      btn.textContent = "expand chat";
+
+      btn.addEventListener("click", () => {
+        const text = counter % 2 !== 0 ? "expand" : "shrink";
+
+        btn.textContent = `${text} chat`;
+        twitchIFrame.classList.toggle("ccc-expand");
+
+        counter += 1;
+      });
+    }
   }
 
   export class ExtensionSettings {
