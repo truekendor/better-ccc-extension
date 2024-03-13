@@ -5,15 +5,15 @@
 class ELO {
   private static confidenceIntervals = {
     default: 0.95,
-    2: 0.954499736103642,
+    sigma2: 0.954499736103642,
     // for the memes
-    3: 0.99730020393674,
-    4: 0.999936657516334,
-    5: 0.999999426696856,
-    6: 0.999999998026825,
+    sigma3: 0.99730020393674,
+    sigma4: 0.999936657516334,
+    sigma5: 0.999999426696856,
+    sigma6: 0.999999998026825,
   } as const;
 
-  static confidence = this.confidenceIntervals["2"];
+  static confidence = this.confidenceIntervals["sigma2"];
 
   static calculateEloFromPercent(percent: number): string {
     const eloDiff = this.calculateEloDifference(percent / 100);
@@ -40,7 +40,6 @@ class ELO {
     const stdDeviation =
       Math.sqrt(winsDev + drawsDev + lossesDev) / Math.sqrt(total);
 
-    // const confidenceP = 0.95;
     const confidenceP = this.confidence;
 
     const minConfidenceP = (1 - confidenceP) / 2;
