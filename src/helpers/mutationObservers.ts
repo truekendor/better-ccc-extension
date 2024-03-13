@@ -92,7 +92,7 @@ class ChessGameObservers {
   private static observeMoveScrolled(): void {
     const observer = new MutationObserver(() => {
       observer.disconnect();
-      updateShareModalFENInput();
+      ShareModal.updateFEN();
 
       const currentMoveNumber = ExtractPageData.getMoveNumber();
       const currentFEN =
@@ -127,7 +127,7 @@ class ChessGameObservers {
       }
 
       observer.disconnect();
-      updateShareModalFENInput()._bind(addListenersToShareFENInput);
+      ShareModal.updateFENAndListen();
 
       const pgn = ExtractPageData.getPGNFromMoveTable();
       chessCurrent.actions.setPGN(pgn);
@@ -174,7 +174,7 @@ class WebpageObservers {
 
         await Utils.doubleAnimationFramePromise();
 
-        createGameScheduleLinks();
+        createScheduleLinks();
 
         const isCurrentGameActive =
           !_DOM_Store.movesTableContainer.querySelector(

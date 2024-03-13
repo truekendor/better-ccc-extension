@@ -230,7 +230,13 @@ class HighlightDeviation {
     HighlightDeviation.clearHighlight();
 
     // do not delete
-    await Utils.sleepAsync(1);
+    // await Utils.sleepAsync(1);
+
+    await new Promise((res) => {
+      requestAnimationFrame(() => {
+        res(null);
+      });
+    });
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
     const reverseGameNumber = GamePairHelper.getReverseGameNumber(gameNumber);
