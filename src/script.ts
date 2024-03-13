@@ -34,21 +34,29 @@ async function loadUserSettings(): Promise<void> {
     .then((state) => {
       const keys = Utils.objectKeys(state);
 
+      // get user settings from extension local storage
       keys.forEach((key) => {
         UserSettings.customSettings[key] =
           state[key] ?? UserSettings.defaultSettings[key];
       });
 
-      // init settings in store with default valuesc
-      const allKeys = Utils.objectKeys(UserSettings.customSettings);
+      ExtensionHelper.localStorage.getState([
+        "addLinksToGameSchedule",
+        "allowKeyboardShortcuts",
+        "clearQueryStringOnCurrentGame",
+      ]);
+    })
+    .then(async () => {
+      // init absent settings in store with default values
+      const result = await ExtensionHelper.localStorage.getUserState();
+      const allKeys = Utils.objectKeys(result);
+
       allKeys.forEach((key) => {
-        browserPrefix.storage.local.get(key).then((value) => {
-          if (Utils.objectKeys(value).length !== 0) {
-            return;
-          }
-          browserPrefix.storage.local.set({
-            [key]: UserSettings.defaultSettings[key],
-          });
+        if (result[key] !== null && result[key] !== undefined) {
+          return;
+        }
+        ExtensionHelper.localStorage.setState({
+          [key]: UserSettings.defaultSettings[key],
         });
       });
     })
@@ -294,7 +302,7 @@ function observeEmptyCell(cell: HTMLTableCellElement): void {
 
 function observeModalOpen(): void {
   const observer = new MutationObserver(() => {
-    shareModalCb();
+    ShareModal.just_do_it();
 
     if (!document.querySelector(".modal-vue-modal")) return;
 
@@ -367,7 +375,6 @@ function getPairsPerRowAmount(): number | "" {
 
 // * ----------------------------
 // * event handlers && event listeners
-
 window.addEventListener("keydown", keydownHandler);
 
 const validKeyCodes = ["Escape", "KeyG", "KeyC", "KeyS", "KeyU"] as const;
@@ -557,7 +564,7 @@ function observeScheduleClick(): void {
   )!;
 
   const observer = new MutationObserver(() => {
-    createGameScheduleLinks();
+    createScheduleLinks();
   });
 
   observer.observe(container, {
@@ -565,7 +572,7 @@ function observeScheduleClick(): void {
   });
 }
 
-function createGameScheduleLinks(): void {
+function createScheduleLinks(): void {
   const container: HTMLDivElement | null = _DOM_Store.bottomPanel.querySelector(
     ".schedule-container"
   );
@@ -610,33 +617,6 @@ function handleLabelListeners(label: HTMLLabelElement): void {
   });
 }
 
-function shareModalCb(): void {
-  updateShareModalFENInput()._bind(addListenersToShareFENInput);
-  addDownloadGameLogsBtn();
-
-  // click-outside-to-close for settings modal
-  const settingsModal: HTMLDivElement | null =
-    _DOM_Store.mainContainer.querySelector(".modal-container-component");
-
-  if (!settingsModal) return;
-  const modalContent = settingsModal.querySelector("section")!;
-
-  modalContent.addEventListener("click", (e) => {
-    e.stopPropagation();
-  });
-
-  settingsModal.addEventListener(
-    "click",
-    function (e) {
-      e.stopPropagation();
-
-      const closeBtn = settingsModal.querySelector("button")!;
-      closeBtn.click();
-    },
-    { once: true }
-  );
-}
-
 _DOM_Store.scheduleBtn.addEventListener("click", () => {
   const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
     ".schedule-container"
@@ -647,8 +627,6 @@ _DOM_Store.scheduleBtn.addEventListener("click", () => {
   scrollToCurrentGame();
 });
 
-// todo move to closure / state
-let initialScroll = true;
 function scrollToCurrentGame(): void {
   const currentGame =
     _DOM_Store.bottomPanel.querySelector(".schedule-in-progress") ??
@@ -665,144 +643,4 @@ function scrollToCurrentGame(): void {
   } else if (lastGame) {
     lastGame.scrollIntoView();
   }
-
-  const isMobile = document.querySelector("#cpu-champs-page-ccc");
-  if (isMobile && initialScroll) {
-    initialScroll = false;
-
-    window.scrollBy(0, -10000);
-  }
-}
-
-function updateShareModalFENInput(): Maybe {
-  const shareModal = _DOM_Store.mainContainer.querySelector(
-    ".ui_modal-component"
-  );
-  if (!shareModal) return new Maybe(null);
-
-  return new Maybe(shareModal.querySelector(".share-menu-content"))
-    ._bind((container) => {
-      return container.querySelector(".share-menu-tab-pgn-section");
-    })
-    ._bind((container) => {
-      return container.querySelector("input");
-    })
-    ._bind((input: HTMLInputElement) => {
-      const currentMoveNumber = ExtractPageData.getMoveNumber();
-      const fen = chessCurrent.actions.getFullFenAtIndex(currentMoveNumber);
-
-      input.value = fen || input.value;
-
-      return input;
-    });
-}
-
-function addDownloadGameLogsBtn(): Maybe {
-  return new Maybe(document.querySelector(".ui_modal-component"))
-    ._bind((modal: HTMLDivElement) => {
-      const btn = modal.querySelector(".ccc-download-logs-btn");
-      if (btn) return null;
-
-      return modal.querySelector(".share-menu-content");
-    })
-    ._bind((modalContent: HTMLDivElement) => {
-      const menu = modalContent.children[0];
-
-      return menu;
-    })
-    ._bind(async (container: HTMLDivElement) => {
-      const btn = document.createElement("a");
-
-      btn.classList.add("ccc-download-logs-btn");
-
-      btn.textContent = "Download game logs";
-      btn.target = "_blank";
-      btn.rel = "noopener";
-
-      btn.setAttribute("download", "");
-
-      const archiveLink = container.getAttribute("event-url");
-      if (!archiveLink) return container;
-
-      const gameNumber = await ExtractPageData.getCurrentGameNumber();
-      const eventId = +archiveLink
-        .split("/")
-        .filter((el) => {
-          const includes = el.includes(".pgn");
-          if (!includes) return;
-          return el;
-        })[0]
-        // returns tournament-${tournament-id}.pgn
-        .split(".")[0]
-        .split("-")[1];
-
-      const link = `https://cccfiles.chess.com/archive/cutechess.debug-${eventId}-${
-        eventId + +gameNumber
-      }.zip`;
-
-      btn.href = link;
-
-      container.append(btn);
-
-      return container;
-    });
-}
-
-function addListenersToShareFENInput(input: HTMLInputElement): Maybe {
-  const listenerAdded = input.getAttribute("data-listener-added");
-
-  if (!listenerAdded) {
-    input.setAttribute("data-listener-added", "true");
-
-    input.addEventListener("keydown", (e) => {
-      if (!e.code.toLowerCase().startsWith("arrow")) return;
-
-      e.stopPropagation();
-    });
-  }
-
-  return new Maybe(null);
-}
-
-// ! todo move this to components or something
-setTimeout(() => {
-  const isMobile = document.querySelector("#cpu-champs-page-ccc");
-
-  if (isMobile) {
-    createExpandTwitchChatBtn();
-  }
-}, 100);
-
-function createExpandTwitchChatBtn() {
-  const tableWrapper: HTMLDivElement = document.querySelector(
-    "#righttable-righttable"
-  )!;
-
-  const content: HTMLDivElement = tableWrapper.querySelector(
-    "#righttable-content"
-  )!;
-
-  const twitchIFrame = content.querySelector("iframe")!;
-
-  tableWrapper.style.removeProperty("height");
-  content.style.removeProperty("height");
-  twitchIFrame.style.removeProperty("height");
-
-  const btn = document.createElement("button");
-  btn.style.marginTop = "25px";
-
-  tableWrapper.append(btn);
-
-  let counter = 0;
-
-  btn.textContent = "expand chat";
-
-  btn.addEventListener("click", () => {
-    const text = counter % 2 !== 0 ? "expand" : "shrink";
-
-    btn.textContent = `${text} chat`;
-    twitchIFrame.classList.toggle("ccc-expand");
-
-    counter += 1;
-  });
 }

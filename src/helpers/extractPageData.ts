@@ -124,7 +124,7 @@ class ExtractPageData {
       const eventId = linkElement.href.split("#")[1];
       if (eventId) {
         _State.eventIdWebpage = eventId.replace("event=", "");
-        createGameScheduleLinks();
+        createScheduleLinks();
       }
       await null;
     }

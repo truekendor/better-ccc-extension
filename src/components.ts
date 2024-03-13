@@ -2,7 +2,7 @@
 /// <reference path="./types/index.d.ts" />
 
 /**
- * handles extension components creation methods
+ * handles creation of extension components
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-namespace
 namespace components {
@@ -406,10 +406,44 @@ namespace components {
      *
      * selector: `.ccc-captured-pieces-wrapper`
      */
-    static crMaterialCountWrapper(): HTMLDivElement {
+    static crCapturedPiecesWrapper(): HTMLDivElement {
       const div = document.createElement("div");
       div.classList.add("ccc-captured-pieces-wrapper");
       return div;
+    }
+
+    static crTwitchChatExpandBtn() {
+      const tableWrapper: HTMLDivElement = document.querySelector(
+        "#righttable-righttable"
+      )!;
+
+      const content: HTMLDivElement = tableWrapper.querySelector(
+        "#righttable-content"
+      )!;
+
+      const twitchIFrame = content.querySelector("iframe")!;
+
+      tableWrapper.style.removeProperty("height");
+      content.style.removeProperty("height");
+      twitchIFrame.style.removeProperty("height");
+
+      const btn = document.createElement("button");
+      btn.style.marginTop = "25px";
+
+      tableWrapper.append(btn);
+
+      let counter = 0;
+
+      btn.textContent = "expand chat";
+
+      btn.addEventListener("click", () => {
+        const text = counter % 2 !== 0 ? "expand" : "shrink";
+
+        btn.textContent = `${text} chat`;
+        twitchIFrame.classList.toggle("ccc-expand");
+
+        counter += 1;
+      });
     }
   }
 

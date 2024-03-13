@@ -90,6 +90,12 @@ class ExtensionHelper {
       setState: function <T extends Partial<user_config.settings>>(obj: T) {
         return browserPrefix?.storage?.local.set(obj).catch(Utils.logError);
       },
+
+      getUserState: function () {
+        return browserPrefix.storage.local
+          .get(Object.keys(UserSettings.customSettings))
+          .catch(Utils.logError) as Promise<Prettify<user_config.settings>>;
+      },
     } as const;
 
     return localStorageMethods;

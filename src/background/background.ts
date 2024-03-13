@@ -1,8 +1,8 @@
-/// <reference types="./types" />
-/// <reference path="./types/index.d.ts" />
-/// <reference path="./types/lila-tb.ts" />
-/// <reference path="./types/chess-com.d.ts" />
-/// <reference path="./types/chess-js.ts" />
+/// <reference types="../types" />
+/// <reference path="../types/index.d.ts" />
+/// <reference path="../types/lila-tb.ts" />
+/// <reference path="../types/chess-com.d.ts" />
+/// <reference path="../types/chess-js.ts" />
 
 // todo fix this
 const _bg_browserPrefix: Browsers = chrome?.storage ? chrome : browser;
