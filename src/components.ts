@@ -498,9 +498,9 @@ namespace components {
         this.crLineSeparator("Cross table"),
         this.crExtensionSettingRow({
           key: "displayEngineNames",
-          // todo enhance description and tooltip
+          // todo add description and tooltip
           description: "Engine names",
-          tooltip: "Add engine names at the top of the results cells",
+          tooltip: "",
         }),
 
         this.crCrossTableStylesForm(),

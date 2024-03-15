@@ -137,15 +137,18 @@ class ExtensionHelper {
           HighlightDeviation.clearHighlight();
         }
         break;
+      case "displayEngineNames":
+        this.engineNamesLiveUpdateHandler();
+
+        break;
       // todo
       case "addLinksToGameSchedule":
-      case "displayEngineNames":
       case "allowNetworkGameRequest":
       case "elo":
       case "ptnml":
         break;
       case "clearQueryStringOnCurrentGame":
-        this.handlerClearQuery();
+        this.handleClearURLHash();
         break;
       default:
         // exhaustive check
@@ -171,7 +174,7 @@ class ExtensionHelper {
    * removes event id from hash query string
    * if clicked on ongoing game
    */
-  private static handlerClearQuery(): void {
+  private static handleClearURLHash(): void {
     document.addEventListener("click", (e) => {
       if (
         !e.target ||
@@ -187,6 +190,35 @@ class ExtensionHelper {
           payload: null,
         }).sendToBg();
       }
+    });
+  }
+
+  private static engineNamesLiveUpdateHandler() {
+    if (UserSettings.customSettings.displayEngineNames) {
+      components.CrossTable.crEngineNames();
+      return;
+    }
+
+    const crosstableModal = document.querySelector(
+      "#crosstable-crosstableModal"
+    );
+    if (!crosstableModal) {
+      return;
+    }
+
+    const row = crosstableModal.querySelector("table > tr");
+    if (!row) {
+      return;
+    }
+
+    const cells = row.querySelectorAll("th");
+
+    cells.forEach((cell, index) => {
+      if (index < 2) {
+        return;
+      }
+
+      cell.textContent = `${index - 1}`;
     });
   }
 }
