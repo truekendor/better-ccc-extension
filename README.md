@@ -29,8 +29,16 @@
   - Better cross table ![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview.webp)
   - Reverse deviation highlight
   - ![deviation](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/preview-highlight.jpg)
+  - Click on schedule button to scroll to the current game ![schedule button click](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/schedule-click.jpg)
   - GUI bugfixes
-  - Addon for android 
+ 
+
+## What's new TODO
+  - TBA share modal bugfixes
+  - Extension bugfixes
+  - Highlight reverse deviation logic
+  - GUI bugfixes
+  - Addon for android
 
 ## Hotkeys 
 
