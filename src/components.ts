@@ -498,12 +498,12 @@ namespace components {
         this.crLineSeparator("Cross table"),
         this.crExtensionSettingRow({
           key: "displayEngineNames",
-          // todo add description and tooltip
+          // todo enhance description and tooltip
           description: "Engine names",
-          tooltip: "",
+          tooltip: "Add engine names at the top of the results cells",
         }),
 
-        this.crCrossTableStyleSwitch(),
+        this.crCrossTableStylesForm(),
         // * ======
         // * ======
         this.crLineSeparator("Main"),
@@ -516,34 +516,13 @@ namespace components {
         this.crExtensionSettingRow({
           key: "allowKeyboardShortcuts",
           description: "Keyboard shortcuts",
-          // todo add tooltip
           tooltip: "",
         }),
         this.crExtensionSettingRow({
           key: "highlightReverseDeviation",
-          description: "highlight reverse deviation",
-          // todo enhance tooltip
+          description: "Highlight reverse deviation",
           tooltip:
-            "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic 25-200kb per game",
-        }),
-        // * ======
-        // * ======
-        this.crLineSeparator("Other"),
-
-        this.crExtensionSettingRow({
-          key: "addLinksToGameSchedule",
-          description: "links to schedule",
-          tooltip: "",
-        }),
-        this.crExtensionSettingRow({
-          key: "replaceClockSvg",
-          description: "replace clock svg",
-          tooltip: "Replaces brocken clock svg",
-        }),
-        this.crExtensionSettingRow({
-          key: "clearQueryStringOnCurrentGame",
-          description: "clear query string",
-          tooltip: "Automatically removes event id from browser search query",
+            "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic ~25-200kb per game",
         })
       );
 
@@ -576,7 +555,7 @@ namespace components {
       key: BooleanKeys<user_config.settings>;
       description: string;
       tooltip: string;
-      experivental?: boolean;
+      experimental?: boolean;
     }): HTMLLabelElement {
       const row = document.createElement("label");
       row.classList.add("ccc-extension-settings_row");
@@ -621,12 +600,12 @@ namespace components {
       return row;
     }
 
-    private static crCrossTableStyleSwitch() {
+    private static crCrossTableStylesForm(): HTMLFormElement {
       const form = document.createElement("form");
       form.classList.add("ccc-crosstable-style_form");
 
       const header = document.createElement("header");
-      header.textContent = "Cross table pair styles";
+      header.textContent = "Appearance: ";
       form.append(header);
 
       const fieldSet = document.createElement("fieldset");
@@ -634,19 +613,19 @@ namespace components {
 
       const label1 = this.crStyleSwitchLabel({
         count: 1,
-        labelText: "faded",
+        labelText: "Faded",
         inputValue: "ccc-faded",
       });
 
       const label2 = this.crStyleSwitchLabel({
         count: 2,
-        labelText: "light",
+        labelText: "Light",
         inputValue: "ccc-bleached",
       });
 
       const label3 = this.crStyleSwitchLabel({
         count: 3,
-        labelText: "default",
+        labelText: "Default",
         inputValue: "ccc-default",
       });
 
@@ -717,7 +696,7 @@ namespace components {
       const btn = document.createElement("button");
       btn.append(SVG.Icons.xMark);
 
-      btn.classList.add("ccc-close-settings");
+      btn.classList.add("ccc-close-settings_btn");
 
       btn.addEventListener(
         "click",
