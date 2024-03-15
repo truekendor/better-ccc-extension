@@ -100,7 +100,8 @@ class UserSettings {
     elo: true,
     // crosstable styles
     displayEngineNames: true,
-    drawnPairNeutralColorWL: true,
+    crosstablePairStyle: "ccc-default",
+
     pairsPerRow: 5,
     pairsPerRowDuel: 10,
 
@@ -122,7 +123,8 @@ class UserSettings {
     elo: true,
     // crosstable styles
     displayEngineNames: true,
-    drawnPairNeutralColorWL: true,
+    crosstablePairStyle: "ccc-default",
+
     pairsPerRow: 5,
     pairsPerRowDuel: 10,
 

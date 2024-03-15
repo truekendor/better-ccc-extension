@@ -7,22 +7,84 @@
   padding: 10px;
 
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
 
   gap: 5px;
 
   width: 400px;
   min-height: 200px;
-  height: auto;
+  height: 300px;
 
   background-color: rgb(246, 113, 89);
 
-  z-index: 99999999;
+  z-index: 99999;
 }
 
 ._dev-log-btn {
-  grid-column: span 1;
+  grid-row-start: 2;
+  grid-column-start: 4;
+}
 
-  grid-row-start: 5;
+#_dev_logs_panel {
+  background-color: rgb(0, 0, 0);
+
+  position: fixed;
+
+  padding-block: 2rem;
+
+  top: 3rem;
+  bottom: 2rem;
+  left: 0;
+  right: 0;
+
+  z-index: 999999;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow-y: scroll;
+
+  min-height: 500px;
+  height: 800px;
+}
+
+#_dev_logs_panel > *,
+#_dev_logs_panel > main > * {
+  padding: 10px;
+
+  color: white;
+  word-break: break-word;
+}
+
+#_dev_logs_panel > button:first-child {
+  background-color: rgb(250, 101, 47);
+}
+
+._collapse_debug {
+  position: fixed;
+
+  top: 3rem;
+  left: 0;
+
+  background-color: tomato;
+  color: black;
+
+  z-index: 999999999;
+}
+
+._dev_ping_elem {
+  width: 20px;
+  height: 20px;
+
+  position: absolute;
+
+  left: 10px;
+  top: 20%;
+
+  background-color: red;
+}
+
+._dev_ping_elem._ping {
+  background-color: green;
 }

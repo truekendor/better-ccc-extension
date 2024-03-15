@@ -18,6 +18,7 @@ class ChessGameObservers {
         }
         observer.disconnect();
 
+        DebugPanel.print("observers::waitNGame");
         res();
       });
 
@@ -38,8 +39,14 @@ class ChessGameObservers {
         return;
       }
 
+      if (ExtractPageData.isMobile) {
+        return;
+      }
+
       const pgn = ExtractPageData.getPGNFromMoveTable();
       const gameNumber = await ExtractPageData.getCurrentGameNumber();
+
+      DebugPanel.print("observers::gameEnded");
 
       ChessGamesCache.cacheFromObject({
         gameNumber,
@@ -58,10 +65,14 @@ class ChessGameObservers {
       const gameResultDiv = _DOM_Store.movesTableContainer.querySelector(
         ".movetable-gameResult"
       );
+      if (ExtractPageData.isMobile) {
+        return;
+      }
       if (gameResultDiv) {
         return;
       }
 
+      DebugPanel.print("observers::gameStarted");
       FindTranspositions.reset();
 
       chessCurrent.actions.reset();

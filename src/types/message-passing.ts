@@ -60,7 +60,12 @@ namespace message_pass {
     }
   >;
 
-  type OnloadEvent = RuntimeMessageBuilder<"onload", null>;
+  type OnloadEvent = RuntimeMessageBuilder<
+    "onload",
+    {
+      doRequest: boolean;
+    }
+  >;
 
   type RequestTB = RuntimeMessageBuilder<
     "request_tb_eval",

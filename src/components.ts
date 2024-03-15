@@ -473,8 +473,8 @@ namespace components {
       const modalBackdrop = document.createElement("div");
       const modalWrapper = document.createElement("div");
 
-      modalBackdrop.classList.add("ccc-options-backdrop");
-      modalWrapper.classList.add("ccc-options-modal");
+      modalBackdrop.classList.add("ccc-settings-backdrop");
+      modalWrapper.classList.add("ccc-settings-modal");
 
       modalWrapper.tabIndex = 1;
 
@@ -493,25 +493,20 @@ namespace components {
       });
 
       modalWrapper.append(
-        this.crLineSeparator("crosstable"),
         // * ======
-
+        // * ======
+        this.crLineSeparator("Cross table"),
         this.crExtensionSettingRow({
           key: "displayEngineNames",
           // todo add description and tooltip
-          description: "TBA engine names",
+          description: "Engine names",
           tooltip: "",
         }),
-        // todo change this
-        this.crExtensionSettingRow({
-          key: "drawnPairNeutralColorWL",
-          // todo
-          description: "TBA neutral color",
-          tooltip: "",
-        }),
+
+        this.crCrossTableStylesForm(),
         // * ======
-        this.crLineSeparator("main"),
         // * ======
+        this.crLineSeparator("Main"),
 
         this.crExtensionSettingRow({
           key: "showCapturedPieces",
@@ -521,36 +516,18 @@ namespace components {
         this.crExtensionSettingRow({
           key: "allowKeyboardShortcuts",
           description: "Keyboard shortcuts",
-          // todo add tooltip
           tooltip: "",
         }),
         this.crExtensionSettingRow({
           key: "highlightReverseDeviation",
-          description: "highlight reverse deviation",
-          // todo enhance tooltip
+          description: "Highlight reverse deviation",
           tooltip:
-            "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic 25-200kb per game",
-        }),
-        // * ======
-        this.crLineSeparator("other"),
-        // * ======
-
-        this.crExtensionSettingRow({
-          key: "addLinksToGameSchedule",
-          description: "links to schedule",
-          tooltip: "",
-        }),
-        this.crExtensionSettingRow({
-          key: "replaceClockSvg",
-          description: "replace clock svg",
-          tooltip: "Replaces brocken clock svg",
-        }),
-        this.crExtensionSettingRow({
-          key: "clearQueryStringOnCurrentGame",
-          description: "clear query string",
-          tooltip: "Automatically removes event id from browser search query",
+            "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic ~25-200kb per game",
+          experimental: true,
         })
       );
+
+      modalWrapper.append(this.crCloseBtn());
 
       crossTableModal.append(modalBackdrop);
     }
@@ -564,9 +541,9 @@ namespace components {
       title.textContent = categoryName;
       wrapper.append(title, line);
 
-      wrapper.classList.add("_dev_wrapper");
-      title.classList.add("_dev_title");
-      line.classList.add("_dev_line");
+      wrapper.classList.add("ccc-line-separator_wrapper");
+      title.classList.add("ccc-line-separator_title");
+      line.classList.add("ccc-line-separator_line");
 
       return wrapper;
     }
@@ -575,14 +552,16 @@ namespace components {
       key,
       description,
       tooltip,
+      experimental = false,
     }: {
       key: BooleanKeys<user_config.settings>;
       description: string;
       tooltip: string;
-      experivental?: boolean;
+      experimental?: boolean;
     }): HTMLLabelElement {
       const row = document.createElement("label");
       row.classList.add("ccc-extension-settings_row");
+
       row.htmlFor = `ccc-${key}`;
       if (tooltip) {
         row.title = tooltip;
@@ -598,10 +577,23 @@ namespace components {
       input.tabIndex = 1000;
       input.id = `ccc-${key}`;
 
+      if (experimental) {
+        const svg = SVG.Icons.flask;
+        svg.classList.add("ccc-flask-svg");
+
+        descriptionElem.append(svg);
+      }
+
       input.type = "checkbox";
 
       input.checked =
         UserSettings.customSettings[key] ?? UserSettings.defaultSettings[key];
+
+      if (ExtractPageData.isMobile && key === "highlightReverseDeviation") {
+        input.checked = false;
+        input.disabled = true;
+        input.classList.add("ccc-input-forbidden");
+      }
 
       input.addEventListener("change", () => {
         UserSettings.customSettings[key] = !UserSettings.customSettings[key];
@@ -615,6 +607,120 @@ namespace components {
       row.append(descriptionElem, input);
 
       return row;
+    }
+
+    private static crCrossTableStylesForm(): HTMLFormElement {
+      const form = document.createElement("form");
+      form.classList.add("ccc-crosstable-style_form");
+
+      const header = document.createElement("header");
+      header.textContent = "Appearance: ";
+      form.append(header);
+
+      const fieldSet = document.createElement("fieldset");
+      form.append(fieldSet);
+
+      const label1 = this.crStyleSwitchLabel({
+        count: 1,
+        labelText: "Faded",
+        inputValue: "ccc-faded",
+      });
+
+      const label2 = this.crStyleSwitchLabel({
+        count: 2,
+        labelText: "Light",
+        inputValue: "ccc-bleached",
+      });
+
+      const label3 = this.crStyleSwitchLabel({
+        count: 3,
+        labelText: "Default",
+        inputValue: "ccc-default",
+      });
+
+      fieldSet.append(label1, label2, label3);
+
+      form.addEventListener("change", (e) => {
+        // @ts-expect-error
+        const value = e.target.value;
+
+        if (!value) {
+          return;
+        }
+
+        UserSettings.customSettings.crosstablePairStyle = value;
+
+        ExtensionHelper.localStorage.setState({
+          crosstablePairStyle: UserSettings.customSettings.crosstablePairStyle,
+        });
+
+        const crossTable: HTMLDivElement | null = document.querySelector(
+          ".modal-vue-modal-content"
+        );
+
+        if (!crossTable) {
+          return;
+        }
+
+        crossTable.setAttribute(
+          "data-style",
+          UserSettings.customSettings.crosstablePairStyle
+        );
+      });
+      return form;
+    }
+
+    private static crStyleSwitchLabel({
+      count,
+      labelText,
+      inputValue,
+    }: {
+      count: number;
+      labelText: string;
+      inputValue: user_config.settings["crosstablePairStyle"];
+    }): HTMLLabelElement {
+      const elemId = `ccc-crosstable-option-${count}`;
+
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+
+      label.classList.add("ccc-crosstable-style_label");
+
+      input.type = "radio";
+      input.value = inputValue;
+      input.name = "crosstable-pair-colors";
+      input.checked =
+        UserSettings.customSettings.crosstablePairStyle === inputValue;
+
+      input.id = elemId;
+      label.htmlFor = elemId;
+
+      label.textContent = labelText;
+      label.append(input);
+
+      return label;
+    }
+
+    private static crCloseBtn() {
+      const btn = document.createElement("button");
+      btn.append(SVG.Icons.xMark);
+
+      btn.classList.add("ccc-close-settings_btn");
+
+      btn.addEventListener(
+        "click",
+        () => {
+          const modal = document.querySelector(".ccc-settings-backdrop");
+          if (!modal) {
+            return;
+          }
+
+          modal.parentElement?.removeChild(modal);
+        },
+        { once: true }
+      );
+
+      return btn;
     }
   }
 }

@@ -203,14 +203,27 @@ result table section
 
 /* individual results */
 #ccc-result {
-  color: var(--ccc-color) !important;
-
   grid-column: span 1;
 
   width: 100%;
   max-width: 100%;
 
   position: relative;
+}
+
+[data-style="ccc-faded"] #ccc-result {
+  color: var(--ccc-color) !important;
+}
+
+[data-style="ccc-bleached"]
+  #ccc-result:not(.ccc-loss, .ccc-win, .ccc-double-loss, .ccc-double-win) {
+  color: var(--nonexistent-placeholder-variable) !important;
+}
+
+[data-style="ccc-default"] #ccc-result {
+  /* color: ; */
+  width: 100%;
+  max-width: 100%;
 }
 
 .ccc-border-left {
@@ -284,26 +297,9 @@ pair highlight
   background-color: var(--double-loss-bg);
 }
 
-.loss.ccc-draw {
-  /* --ccc-color: var(--color-text-loss); */
-  /* background-color: var(--draw-bg); */
-}
-
-.win.ccc-draw {
-  /* --ccc-color: var(--color-text-win); */
-  /* background-color: var(--draw-bg); */
-}
-
 .ccc-draw {
   --ccc-color: rgb(122, 122, 122);
-  /* --ccc-color: rgb(161, 161, 161); */
-  /* --ccc-color: rgba(0, 0, 0, 0); */
   color: var(--ccc-color);
-}
-
-/* todo uncomment? */
-table > tr:nth-child(2n) .ccc-draw {
-  /* --ccc-color: rgb(138, 138, 138); */
 }
 
 .ccc-loss-font {
@@ -556,6 +552,13 @@ table > tr:nth-child(2n) .ccc-draw {
   background-color: rgb(84, 137, 71);
 }
 
+.ccc-input.ccc-input-forbidden {
+  background-color: rgb(255, 184, 158);
+}
+.ccc-input.ccc-input-forbidden::before {
+  background-color: rgb(231, 104, 49);
+}
+
 .ccc-row-input {
   border: none;
   outline: 1px solid rgb(81, 81, 81);
@@ -706,7 +709,7 @@ table > tr:nth-child(2n) .ccc-draw {
 
   display: block;
 
-  color: rgb(237, 122, 193);
+  color: hsl(323, 76%, 70%);
   text-decoration: none;
 
   font-size: 12px;
@@ -736,87 +739,6 @@ table > tr:nth-child(2n) .ccc-draw {
   text-decoration: underline;
 }
 
-.ccc-options-backdrop {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-
-  cursor: pointer;
-
-  z-index: 9999;
-}
-
-.ccc-options-modal {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  gap: 10px;
-
-  padding: 22px 16px;
-
-  flex-direction: column;
-
-  background-color: #222;
-  width: 250px;
-  height: max-content;
-
-  cursor: auto;
-
-  border-radius: 5px;
-}
-
-.ccc-extension-settings-btn {
-  background-color: transparent;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  border: none;
-
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-
-  max-width: 30px;
-  max-height: 30px;
-
-  padding: 2px;
-}
-
-.ccc-extension-settings-btn > svg {
-  width: 100%;
-
-  max-width: 30px;
-  max-height: 30px;
-
-  fill: rgb(104, 104, 104);
-}
-
-.ccc-extension-settings_row {
-  --ccc-input-width: 3rem;
-  --ccc-input-height: 1.4rem;
-
-  --ccc-circle-radius: 1.9rem;
-  --ccc-circle-offset: 0.3rem;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  width: 100%;
-
-  color: #c7c7c7;
-}
-
-.ccc-extension-settings_description {
-  margin-inline-end: auto;
-}
-
 .ccc-display-none {
   display: none;
 }
@@ -836,35 +758,4 @@ table > tr:nth-child(2n) .ccc-draw {
 
 .schedule-in-progress > * {
   pointer-events: none;
-}
-
-/* todo rename */
-._dev_wrapper {
-  display: flex;
-  flex-wrap: nowrap;
-  width: 100%;
-}
-
-._dev_title {
-  color: gainsboro;
-  text-wrap: nowrap;
-}
-
-._dev_line {
-  position: relative;
-
-  width: 100%;
-}
-
-._dev_line::after {
-  content: "";
-  position: absolute;
-
-  transform: translateX(-50%);
-  top: 50%;
-  left: 50%;
-
-  background-color: gray;
-  width: 90%;
-  height: 1px;
 }

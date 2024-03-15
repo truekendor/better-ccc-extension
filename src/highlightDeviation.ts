@@ -105,6 +105,7 @@ browserPrefix.runtime.onMessage.addListener(function (
 
     if (type === "tab_update") {
       OnMessageHandlers.tabUpdateHandler(message);
+      DebugPanel.pingDebugPanel(message);
       return false;
     } else if (type === "reverse_pgn_response") {
       OnMessageHandlers.pgnResponseHandler(message);
@@ -125,6 +126,9 @@ class HighlightDeviation {
     if (!UserSettings.customSettings.highlightReverseDeviation) {
       return;
     }
+    if (ExtractPageData.isMobile) {
+      return;
+    }
 
     // todo change this
     if (FindTranspositions.agreementLength < 16) return;
@@ -139,6 +143,9 @@ class HighlightDeviation {
   // todo add description
   static findTranspositionsAndHighlight(debugMessage = ""): void {
     if (!UserSettings.customSettings.highlightReverseDeviation) {
+      return;
+    }
+    if (ExtractPageData.isMobile) {
       return;
     }
 
@@ -226,12 +233,16 @@ class HighlightDeviation {
 (function awaitNewGameGlobal(): void {
   const observer = new MutationObserver(async (entries) => {
     // arbitrary large amount
+    if (ExtractPageData.isMobile) {
+      return;
+    }
     if (entries.length < 30) {
       return;
     }
 
     HighlightDeviation.clearHighlight();
 
+    // do not delete lol
     await new Promise((res) => {
       requestAnimationFrame(() => {
         res(null);
@@ -266,6 +277,7 @@ class HighlightDeviation {
     chessCurrent.actions.setPGN(currentPGN);
     chessReverse.actions.setPGN(reverseGameCache.pgn);
 
+    DebugPanel.print(`await new game global::highlight`);
     HighlightDeviation.findTranspositionsAndHighlight();
   });
 
@@ -275,3 +287,8 @@ class HighlightDeviation {
     characterData: true,
   });
 })();
+
+// todo rewrite with this
+// window.addEventListener("hashchange", (e) => {
+//   console.log("e", e);
+// });

@@ -39,12 +39,6 @@ async function loadUserSettings(): Promise<void> {
         UserSettings.customSettings[key] =
           state[key] ?? UserSettings.defaultSettings[key];
       });
-
-      ExtensionHelper.localStorage.getState([
-        "addLinksToGameSchedule",
-        "allowKeyboardShortcuts",
-        "clearQueryStringOnCurrentGame",
-      ]);
     })
     .then(async () => {
       // init absent settings in store with default values
@@ -64,14 +58,26 @@ async function loadUserSettings(): Promise<void> {
 
   const keys = Utils.objectKeys(UserSettings.customSettings);
   keys.forEach((key) => {
-    if (key === "pairsPerRow" || key === "pairsPerRowDuel") {
+    if (
+      key === "pairsPerRow" ||
+      key === "pairsPerRowDuel" ||
+      key === "crosstablePairStyle"
+    ) {
       return;
     }
     ExtensionHelper.applyUserSettings(key);
   });
+
   if (UserSettings.customSettings.highlightReverseDeviation) {
     ExtensionHelper.messages.sendReady();
   }
+
+  ExtensionHelper.localStorage
+    .getState(["crosstablePairStyle"])
+    .then((result) => {
+      UserSettings.customSettings.crosstablePairStyle =
+        result.crosstablePairStyle;
+    });
 
   // todo move to that one Promise.all
   ExtensionHelper.localStorage
@@ -473,7 +479,7 @@ function closeModalsOnKeydownHandler(): void {
   const moreStatsModal: HTMLDivElement | null =
     document.querySelector(".ccc-info-backdrop");
   const extensionSettingsModal: HTMLDivElement | null = document.querySelector(
-    ".ccc-options-backdrop"
+    ".ccc-settings-backdrop"
   );
 
   if (moreStatsModal) {
@@ -528,6 +534,11 @@ function openCrossTableHandler(): void {
     );
 
     if (!crossTableModal) return;
+
+    crossTableModal.setAttribute(
+      "data-style",
+      UserSettings.customSettings.crosstablePairStyle
+    );
 
     crossTableElements = crossTableModal.querySelectorAll(
       ".crosstable-results-cell"

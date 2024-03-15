@@ -32,10 +32,15 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
     }
 
     if (type === "onload") {
+      if (!payload.doRequest) {
+        return;
+      }
+      console.log("onload!");
       onLoadHandler();
     } else if (type === "reverse_pgn_request") {
       const { gameNumber, event } = payload;
 
+      console.log("rev game requset!");
       _bg_requestReverseGame(gameNumber, event).catch((e) => {
         console.log("Game fetch error: ", e?.message ?? e);
       });
