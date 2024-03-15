@@ -1,0 +1,190 @@
+.ccc-settings-backdrop {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.35);
+
+  cursor: pointer;
+
+  z-index: 9999;
+}
+
+.ccc-settings-modal {
+  --ccc-settings-accent-color: rgb(230, 230, 230);
+  --ccc-settings-main-color: rgb(199, 199, 199);
+  --ccc-settings-bg: #1c1e1d;
+
+  position: relative;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 26px 20px;
+
+  flex-direction: column;
+
+  background-color: var(--ccc-settings-bg);
+  width: 270px;
+  height: max-content;
+
+  cursor: auto;
+
+  border: 4px solid rgb(85, 85, 85);
+  border-radius: 5px;
+}
+
+.ccc-extension-settings-btn {
+  background-color: transparent;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  border: none;
+
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+
+  max-width: 30px;
+  max-height: 30px;
+
+  padding: 2px;
+}
+
+.ccc-extension-settings-btn > svg {
+  width: 100%;
+
+  max-width: 30px;
+  max-height: 30px;
+
+  fill: rgb(104, 104, 104);
+}
+
+.ccc-extension-settings_row {
+  --ccc-input-width: 3rem;
+  --ccc-input-height: 1.4rem;
+
+  --ccc-circle-radius: 1.9rem;
+  --ccc-circle-offset: 0.3rem;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  width: 100%;
+
+  color: var(--ccc-settings-main-color);
+}
+
+.ccc-extension-settings_description {
+  margin-inline-end: auto;
+}
+
+.ccc-line-separator_wrapper {
+  display: flex;
+  align-items: center;
+
+  flex-wrap: nowrap;
+  width: 100%;
+  height: 35px;
+}
+
+.ccc-line-separator_title {
+  color: var(--ccc-settings-accent-color);
+  text-wrap: nowrap;
+}
+
+.ccc-line-separator_line {
+  position: relative;
+
+  flex-grow: 1;
+}
+
+.ccc-line-separator_line::after {
+  content: "";
+  position: absolute;
+
+  transform: translateX(-50%);
+  top: 50%;
+  left: 50%;
+
+  background-color: gray;
+  width: 90%;
+  height: 1px;
+}
+
+.ccc-crosstable-style_form {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.ccc-crosstable-style_form header {
+  font-size: 1.6rem;
+  color: var(--ccc-settings-main-color);
+}
+
+.ccc-crosstable-style_form > fieldset {
+  display: contents;
+}
+
+.ccc-crosstable-style_label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 1.6rem;
+
+  color: var(--ccc-settings-main-color);
+}
+
+.ccc-crosstable-style_label > input {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin: unset;
+
+  width: 16px;
+  height: 16px;
+
+  accent-color: rgb(103, 186, 83);
+}
+
+.ccc-close-settings {
+  position: absolute;
+
+  top: 0;
+  right: 0;
+
+  width: 30px;
+  height: 30px;
+
+  background-color: transparent;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  outline: transparent;
+  border: none;
+}
+
+.ccc-close-settings > svg {
+  width: 100%;
+  height: 100%;
+
+  fill: rgb(174, 174, 174);
+}
+
+.ccc-close-settings:hover > svg {
+  fill: rgb(199, 199, 199);
+}

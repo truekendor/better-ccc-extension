@@ -473,8 +473,8 @@ namespace components {
       const modalBackdrop = document.createElement("div");
       const modalWrapper = document.createElement("div");
 
-      modalBackdrop.classList.add("ccc-options-backdrop");
-      modalWrapper.classList.add("ccc-options-modal");
+      modalBackdrop.classList.add("ccc-settings-backdrop");
+      modalWrapper.classList.add("ccc-settings-modal");
 
       modalWrapper.tabIndex = 1;
 
@@ -493,20 +493,20 @@ namespace components {
       });
 
       modalWrapper.append(
-        this.crLineSeparator("Cross table"),
         // * ======
-
+        // * ======
+        this.crLineSeparator("Cross table"),
         this.crExtensionSettingRow({
           key: "displayEngineNames",
           // todo add description and tooltip
-          description: "TBA engine names",
+          description: "Engine names",
           tooltip: "",
         }),
 
         this.crCrossTableStyleSwitch(),
         // * ======
-        this.crLineSeparator("main"),
         // * ======
+        this.crLineSeparator("Main"),
 
         this.crExtensionSettingRow({
           key: "showCapturedPieces",
@@ -527,8 +527,8 @@ namespace components {
             "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic 25-200kb per game",
         }),
         // * ======
-        this.crLineSeparator("other"),
         // * ======
+        this.crLineSeparator("Other"),
 
         this.crExtensionSettingRow({
           key: "addLinksToGameSchedule",
@@ -546,6 +546,8 @@ namespace components {
           tooltip: "Automatically removes event id from browser search query",
         })
       );
+
+      modalWrapper.append(this.crCloseBtn());
 
       crossTableModal.append(modalBackdrop);
     }
@@ -709,6 +711,28 @@ namespace components {
       label.append(input);
 
       return label;
+    }
+
+    private static crCloseBtn() {
+      const btn = document.createElement("button");
+      btn.append(SVG.Icons.xMark);
+
+      btn.classList.add("ccc-close-settings");
+
+      btn.addEventListener(
+        "click",
+        () => {
+          const modal = document.querySelector(".ccc-settings-backdrop");
+          if (!modal) {
+            return;
+          }
+
+          modal.parentElement?.removeChild(modal);
+        },
+        { once: true }
+      );
+
+      return btn;
     }
   }
 }

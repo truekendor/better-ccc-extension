@@ -13,7 +13,8 @@
         "styles/captured-pieces.css",
         "styles/default-ccc.css",
         "styles/pairs-per-row-media.css",
-        "styles/dev-panel.css"
+        "styles/dev-panel.css",
+        "styles/extension-settings.css"
       ],
       "js": [
         "chess-js.js",

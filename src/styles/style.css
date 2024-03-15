@@ -297,24 +297,9 @@ pair highlight
   background-color: var(--double-loss-bg);
 }
 
-.loss.ccc-draw {
-  /* --ccc-color: var(--color-text-loss); */
-  /* background-color: var(--draw-bg); */
-}
-
-.win.ccc-draw {
-  /* --ccc-color: var(--color-text-win); */
-  /* background-color: var(--draw-bg); */
-}
-
 .ccc-draw {
   --ccc-color: rgb(122, 122, 122);
   color: var(--ccc-color);
-}
-
-/* todo uncomment? */
-table > tr:nth-child(2n) .ccc-draw {
-  /* --ccc-color: rgb(138, 138, 138); */
 }
 
 .ccc-loss-font {
@@ -724,7 +709,7 @@ table > tr:nth-child(2n) .ccc-draw {
 
   display: block;
 
-  color: rgb(237, 122, 193);
+  color: hsl(323, 76%, 70%);
   text-decoration: none;
 
   font-size: 12px;
@@ -754,87 +739,6 @@ table > tr:nth-child(2n) .ccc-draw {
   text-decoration: underline;
 }
 
-.ccc-options-backdrop {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-
-  cursor: pointer;
-
-  z-index: 9999;
-}
-
-.ccc-options-modal {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  gap: 10px;
-
-  padding: 22px 16px;
-
-  flex-direction: column;
-
-  background-color: #222;
-  width: 250px;
-  height: max-content;
-
-  cursor: auto;
-
-  border-radius: 5px;
-}
-
-.ccc-extension-settings-btn {
-  background-color: transparent;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  border: none;
-
-  width: 30px;
-  height: 30px;
-  cursor: pointer;
-
-  max-width: 30px;
-  max-height: 30px;
-
-  padding: 2px;
-}
-
-.ccc-extension-settings-btn > svg {
-  width: 100%;
-
-  max-width: 30px;
-  max-height: 30px;
-
-  fill: rgb(104, 104, 104);
-}
-
-.ccc-extension-settings_row {
-  --ccc-input-width: 3rem;
-  --ccc-input-height: 1.4rem;
-
-  --ccc-circle-radius: 1.9rem;
-  --ccc-circle-offset: 0.3rem;
-
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  width: 100%;
-
-  color: #c7c7c7;
-}
-
-.ccc-extension-settings_description {
-  margin-inline-end: auto;
-}
-
 .ccc-display-none {
   display: none;
 }
@@ -854,63 +758,4 @@ table > tr:nth-child(2n) .ccc-draw {
 
 .schedule-in-progress > * {
   pointer-events: none;
-}
-
-.ccc-line-separator_wrapper {
-  display: flex;
-  flex-wrap: nowrap;
-  width: 100%;
-}
-
-.ccc-line-separator_title {
-  color: gainsboro;
-  text-wrap: nowrap;
-}
-
-.ccc-line-separator_line {
-  position: relative;
-
-  width: 100%;
-}
-
-.ccc-line-separator_line::after {
-  content: "";
-  position: absolute;
-
-  transform: translateX(-50%);
-  top: 50%;
-  left: 50%;
-
-  background-color: gray;
-  width: 90%;
-  height: 1px;
-}
-
-.ccc-crosstable-style_form {
-  width: 100%;
-
-  display: flex;
-  flex-direction: column;
-
-  color: gainsboro;
-}
-
-.ccc-crosstable-style_form > fieldset {
-  display: contents;
-}
-
-.ccc-crosstable-style_label {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  font-size: 1.4rem;
-}
-
-.ccc-crosstable-style_label > input {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-  margin: unset;
 }

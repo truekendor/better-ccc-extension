@@ -479,7 +479,7 @@ function closeModalsOnKeydownHandler(): void {
   const moreStatsModal: HTMLDivElement | null =
     document.querySelector(".ccc-info-backdrop");
   const extensionSettingsModal: HTMLDivElement | null = document.querySelector(
-    ".ccc-options-backdrop"
+    ".ccc-settings-backdrop"
   );
 
   if (moreStatsModal) {
