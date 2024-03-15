@@ -191,6 +191,8 @@ class HighlightDeviation {
       this.moveTableElementList[transpositionObject.currentPly].classList.add(
         "ccc-move-agree"
       );
+      this.moveTableElementList[transpositionObject.currentPly].title =
+        "transposition";
 
       const isLastTransposition =
         FindTranspositions.transpositions.length === index + 1;
@@ -223,20 +225,19 @@ class HighlightDeviation {
 
 (function awaitNewGameGlobal(): void {
   const observer = new MutationObserver(async (entries) => {
-    if (entries.length < 40) {
+    // arbitrary large amount
+    if (entries.length < 30) {
       return;
     }
 
     HighlightDeviation.clearHighlight();
-
-    // do not delete
-    // await Utils.sleepAsync(1);
 
     await new Promise((res) => {
       requestAnimationFrame(() => {
         res(null);
       });
     });
+    await Utils.sleepAsync(1);
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
     const reverseGameNumber = GamePairHelper.getReverseGameNumber(gameNumber);

@@ -99,7 +99,7 @@ class ChessGameObservers {
         chessCurrent.actions.getFullFenAtIndex(currentMoveNumber);
 
       if (currentFEN) {
-        CountMaterial.countMaterial(currentFEN);
+        CountCapturedPieces.count(currentFEN);
       }
 
       HighlightDeviation.highlight();
@@ -228,7 +228,7 @@ class WebpageObservers {
   }
 
   private static async endOfLoadHandler() {
-    await ExtractPageData.getEventIdWebpage();
+    await ExtractPageData.getEventId();
 
     if (!_State.eventId) {
       return false;
@@ -290,7 +290,7 @@ class WebpageObservers {
       chessCurrent.fields.FenHistoryFull[
         chessCurrent.fields.FenHistoryFull.length - 1
       ];
-    CountMaterial.countMaterial(currentFEN || ChessJS.trimmedStartPos);
+    CountCapturedPieces.count(currentFEN || ChessJS.trimmedStartPos);
   }
 
   private static waitForEventName(): Promise<void> {
