@@ -126,6 +126,9 @@ class HighlightDeviation {
     if (!UserSettings.customSettings.highlightReverseDeviation) {
       return;
     }
+    if (ExtractPageData.isMobile) {
+      return;
+    }
 
     // todo change this
     if (FindTranspositions.agreementLength < 16) return;
@@ -140,6 +143,9 @@ class HighlightDeviation {
   // todo add description
   static findTranspositionsAndHighlight(debugMessage = ""): void {
     if (!UserSettings.customSettings.highlightReverseDeviation) {
+      return;
+    }
+    if (ExtractPageData.isMobile) {
       return;
     }
 
@@ -227,6 +233,9 @@ class HighlightDeviation {
 (function awaitNewGameGlobal(): void {
   const observer = new MutationObserver(async (entries) => {
     // arbitrary large amount
+    if (ExtractPageData.isMobile) {
+      return;
+    }
     if (entries.length < 30) {
       return;
     }

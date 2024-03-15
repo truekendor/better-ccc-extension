@@ -9,7 +9,7 @@ class DebugPanel {
   private static logsHistoryContainer: HTMLDivElement =
     this.crLogsHistoryContainer()!;
 
-  private static _ = this.init();
+  // private static _ = this.init();
 
   static crCollapseDebugPanelBtn() {
     const btn = document.createElement("button");
@@ -130,7 +130,6 @@ class DebugPanel {
   }
 
   private static showChessCacheInHistoryLogs() {
-    const map = new Map();
     const div = document.createElement("div");
     div.classList.add("_chess_cache_history");
 
@@ -138,9 +137,7 @@ class DebugPanel {
       const [gameNumber, cacheEntry] = entry;
       const { pgn } = cacheEntry;
 
-      map.set(gameNumber, pgn.concat().slice(15));
-
-      const pgnSlice = pgn.concat().slice(16, 36);
+      const pgnSlice = pgn.concat().slice(0, 24);
 
       const divInner = document.createElement("div");
       divInner.textContent = `${gameNumber}: ${JSON.stringify(pgnSlice)}`;

@@ -493,7 +493,7 @@ namespace components {
       });
 
       modalWrapper.append(
-        this.crLineSeparator("crosstable"),
+        this.crLineSeparator("Crosstable"),
         // * ======
 
         this.crExtensionSettingRow({
@@ -583,6 +583,7 @@ namespace components {
     }): HTMLLabelElement {
       const row = document.createElement("label");
       row.classList.add("ccc-extension-settings_row");
+
       row.htmlFor = `ccc-${key}`;
       if (tooltip) {
         row.title = tooltip;
@@ -597,6 +598,10 @@ namespace components {
       input.classList.add("ccc-input");
       input.tabIndex = 1000;
       input.id = `ccc-${key}`;
+
+      if (ExtractPageData.isMobile) {
+        input.disabled = true;
+      }
 
       input.type = "checkbox";
 

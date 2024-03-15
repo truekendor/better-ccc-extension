@@ -1,5 +1,9 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ExtractPageData {
+  private static isMobileDevice = document.querySelector(
+    "#cpu-champs-page-ccc"
+  );
+
   /**
    *  somewhat reliable way to get current game number from webpage
    */
@@ -131,8 +135,7 @@ class ExtractPageData {
   }
 
   static get isMobile() {
-    const isMobile = document.querySelector("#cpu-champs-page-ccc");
-    return isMobile ? true : false;
+    return !!this.isMobileDevice;
   }
 
   //  * --------------------------

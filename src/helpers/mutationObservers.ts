@@ -39,6 +39,10 @@ class ChessGameObservers {
         return;
       }
 
+      if (ExtractPageData.isMobile) {
+        return;
+      }
+
       const pgn = ExtractPageData.getPGNFromMoveTable();
       const gameNumber = await ExtractPageData.getCurrentGameNumber();
 
@@ -61,6 +65,9 @@ class ChessGameObservers {
       const gameResultDiv = _DOM_Store.movesTableContainer.querySelector(
         ".movetable-gameResult"
       );
+      if (ExtractPageData.isMobile) {
+        return;
+      }
       if (gameResultDiv) {
         return;
       }

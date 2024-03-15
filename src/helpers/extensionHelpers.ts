@@ -16,7 +16,9 @@ class ExtensionHelper {
     sendReady: () => {
       const message: message_pass.message = {
         type: "onload",
-        payload: null,
+        payload: {
+          doRequest: !ExtractPageData.isMobile,
+        },
       };
 
       try {
@@ -41,6 +43,9 @@ class ExtensionHelper {
         console.log("ExtensionHelper::requestReverseGame: eventId is null");
         return;
       }
+      if (ExtractPageData.isMobile) {
+        return;
+      }
 
       new ExtensionMessage({
         type: "reverse_pgn_request",
@@ -60,6 +65,10 @@ class ExtensionHelper {
       if (!eventId) {
         // todo retry logic?
         console.log("ExtensionHelper::requestReverseFor: eventId is null");
+        return;
+      }
+      // currently too buggy on android
+      if (ExtractPageData.isMobile) {
         return;
       }
 
