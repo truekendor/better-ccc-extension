@@ -28,7 +28,7 @@
         "helpers/elo.js",
         "helpers/findTranspositions.js",
         "helpers/debug-panel.js",
-        "shareModal.js",
+        "helpers/shareModal.js",
         "components.js",
         "store.js",
         "clockFix.js",
