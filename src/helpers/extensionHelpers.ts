@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ExtensionHelper {
-  // todo rewrite with static class instance?
+  // todo rewrite
   private static messageMethods = {
     sendMessage: (message: message_pass.message) => {
       try {

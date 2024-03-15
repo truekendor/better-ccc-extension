@@ -4,7 +4,6 @@ type PGNCacheEntry = {
   type: "partial" | "full-game";
 };
 
-// todo rename !!!!!!!
 type ChessGameCacheEntry = {
   gameNumber: number;
   pgn: string[];

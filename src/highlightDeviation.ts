@@ -105,7 +105,6 @@ browserPrefix.runtime.onMessage.addListener(function (
 
     if (type === "tab_update") {
       OnMessageHandlers.tabUpdateHandler(message);
-      DebugPanel.pingDebugPanel(message);
       return false;
     } else if (type === "reverse_pgn_response") {
       OnMessageHandlers.pgnResponseHandler(message);
@@ -117,7 +116,6 @@ browserPrefix.runtime.onMessage.addListener(function (
   return true;
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class HighlightDeviation {
   private static moveTableElementList: HTMLTableCellElement[] = [];
 
@@ -232,10 +230,11 @@ class HighlightDeviation {
 
 (function awaitNewGameGlobal(): void {
   const observer = new MutationObserver(async (entries) => {
-    // arbitrary large amount
     if (ExtractPageData.isMobile) {
       return;
     }
+
+    // arbitrary large amount
     if (entries.length < 30) {
       return;
     }

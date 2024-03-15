@@ -273,7 +273,6 @@ class WebpageObservers {
     });
   }
 
-  // todo move to other file
   private static initStateValues(): void {
     const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
       ".schedule-container"
@@ -295,7 +294,6 @@ class WebpageObservers {
     _State.isEventActive = gameInProgress;
   }
 
-  // todo move to other file
   private static initMaterialCount(): void {
     const currentFEN =
       chessCurrent.fields.FenHistoryFull[

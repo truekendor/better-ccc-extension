@@ -71,7 +71,6 @@ class DebugPanel {
     document.body.appendChild(this.debugPanel);
   }
 
-  // todo cleanup this shit
   // * ====================
   // * buttons creation
   private static crPageLogsBtn(): HTMLButtonElement {
