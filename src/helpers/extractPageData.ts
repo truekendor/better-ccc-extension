@@ -130,6 +130,11 @@ class ExtractPageData {
     eventNameWrapper.click();
   }
 
+  static get isMobile() {
+    const isMobile = document.querySelector("#cpu-champs-page-ccc");
+    return isMobile ? true : false;
+  }
+
   //  * --------------------------
   //  *
   private static getGameNumberFromStandings(): number {

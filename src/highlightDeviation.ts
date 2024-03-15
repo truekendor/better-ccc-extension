@@ -105,6 +105,7 @@ browserPrefix.runtime.onMessage.addListener(function (
 
     if (type === "tab_update") {
       OnMessageHandlers.tabUpdateHandler(message);
+      DebugPanel.pingDebugPanel(message);
       return false;
     } else if (type === "reverse_pgn_response") {
       OnMessageHandlers.pgnResponseHandler(message);
@@ -232,6 +233,7 @@ class HighlightDeviation {
 
     HighlightDeviation.clearHighlight();
 
+    // do not delete lol
     await new Promise((res) => {
       requestAnimationFrame(() => {
         res(null);
@@ -266,6 +268,7 @@ class HighlightDeviation {
     chessCurrent.actions.setPGN(currentPGN);
     chessReverse.actions.setPGN(reverseGameCache.pgn);
 
+    DebugPanel.print(`await new game global::highlight`);
     HighlightDeviation.findTranspositionsAndHighlight();
   });
 
@@ -275,3 +278,8 @@ class HighlightDeviation {
     characterData: true,
   });
 })();
+
+// todo rewrite with this
+// window.addEventListener("hashchange", (e) => {
+//   console.log("e", e);
+// });

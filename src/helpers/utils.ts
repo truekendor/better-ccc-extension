@@ -67,7 +67,7 @@ class Utils {
     retryCount,
     retryWaitTime,
   }: {
-    cb: (...args: any) => Promise<boolean>;
+    cb: Fn<any, Promise<boolean>>;
     retryCount: number;
     retryWaitTime: number;
   }): Promise<boolean> {
@@ -104,7 +104,7 @@ class Maybe {
     this.value = value;
   }
 
-  _bind<T extends (...args: any) => any>(fn: T): Maybe {
+  _bind<T extends Fn<any, any>>(fn: T): Maybe {
     if (this.value === undefined || this.value === null) {
       return new Maybe(null);
     }
@@ -116,5 +116,55 @@ class Maybe {
     }
 
     return new Maybe(result);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function debounce({ cb, wait }: { cb: (...args: any) => void; wait: number }) {
+  let timerId = -1;
+
+  return function debouncedCb(...args: any) {
+    if (timerId) {
+      clearTimeout(timerId);
+    }
+
+    timerId = setTimeout(() => {
+      cb(...args);
+    }, wait);
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class DebouncePromise {
+  private cb;
+  private wait;
+
+  private promise: Promise<unknown>;
+  // @ts-expect-error typescript cannot see variable initialisation inside the constructor function
+  private resolve: (value: unknown) => unknown;
+  private timerId: number = -1;
+
+  constructor({ cb, wait }: { cb: (...args: any) => any; wait: number }) {
+    this.cb = cb;
+    this.wait = wait;
+
+    this.promise = new Promise((res) => {
+      this.resolve = res;
+    });
+  }
+
+  sub() {
+    return this.promise;
+  }
+
+  do(...args: any) {
+    if (this.timerId) {
+      clearTimeout(this.timerId);
+    }
+
+    this.timerId = setTimeout(() => {
+      const result = this.cb(...args);
+      this.resolve(result);
+    }, this.wait);
   }
 }

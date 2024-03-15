@@ -31,8 +31,11 @@ type Prettify<T> = {
 // https://youtu.be/a_m7jxrTlaw?list=PLIvujZeVDLMx040-j1W4WFs1BxuTGdI_b
 type LooseAutocomplete<T extends string> = T | Omit<string, T>;
 
+type Fn<T, U = T> = (...args: T[]) => U;
+
 // * ===================
 // * content scripts types
+
 type ResultAsScore = 1 | 0 | -1;
 type WDL = [number, number, number];
 type PTNML = [number, number, number, number, number];

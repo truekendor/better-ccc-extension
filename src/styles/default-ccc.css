@@ -243,3 +243,10 @@ tr.font-faded-white > td:nth-child(2) > div {
 .bottomtable-event-name-wrapper > i {
   pointer-events: none;
 }
+
+:is(#black-player, #white-player)
+  .movetable-tablewrapper
+  > table
+  > tr:not(:has(td:nth-child(3))) {
+  display: flex;
+}
