@@ -275,21 +275,3 @@ class HighlightDeviation {
     characterData: true,
   });
 })();
-
-// ! dev todo delete
-
-setTimeout(() => {
-  removeChatBanner();
-}, 500);
-function removeChatBanner() {
-  const chatWrapper: HTMLDivElement = document.querySelector(
-    "#righttable-righttable"
-  )!;
-
-  const twitchIFrame = chatWrapper.querySelector("iframe")!;
-  const banner = chatWrapper.querySelector("div")!;
-
-  chatWrapper.removeChild(banner);
-
-  twitchIFrame.style.top = "0";
-}

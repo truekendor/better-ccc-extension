@@ -50,7 +50,6 @@ class ExtractPageData {
     return gameNumber;
   }
 
-  // todo delete?
   static getMoveNumber(): number {
     const cellList = _DOM_Store.movesTableContainer.querySelectorAll("td");
 
@@ -105,8 +104,7 @@ class ExtractPageData {
     );
   }
 
-  // todo add mutation observer that will observe childlist
-  static async getEventIdWebpage() {
+  static async getEventId() {
     const eventNameWrapper = _DOM_Store.bottomPanel.querySelector(
       ".bottomtable-event-name-wrapper"
     ) as HTMLDivElement;
@@ -126,14 +124,14 @@ class ExtractPageData {
         _State.eventIdWebpage = eventId.replace("event=", "");
         createScheduleLinks();
       }
-      await null;
     }
+    await null;
 
     eventNameWrapper.click();
   }
 
   //  * --------------------------
-  //  * private fields
+  //  *
   private static getGameNumberFromStandings(): number {
     const standingsContainer = document.getElementById("standings-standings")!;
 

@@ -228,7 +228,7 @@ class WebpageObservers {
   }
 
   private static async endOfLoadHandler() {
-    await ExtractPageData.getEventIdWebpage();
+    await ExtractPageData.getEventId();
 
     if (!_State.eventId) {
       return false;

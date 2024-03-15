@@ -29,6 +29,7 @@
         "helpers/findTranspositions.js",
         "helpers/debug-panel.js",
         "helpers/shareModal.js",
+        "helpers/chatBanner.js",
         "components.js",
         "store.js",
         "clockFix.js",
