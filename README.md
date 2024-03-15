@@ -1,12 +1,5 @@
 # Chrome/Firefox/Edge and android extension for [CCC](https://www.chess.com/computer-chess-championship#)
 
-![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview.webp)
-
-## Features? TODO
-  - Cross table stats
-  - Highlight reverse opening deviation
-  - Addon for android
-
 ## Installation
 - Download/clone this repo `(only needed for chrome)`
 - ![Download helper](https://github.com/truekendor/better-ccc-extension/blob/main/img/download.webp)
@@ -30,6 +23,14 @@
 - Select `.xpi` file from `firefox` folder
 - Grant permissions if needed
 - ![Grant permissions](https://github.com/truekendor/better-ccc-extension/blob/main/img/grant%20permissions.webp)
+
+
+## Features? TODO
+  - Better cross table ![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview.webp)
+  - Reverse deviation highlight
+  - ![deviation](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/preview-highlight.jpg)
+  - GUI bugfixes
+  - Addon for android 
 
 ## Hotkeys 
 
