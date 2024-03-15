@@ -4,7 +4,7 @@
 - Download/clone this repo `(only needed for chrome)`
 - ![Download helper](https://github.com/truekendor/better-ccc-extension/blob/main/img/download.webp)
 
-  ## Firefox for *desktop*/*android*
+## Firefox for *desktop*/*android*
 - Make sure you have updated your browser
 - Open [this link](https://addons.mozilla.org/en-US/firefox/addon/better-ccc/) in your browser and install the add-on
 
