@@ -493,7 +493,7 @@ namespace components {
       });
 
       modalWrapper.append(
-        this.crLineSeparator("Crosstable"),
+        this.crLineSeparator("Cross table"),
         // * ======
 
         this.crExtensionSettingRow({
@@ -502,13 +502,8 @@ namespace components {
           description: "TBA engine names",
           tooltip: "",
         }),
-        // todo change this
-        this.crExtensionSettingRow({
-          key: "drawnPairNeutralColorWL",
-          // todo
-          description: "TBA neutral color",
-          tooltip: "",
-        }),
+
+        this.crCrossTableStyleSwitch(),
         // * ======
         this.crLineSeparator("main"),
         // * ======
@@ -564,9 +559,9 @@ namespace components {
       title.textContent = categoryName;
       wrapper.append(title, line);
 
-      wrapper.classList.add("_dev_wrapper");
-      title.classList.add("_dev_title");
-      line.classList.add("_dev_line");
+      wrapper.classList.add("ccc-line-separator_wrapper");
+      title.classList.add("ccc-line-separator_title");
+      line.classList.add("ccc-line-separator_line");
 
       return wrapper;
     }
@@ -599,14 +594,16 @@ namespace components {
       input.tabIndex = 1000;
       input.id = `ccc-${key}`;
 
-      if (ExtractPageData.isMobile) {
-        input.disabled = true;
-      }
-
       input.type = "checkbox";
 
       input.checked =
         UserSettings.customSettings[key] ?? UserSettings.defaultSettings[key];
+
+      if (ExtractPageData.isMobile && key === "highlightReverseDeviation") {
+        input.checked = false;
+        input.disabled = true;
+        input.classList.add("ccc-input-forbidden");
+      }
 
       input.addEventListener("change", () => {
         UserSettings.customSettings[key] = !UserSettings.customSettings[key];
@@ -620,6 +617,98 @@ namespace components {
       row.append(descriptionElem, input);
 
       return row;
+    }
+
+    private static crCrossTableStyleSwitch() {
+      const form = document.createElement("form");
+      form.classList.add("ccc-crosstable-style_form");
+
+      const header = document.createElement("header");
+      header.textContent = "Cross table pair styles";
+      form.append(header);
+
+      const fieldSet = document.createElement("fieldset");
+      form.append(fieldSet);
+
+      const label1 = this.crStyleSwitchLabel({
+        count: 1,
+        labelText: "faded",
+        inputValue: "ccc-faded",
+      });
+
+      const label2 = this.crStyleSwitchLabel({
+        count: 2,
+        labelText: "light",
+        inputValue: "ccc-bleached",
+      });
+
+      const label3 = this.crStyleSwitchLabel({
+        count: 3,
+        labelText: "default",
+        inputValue: "ccc-default",
+      });
+
+      fieldSet.append(label1, label2, label3);
+
+      form.addEventListener("change", (e) => {
+        // @ts-expect-error
+        const value = e.target.value;
+
+        if (!value) {
+          return;
+        }
+
+        UserSettings.customSettings.crosstablePairStyle = value;
+
+        ExtensionHelper.localStorage.setState({
+          crosstablePairStyle: UserSettings.customSettings.crosstablePairStyle,
+        });
+
+        const crossTable: HTMLDivElement | null = document.querySelector(
+          ".modal-vue-modal-content"
+        );
+
+        if (!crossTable) {
+          return;
+        }
+
+        crossTable.setAttribute(
+          "data-style",
+          UserSettings.customSettings.crosstablePairStyle
+        );
+      });
+      return form;
+    }
+
+    private static crStyleSwitchLabel({
+      count,
+      labelText,
+      inputValue,
+    }: {
+      count: number;
+      labelText: string;
+      inputValue: user_config.settings["crosstablePairStyle"];
+    }): HTMLLabelElement {
+      const elemId = `ccc-crosstable-option-${count}`;
+
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+
+      label.classList.add("ccc-crosstable-style_label");
+
+      input.type = "radio";
+      input.value = inputValue;
+      input.name = "crosstable-pair-colors";
+      input.checked =
+        UserSettings.customSettings.crosstablePairStyle === inputValue;
+
+      input.id = elemId;
+      label.htmlFor = elemId;
+
+      label.textContent = labelText;
+      label.append(input);
+
+      return label;
     }
   }
 }

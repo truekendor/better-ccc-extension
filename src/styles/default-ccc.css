@@ -247,6 +247,6 @@ tr.font-faded-white > td:nth-child(2) > div {
 :is(#black-player, #white-player)
   .movetable-tablewrapper
   > table
-  > tr:not(:has(td:nth-child(3))) {
+  > tr:not(:has(td:nth-child(3))):first-child {
   display: flex;
 }

@@ -143,7 +143,6 @@ class ExtensionHelper {
       case "allowNetworkGameRequest":
       case "elo":
       case "ptnml":
-      case "drawnPairNeutralColorWL":
         break;
       case "clearQueryStringOnCurrentGame":
         this.handlerClearQuery();

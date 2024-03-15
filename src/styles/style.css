@@ -203,14 +203,27 @@ result table section
 
 /* individual results */
 #ccc-result {
-  color: var(--ccc-color) !important;
-
   grid-column: span 1;
 
   width: 100%;
   max-width: 100%;
 
   position: relative;
+}
+
+[data-style="ccc-faded"] #ccc-result {
+  color: var(--ccc-color) !important;
+}
+
+[data-style="ccc-bleached"]
+  #ccc-result:not(.ccc-loss, .ccc-win, .ccc-double-loss, .ccc-double-win) {
+  color: var(--nonexistent-placeholder-variable) !important;
+}
+
+[data-style="ccc-default"] #ccc-result {
+  /* color: ; */
+  width: 100%;
+  max-width: 100%;
 }
 
 .ccc-border-left {
@@ -296,8 +309,6 @@ pair highlight
 
 .ccc-draw {
   --ccc-color: rgb(122, 122, 122);
-  /* --ccc-color: rgb(161, 161, 161); */
-  /* --ccc-color: rgba(0, 0, 0, 0); */
   color: var(--ccc-color);
 }
 
@@ -554,6 +565,13 @@ table > tr:nth-child(2n) .ccc-draw {
     calc((var(--ccc-input-width) / 2) + var(--ccc-circle-offset))
   );
   background-color: rgb(84, 137, 71);
+}
+
+.ccc-input.ccc-input-forbidden {
+  background-color: rgb(255, 184, 158);
+}
+.ccc-input.ccc-input-forbidden::before {
+  background-color: rgb(231, 104, 49);
 }
 
 .ccc-row-input {
@@ -838,25 +856,24 @@ table > tr:nth-child(2n) .ccc-draw {
   pointer-events: none;
 }
 
-/* todo rename */
-._dev_wrapper {
+.ccc-line-separator_wrapper {
   display: flex;
   flex-wrap: nowrap;
   width: 100%;
 }
 
-._dev_title {
+.ccc-line-separator_title {
   color: gainsboro;
   text-wrap: nowrap;
 }
 
-._dev_line {
+.ccc-line-separator_line {
   position: relative;
 
   width: 100%;
 }
 
-._dev_line::after {
+.ccc-line-separator_line::after {
   content: "";
   position: absolute;
 
@@ -867,4 +884,33 @@ table > tr:nth-child(2n) .ccc-draw {
   background-color: gray;
   width: 90%;
   height: 1px;
+}
+
+.ccc-crosstable-style_form {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  color: gainsboro;
+}
+
+.ccc-crosstable-style_form > fieldset {
+  display: contents;
+}
+
+.ccc-crosstable-style_label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-size: 1.4rem;
+}
+
+.ccc-crosstable-style_label > input {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  margin: unset;
 }

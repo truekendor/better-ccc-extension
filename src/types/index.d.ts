@@ -53,9 +53,8 @@ declare namespace user_config {
     pairsPerRow: number | "";
     pairsPerRowDuel: number | "";
     displayEngineNames: boolean;
-    // todo rename
-    drawnPairNeutralColorWL: boolean;
 
+    crosstablePairStyle: "ccc-faded" | "ccc-default" | "ccc-bleached";
     // deviation highlight rules
     highlightReverseDeviation: boolean;
     allowNetworkGameRequest: boolean;
