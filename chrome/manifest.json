@@ -1,19 +1,54 @@
 {
   "manifest_version": 3,
   "name": "better-ccc",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "content_scripts": [
     {
-      "matches": ["*://www.chess.com/*computer-chess-championship*"],
-      "css": ["styles.css"],
-      "js": ["script.js"],
+      "matches": [
+        "*://www.chess.com/computer-chess-championship*",
+        "*://www.chess.com/ccc*"
+      ],
+      "css": [
+        "styles/style.css",
+        "styles/captured-pieces.css",
+        "styles/default-ccc.css",
+        "styles/pairs-per-row-media.css",
+        "styles/dev-panel.css",
+        "styles/extension-settings.css"
+      ],
+      "js": [
+        "chess-js.js",
+        "helpers/utils.js",
+        "helpers/gamePairHelper.js",
+        "helpers/extractPageData.js",
+        "helpers/crossTable.js",
+        "helpers/extensionHelpers.js",
+        "helpers/mutationObservers.js",
+        "helpers/chessGameCache.js",
+        "helpers/svg.js",
+        "helpers/elo.js",
+        "helpers/findTranspositions.js",
+        "helpers/debug-panel.js",
+        "helpers/shareModal.js",
+        "helpers/chatBanner.js",
+        "components.js",
+        "store.js",
+        "clockFix.js",
+        "script.js",
+        "highlightDeviation.js",
+        "capturedPiecesCount.js"
+      ],
       "run_at": "document_end"
     }
   ],
+  "background": {
+    "service_worker": "background/background.js"
+  },
   "icons": {
     "128": "icons/icon_128.png",
     "48": "icons/icon_48.png",
     "32": "icons/icon_32.png"
   },
-  "permissions": ["scripting", "storage"]
+  "permissions": ["scripting", "storage", "tabs", "activeTab"],
+  "host_permissions": ["https://cccc.chess.com/*", "https://www.chess.com/*"]
 }
