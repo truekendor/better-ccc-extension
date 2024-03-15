@@ -191,6 +191,8 @@ class HighlightDeviation {
       this.moveTableElementList[transpositionObject.currentPly].classList.add(
         "ccc-move-agree"
       );
+      this.moveTableElementList[transpositionObject.currentPly].title =
+        "transposition";
 
       const isLastTransposition =
         FindTranspositions.transpositions.length === index + 1;
@@ -223,14 +225,12 @@ class HighlightDeviation {
 
 (function awaitNewGameGlobal(): void {
   const observer = new MutationObserver(async (entries) => {
-    if (entries.length < 40) {
+    // arbitrary large amount
+    if (entries.length < 30) {
       return;
     }
 
     HighlightDeviation.clearHighlight();
-
-    // do not delete
-    // await Utils.sleepAsync(1);
 
     await new Promise((res) => {
       requestAnimationFrame(() => {
@@ -274,3 +274,21 @@ class HighlightDeviation {
     characterData: true,
   });
 })();
+
+// ! dev todo delete
+
+setTimeout(() => {
+  removeChatBanner();
+}, 500);
+function removeChatBanner() {
+  const chatWrapper: HTMLDivElement = document.querySelector(
+    "#righttable-righttable"
+  )!;
+
+  const twitchIFrame = chatWrapper.querySelector("iframe")!;
+  const banner = chatWrapper.querySelector("div")!;
+
+  chatWrapper.removeChild(banner);
+
+  twitchIFrame.style.top = "0";
+}

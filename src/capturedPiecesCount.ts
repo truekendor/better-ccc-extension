@@ -23,7 +23,7 @@
 })();
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-class CountMaterial {
+class CountCapturedPieces {
   private static pieceAmountDefault: Record<ChessPieces, number> = {
     K: 1,
     B: 2,
@@ -89,9 +89,8 @@ class CountMaterial {
     piecesLeft: 32,
   };
 
-  // todo rename
   // todo add description
-  static countMaterial(fen: string): void {
+  static count(fen: string): void {
     const keys = Utils.objectKeys(this.boardState);
 
     // reset boardState

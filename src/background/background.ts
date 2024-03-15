@@ -138,7 +138,7 @@ async function onLoadHandler(): Promise<false | undefined> {
       const response = (await data.json()) as chess_com.game_response;
 
       if (!response) {
-        console.log("game not found");
+        console.log("game request error:: game not found");
         return false;
       }
 
@@ -360,6 +360,6 @@ async function _sendMessageToContent(
     _bg_browserPrefix.tabs.sendMessage(tab.id, message);
     return false;
   } catch (e) {
-    console.log("send message error: ", e);
+    console.log("background::sendMessageToContent error: ", e);
   }
 }
