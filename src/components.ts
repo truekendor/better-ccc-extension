@@ -523,6 +523,7 @@ namespace components {
           description: "Highlight reverse deviation",
           tooltip:
             "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic ~25-200kb per game",
+          experimental: true,
         })
       );
 
@@ -551,6 +552,7 @@ namespace components {
       key,
       description,
       tooltip,
+      experimental = false,
     }: {
       key: BooleanKeys<user_config.settings>;
       description: string;
@@ -574,6 +576,13 @@ namespace components {
       input.classList.add("ccc-input");
       input.tabIndex = 1000;
       input.id = `ccc-${key}`;
+
+      if (experimental) {
+        const svg = SVG.Icons.flask;
+        svg.classList.add("ccc-flask-svg");
+
+        descriptionElem.append(svg);
+      }
 
       input.type = "checkbox";
 

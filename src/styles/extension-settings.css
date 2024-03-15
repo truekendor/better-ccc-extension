@@ -25,12 +25,12 @@
 
   gap: 8px;
 
-  padding: 26px 20px;
+  padding: 24px 18px;
 
   flex-direction: column;
 
   background-color: var(--ccc-settings-bg);
-  width: 270px;
+  width: 290px;
   height: max-content;
 
   cursor: auto;
@@ -84,7 +84,7 @@
 }
 
 .ccc-extension-settings_description {
-  margin-inline-end: auto;
+  flex-grow: 1;
 }
 
 .ccc-line-separator_wrapper {
@@ -188,4 +188,11 @@
 
 .ccc-close-settings_btn:hover > svg {
   fill: rgb(199, 199, 199);
+}
+
+.ccc-flask-svg {
+  fill: lightblue;
+  height: 16px;
+
+  margin-inline-start: 10px;
 }
