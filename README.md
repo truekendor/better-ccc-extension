@@ -28,7 +28,7 @@
 
 ## Features !TODO
   - Better cross table ![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview.webp)
-  - Reverse deviation highlight
+  - Reverse deviation highlight; Underline == same position
   - ![deviation](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/preview-highlight.jpg)
   - Click on schedule button to scroll to the current game ![schedule button click](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/schedule-click.jpg)
   - FEN in this ("share") modal window is now always up to date
