@@ -14,6 +14,7 @@
 - Enable developer mode
 - Click `Load unpacked` button
 - Select the `chrome` folder from this repo
+- !! Don't forget to uninstall the previous version
 
 ## Other option for Firefox
 - Open `about:addons` page
