@@ -276,7 +276,6 @@ class HighlightDeviation {
     chessCurrent.actions.setPGN(currentPGN);
     chessReverse.actions.setPGN(reverseGameCache.pgn);
 
-    DebugPanel.print(`await new game global::highlight`);
     HighlightDeviation.findTranspositionsAndHighlight();
   });
 
