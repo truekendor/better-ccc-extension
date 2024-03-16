@@ -25,19 +25,21 @@
 - ![Grant permissions](https://github.com/truekendor/better-ccc-extension/blob/main/img/grant%20permissions.webp)
 
 
-## Features? TODO
+## Features !TODO
   - Better cross table ![Extension preview](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview.webp)
   - Reverse deviation highlight
   - ![deviation](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/preview-highlight.jpg)
   - Click on schedule button to scroll to the current game ![schedule button click](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/schedule-click.jpg)
+  - FEN in this modal window is now always up to date
+  - ![](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/share-modal.jpg)
   - GUI bugfixes
  
 
-## What's new TODO
-  - TBA share modal bugfixes
+## What's new !TODO
+  - "Share" modal bugfixes
   - Extension bugfixes
-  - Highlight reverse deviation logic
-  - GUI bugfixes
+  - Highlight-reverse-deviation logic
+  - More GUI bugfixes
   - Addon for android
 
 ## Hotkeys 
