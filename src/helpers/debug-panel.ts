@@ -39,7 +39,7 @@ class DebugPanel {
 
   static pingDebugPanel(payload: { payload: string | number | object }) {
     console.log("payload to ping", payload.payload);
-    this.print(`${JSON.stringify(payload.payload)}\r\n`);
+    this.printInDebugLogs(`${JSON.stringify(payload.payload)}\r\n`);
     this.pingElement.classList.add("_ping");
 
     if (this.timerId) {
@@ -51,16 +51,23 @@ class DebugPanel {
     }, 500);
   }
 
+  private static printInDebugLogs(content: string) {
+    const div = document.createElement("div");
+    div.textContent = content;
+
+    this.logsHistoryMainContent.append(div);
+  }
+
   // * panel
   private static crDebugPanel(): void {
     this.debugPanel.classList.add("ccc-dev-panel-wrapper");
     this.debugPanel.append(
-      this.panelButtons.crResetBtn(),
-      this.panelButtons.crClearMovesTableBtn(),
-      this.panelButtons.crLoadPGNBtn(),
-      this.panelButtons.crNextMoveBtn(),
-      this.panelButtons.crBookMovesBtn(),
-      this.panelButtons.crCalcTranspositionsBtn(),
+      // this.panelButtons.crResetBtn(),
+      // this.panelButtons.crClearMovesTableBtn(),
+      // this.panelButtons.crLoadPGNBtn(),
+      // this.panelButtons.crNextMoveBtn(),
+      // this.panelButtons.crBookMovesBtn(),
+      // this.panelButtons.crCalcTranspositionsBtn(),
       this.panelButtons.crConsoleLogBtn(),
       this.crPageLogsBtn()
     );
@@ -119,13 +126,6 @@ class DebugPanel {
     this.logsHistoryContainer.id = "_dev_logs_panel";
 
     return this.logsHistoryContainer;
-  }
-
-  static print(content: string) {
-    const div = document.createElement("div");
-    div.textContent = content;
-
-    this.logsHistoryMainContent.append(div);
   }
 
   private static showChessCacheInHistoryLogs() {
