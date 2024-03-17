@@ -10,10 +10,11 @@
 
 
 ## Chrome / Edge / Other Chromium based browsers
+- Unzip one of the archives from the chrome folder
 - Open `chrome://extensions/` page
 - Enable developer mode
 - Click `Load unpacked` button
-- Select the `chrome` folder from this repo
+- Select the unziped `chrome` folder
 - `!! Don't forget to uninstall the previous version`
 
 ## Other option for Firefox
