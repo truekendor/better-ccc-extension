@@ -15,7 +15,7 @@
 - Enable developer mode
 - Click `Load unpacked` button
 - Select the unziped `chrome` folder
-- `!! Don't forget to uninstall the previous version`
+- `!! Don't forget to uninstall the previous version of the extension`
 
 ## Other option for Firefox
 - Open `about:addons` page
