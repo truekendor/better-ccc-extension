@@ -36,14 +36,6 @@
   - ![](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/share-modal.jpg)
   - GUI bugfixes
  
-
-## What's new !TODO FILL OUT TOMORROW
-  - "Share" modal bugfixes
-  - Extension bugfixes
-  - Highlight-reverse-deviation logic
-  - More GUI bugfixes
-  - Addon for android
-
 ## Hotkeys 
 
 You can close `cross table`/`engine info` modals by pressing `Esc`
