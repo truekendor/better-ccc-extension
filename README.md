@@ -32,8 +32,6 @@
   - Reverse deviation highlight; Underline == same position
   - ![deviation](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview-highlight.jpg)
   - Click on schedule button to scroll to the current game ![schedule button click](https://github.com/truekendor/better-ccc-extension/blob/main/img/schedule-click.jpg)
-  - FEN in this ("share") modal window is now always up to date
-  - ![](https://github.com/truekendor/better-ccc-extension/blob/new-version-changes/img/share-modal.jpg)
   - GUI bugfixes
  
 ## Hotkeys 
