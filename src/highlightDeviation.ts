@@ -247,7 +247,7 @@ class HighlightDeviation {
         res(null);
       });
     });
-    await Utils.sleepAsync(1);
+    await Utils.sleepAsync(20);
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
     const reverseGameNumber = GamePairHelper.getReverseGameNumber(gameNumber);
@@ -285,6 +285,17 @@ class HighlightDeviation {
     characterData: true,
   });
 })();
+
+// ! _DEV_INJECT
+
+const s = document.createElement("script");
+s.src = chrome.runtime.getURL("inject/index.js");
+s.onload = function () {
+  // @ts-expect-error
+  this?.remove?.();
+};
+// see also "Dynamic values in the injected code" section in this answer
+(document.head || document.documentElement).appendChild(s);
 
 // todo rewrite with this
 // window.addEventListener("hashchange", (e) => {
