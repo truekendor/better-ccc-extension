@@ -249,6 +249,8 @@ class HighlightDeviation {
     });
     await Utils.sleepAsync(1);
 
+    CountCapturedPieces.clear();
+
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
     const reverseGameNumber = GamePairHelper.getReverseGameNumber(gameNumber);
 
