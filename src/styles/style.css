@@ -31,6 +31,8 @@
 
   --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
+
+  --ccc-old-book-move-clr: #ffa500;
 }
 
 .crosstable-crosstable {

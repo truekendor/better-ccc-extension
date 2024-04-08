@@ -131,6 +131,7 @@ tr.font-faded-white > td:nth-child(2) > div {
 /* * ------------------------
 */
 
+/* todo change this */
 .movetable-highlighted.movetable-book-ply:hover,
 .movetable-book-ply:hover {
   color: hsl(41, 100%, 66%) !important;
