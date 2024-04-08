@@ -46,9 +46,12 @@ async function loadUserSettings(): Promise<void> {
       const allKeys = Utils.objectKeys(result);
 
       allKeys.forEach((key) => {
-        if (result[key] !== null && result[key] !== undefined) {
+        const settingAlreadyPresent =
+          result[key] !== null && result[key] !== undefined;
+        if (settingAlreadyPresent) {
           return;
         }
+
         ExtensionHelper.localStorage.setState({
           [key]: UserSettings.defaultSettings[key],
         });
