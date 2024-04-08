@@ -263,7 +263,7 @@ class HighlightDeviation {
       if (ExtractPageData.getGameResultDiv()) {
         ChessGamesCache.cacheFromObject({
           gameNumber,
-          pgn: currentPGN.concat(),
+          pgn: currentPGN,
           type: "full-game",
         });
       }
