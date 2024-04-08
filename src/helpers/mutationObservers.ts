@@ -18,7 +18,8 @@ class ChessGameObservers {
         }
         observer.disconnect();
 
-        DebugPanel.print("observers::waitNGame");
+        CountCapturedPieces.clear();
+
         res();
       });
 
@@ -46,8 +47,6 @@ class ChessGameObservers {
       const pgn = ExtractPageData.getPGNFromMoveTable();
       const gameNumber = await ExtractPageData.getCurrentGameNumber();
 
-      DebugPanel.print("observers::gameEnded");
-
       ChessGamesCache.cacheFromObject({
         gameNumber,
         pgn,
@@ -72,7 +71,6 @@ class ChessGameObservers {
         return;
       }
 
-      DebugPanel.print("observers::gameStarted");
       FindTranspositions.reset();
 
       chessCurrent.actions.reset();
