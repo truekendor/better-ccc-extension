@@ -658,3 +658,10 @@ function scrollToCurrentGame(): void {
     lastGame.scrollIntoView();
   }
 }
+function changeOpeningMoveColor() {
+  const color = "#c5c5c5";
+  const elements = document.querySelectorAll(".movetable-book-ply");
+  elements.forEach((element) => {
+    element.style.color = color;
+  });
+}

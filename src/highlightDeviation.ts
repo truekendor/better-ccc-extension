@@ -242,8 +242,13 @@ class HighlightDeviation {
     HighlightDeviation.clearHighlight();
 
     // do not delete lol
-    await Utils.sleepAsync(20);
 
+    await new Promise((res) => {
+      requestAnimationFrame(() => {
+        res(null);
+      });
+    });
+    await Utils.sleepAsync(20);
     CountCapturedPieces.clear();
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
@@ -273,7 +278,6 @@ class HighlightDeviation {
     chessCurrent.actions.setPGN(currentPGN);
     chessReverse.actions.setPGN(reverseGameCache.pgn);
 
-    DebugPanel.print(`await new game global::highlight`);
     HighlightDeviation.findTranspositionsAndHighlight();
   });
 
@@ -283,6 +287,17 @@ class HighlightDeviation {
     characterData: true,
   });
 })();
+
+// ! _DEV_INJECT
+
+const s = document.createElement("script");
+s.src = chrome.runtime.getURL("inject/index.js");
+s.onload = function () {
+  // @ts-expect-error
+  this?.remove?.();
+};
+// see also "Dynamic values in the injected code" section in this answer
+(document.head || document.documentElement).appendChild(s);
 
 // todo rewrite with this
 // window.addEventListener("hashchange", (e) => {
