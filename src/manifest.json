@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "better-ccc",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "content_scripts": [
     {
       "matches": [
@@ -31,6 +31,7 @@
         "helpers/debug-panel.js",
         "helpers/shareModal.js",
         "helpers/chatBanner.js",
+        "helpers/colorConverter.js",
         "components.js",
         "store.js",
         "clockFix.js",

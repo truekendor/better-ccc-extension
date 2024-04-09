@@ -242,12 +242,14 @@ class HighlightDeviation {
     HighlightDeviation.clearHighlight();
 
     // do not delete lol
+
     await new Promise((res) => {
       requestAnimationFrame(() => {
         res(null);
       });
     });
     await Utils.sleepAsync(20);
+    CountCapturedPieces.clear();
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();
     const reverseGameNumber = GamePairHelper.getReverseGameNumber(gameNumber);
@@ -261,7 +263,7 @@ class HighlightDeviation {
       if (ExtractPageData.getGameResultDiv()) {
         ChessGamesCache.cacheFromObject({
           gameNumber,
-          pgn: currentPGN.concat(),
+          pgn: currentPGN,
           type: "full-game",
         });
       }

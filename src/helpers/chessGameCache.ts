@@ -6,7 +6,7 @@ type PGNCacheEntry = {
 
 type ChessGameCacheEntry = {
   gameNumber: number;
-  pgn: string[];
+  pgn: readonly string[];
   type: PGNCacheEntry["type"];
 };
 
@@ -28,7 +28,7 @@ class ChessGamesCache {
   static cacheFromObject({ gameNumber, pgn, type }: ChessGameCacheEntry): void {
     this.cache.set(gameNumber, {
       type,
-      pgn,
+      pgn: pgn.concat(),
     });
   }
 

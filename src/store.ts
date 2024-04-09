@@ -132,11 +132,14 @@ class UserSettings {
     allowNetworkGameRequest: true,
     highlightReverseDeviation: true,
 
+    //
     // other rules
     addLinksToGameSchedule: true,
     allowKeyboardShortcuts: true,
+    // fixes non-transparent background of a timer SVG
     replaceClockSvg: true,
     showCapturedPieces: true,
+    // removes event id from hash query if game is ongoing
     clearQueryStringOnCurrentGame: true,
   };
 }

@@ -220,4 +220,8 @@ class CountCapturedPieces {
   static get piecesLeft(): number {
     return this.boardState.piecesLeft;
   }
+
+  static clear() {
+    this.count(ChessJS.startingPosition);
+  }
 }

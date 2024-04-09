@@ -31,6 +31,8 @@
 
   --ccc-light-gray: hsl(0, 0%, 73%);
   --ccc-err-margin-clr: var(--ccc-light-gray);
+
+  --ccc-old-book-move-clr: #ffa500;
 }
 
 .crosstable-crosstable {
@@ -709,7 +711,7 @@ pair highlight
 
   display: block;
 
-  color: hsl(323, 76%, 70%);
+  color: var(--ccc-deviation-move-clr, hsl(323, 76%, 70%));
   text-decoration: none;
 
   font-size: 12px;
