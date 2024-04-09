@@ -38,6 +38,9 @@ type Fn<T, U = T> = (...args: T[]) => U;
 
 type ResultAsScore = 1 | 0 | -1;
 type WDL = [number, number, number];
+/**
+ * PTNML (0-2);
+ */
 type PTNML = [number, number, number, number, number];
 
 type Browsers = typeof chrome | typeof browser;
