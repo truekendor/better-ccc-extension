@@ -242,12 +242,7 @@ class HighlightDeviation {
     HighlightDeviation.clearHighlight();
 
     // do not delete lol
-    await new Promise((res) => {
-      requestAnimationFrame(() => {
-        res(null);
-      });
-    });
-    await Utils.sleepAsync(1);
+    await Utils.sleepAsync(20);
 
     CountCapturedPieces.clear();
 
