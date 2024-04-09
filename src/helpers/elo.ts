@@ -85,10 +85,10 @@ class ELO {
     const winP = wins / total;
     const drawP = draws / total;
     const lossP = losses / total;
-    const percentage = (wins + draws * 0.5) / total;
-    const winsDev = winP * Math.pow(1 - percentage, 2);
-    const drawsDev = drawP * Math.pow(0.5 - percentage, 2);
-    const lossesDev = lossP * Math.pow(0 - percentage, 2);
+    const score = (wins + draws * 0.5) / total;
+    const winsDev = winP * Math.pow(1 - score, 2);
+    const drawsDev = drawP * Math.pow(0.5 - score, 2);
+    const lossesDev = lossP * Math.pow(0 - score, 2);
     const stdDeviation =
       Math.sqrt(winsDev + drawsDev + lossesDev) / Math.sqrt(total);
 
@@ -96,8 +96,8 @@ class ELO {
 
     const minConfidenceP = (1 - confidenceP) / 2;
     const maxConfidenceP = 1 - minConfidenceP;
-    const devMin = percentage + this.phiInv(minConfidenceP) * stdDeviation;
-    const devMax = percentage + this.phiInv(maxConfidenceP) * stdDeviation;
+    const devMin = score + this.phiInv(minConfidenceP) * stdDeviation;
+    const devMax = score + this.phiInv(maxConfidenceP) * stdDeviation;
 
     const difference = this.scoreToElo(devMax) - this.scoreToElo(devMin);
 
@@ -106,14 +106,8 @@ class ELO {
     return `${errorMargin}`;
   }
 
-  static LOS(elo: number, errorMargin: number) {
-    const minConfidencePercent = (1 - this.confidence) / 2;
-    const maxConfidencePercent = 1 - minConfidencePercent;
-
-    const eloStdDev = errorMargin / this.phiInv(maxConfidencePercent);
-    const LOS = ELO.Math.erfc(-elo / (Math.sqrt(2) * eloStdDev)) / 2;
-
-    return LOS;
+  static LOS(score: number, stdDeviation: number) {
+    return ELO.Math.erfc(-(score-0.5) / (Math.sqrt(2) * stdDeviation)) / 2;
   }
 
   private static scoreToElo(score: number): number {
