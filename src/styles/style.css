@@ -711,7 +711,7 @@ pair highlight
 
   display: block;
 
-  color: hsl(323, 76%, 70%);
+  color: var(--ccc-deviation-move-clr, hsl(323, 76%, 70%));
   text-decoration: none;
 
   font-size: 12px;

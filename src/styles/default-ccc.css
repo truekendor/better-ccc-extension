@@ -108,12 +108,13 @@ tr.font-faded-white > td:nth-child(2) > div {
 }
 
 /* * ------------------------
-* styles suggested by Peregrine  
+* styles suggested by Peregrine
 */
 
 @media (min-width: 970px) {
   #righttable-content,
   .chat-chat {
+    top: unset !important;
     height: 100vh !important;
   }
 }
@@ -131,10 +132,13 @@ tr.font-faded-white > td:nth-child(2) > div {
 /* * ------------------------
 */
 
-/* todo change this */
-.movetable-highlighted.movetable-book-ply:hover,
-.movetable-book-ply:hover {
-  color: hsl(41, 100%, 66%) !important;
+body[data-custom-styles*="movetable-clr"] .movetable-book-ply {
+  color: var(--ccc-book-move-clr) !important;
+}
+
+body[data-custom-styles*="movetable-clr"] .movetable-book-ply:hover {
+  color: var(--ccc-book-move-clr-hover) !important;
+  /* color: hsl(41, 100%, 66%) !important;  */
 }
 
 /* * ------------------------

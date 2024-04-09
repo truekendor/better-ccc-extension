@@ -504,6 +504,8 @@ namespace components {
         }),
 
         this.crCrossTableStylesForm(),
+        this.crBookMoveColorInput(),
+        this.crDeviationColorInput(),
         // * ======
         // * ======
         this.crLineSeparator("Main"),
@@ -668,6 +670,99 @@ namespace components {
         );
       });
       return form;
+    }
+
+    private static crDeviationColorInput() {
+      const wrapper = document.createElement("div");
+
+      const colorInput = document.createElement("input");
+      colorInput.type = "color";
+
+      // todo add reset btn, and few default colors
+      // like old orange color
+
+      const debouncedStyleChange = debounce({
+        cb: (value: string) => {
+          const rgbArr = Color.hexToRGBArray(value);
+          const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
+
+          document.body.style.setProperty(
+            "--ccc-deviation-move-clr",
+            `hsl(${h},${s}%,${l}%)`
+          );
+
+          const oldValue =
+            document.body.getAttribute("data-custom-styles") || "";
+          if (!oldValue.includes("deviation-clr")) {
+            document.body.setAttribute(
+              "data-custom-styles",
+              oldValue + " deviation-clr"
+            );
+          }
+        },
+        wait: 300,
+      });
+
+      colorInput.addEventListener("input", (e) => {
+        // @ts-expect-error obscure typescript "mismatch" with event targets
+        const { value } = e.target;
+
+        debouncedStyleChange(value);
+      });
+
+      wrapper.append(colorInput);
+
+      return wrapper;
+    }
+    private static crBookMoveColorInput() {
+      const wrapper = document.createElement("div");
+
+      const colorInput = document.createElement("input");
+      colorInput.type = "color";
+
+      // todo add reset btn, and few default colors
+      // like old orange color
+
+      const debouncedStyleChange = debounce({
+        cb: (value: string) => {
+          const lightnessShift = 16;
+
+          const rgbArr = Color.hexToRGBArray(value);
+          const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
+          const hoverLightness =
+            l + lightnessShift > 100 ? l - lightnessShift : l + lightnessShift;
+
+          document.body.style.setProperty(
+            "--ccc-book-move-clr",
+            `hsl(${h},${s}%,${l}%)`
+          );
+          document.body.style.setProperty(
+            "--ccc-book-move-clr-hover",
+            `hsl(${h},${s}%,${hoverLightness}%)`
+          );
+
+          const oldValue =
+            document.body.getAttribute("data-custom-styles") || "";
+          if (!oldValue.includes("movetable-clr")) {
+            document.body.setAttribute(
+              "data-custom-styles",
+              oldValue + " movetable-clr"
+            );
+          }
+        },
+        wait: 300,
+      });
+
+      colorInput.addEventListener("input", (e) => {
+        // @ts-expect-error obscure typescript "mismatch" with event targets
+        const { value } = e.target;
+
+        debouncedStyleChange(value);
+      });
+
+      wrapper.append(colorInput);
+
+      return wrapper;
     }
 
     private static crStyleSwitchLabel({
