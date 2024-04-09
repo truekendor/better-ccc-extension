@@ -18,8 +18,6 @@ class ChessGameObservers {
         }
         observer.disconnect();
 
-        CountCapturedPieces.clear();
-
         res();
       });
 
