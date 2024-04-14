@@ -1,5 +1,6 @@
 {
   "scripts": {
+    "build": "tsc && web-ext build --source-dir src --artifacts-dir build",
     "dev": "tsc --watch"
   },
   "devDependencies": {
@@ -8,5 +9,6 @@
     "@typescript-eslint/eslint-plugin": "^6.18.1",
     "@typescript-eslint/parser": "^6.18.1",
     "eslint": "^8.56.0"
+    "web-ext": "^7.11.0"
   }
 }
