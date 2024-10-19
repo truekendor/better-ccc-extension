@@ -650,7 +650,13 @@ function scrollToCurrentGame(): void {
     ".schedule-container"
   );
 
-  const lastGame: Element | null = container?.lastElementChild || null;
+  const finishedGamesList = _DOM_Store.bottomPanel.querySelectorAll(
+    ".schedule-game-link"
+  );
+  const lastKnownGame = finishedGamesList[finishedGamesList.length - 1];
+
+  const lastGame: Element | null =
+    lastKnownGame || container?.lastElementChild || null;
 
   if (currentGame) {
     currentGame.scrollIntoView();
