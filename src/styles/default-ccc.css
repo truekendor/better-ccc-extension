@@ -232,7 +232,7 @@ body[data-custom-styles*="movetable-clr"] .movetable-book-ply:hover {
 }
 
 .crosstable-empty.crosstable-empty {
-  background-color: #21201f;
+  background-color: hsl(45, 7%, 8%);
 }
 
 /* settings modal styles */
