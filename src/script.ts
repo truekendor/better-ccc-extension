@@ -30,14 +30,25 @@ async function loadUserSettings(): Promise<void> {
       "showCapturedPieces",
       "clearQueryStringOnCurrentGame",
       "highlightReverseDeviation",
+      // movetable styles
+      "bookMovesColor",
+      "deviationColor",
     ])
     .then((state) => {
       const keys = Utils.objectKeys(state);
 
       // get user settings from extension local storage
       keys.forEach((key) => {
-        UserSettings.customSettings[key] =
-          state[key] ?? UserSettings.defaultSettings[key];
+        // just to make TS happy
+        // moving this outside somehow results in TS yelling at me
+        // even tho the logic is the same
+        if (key === "bookMovesColor" || key === "deviationColor") {
+          UserSettings.customSettings[key] =
+            state[key] || UserSettings.defaultSettings[key];
+        } else {
+          UserSettings.customSettings[key] =
+            state[key] ?? UserSettings.defaultSettings[key];
+        }
       });
     })
     .then(async () => {
@@ -45,14 +56,14 @@ async function loadUserSettings(): Promise<void> {
       const result = await ExtensionHelper.localStorage.getUserState();
       const allKeys = Utils.objectKeys(result);
 
-      allKeys.forEach((key) => {
+      allKeys.forEach(async (key) => {
         const settingAlreadyPresent =
           result[key] !== null && result[key] !== undefined;
         if (settingAlreadyPresent) {
           return;
         }
 
-        ExtensionHelper.localStorage.setState({
+        await ExtensionHelper.localStorage.setState({
           [key]: UserSettings.defaultSettings[key],
         });
       });
@@ -61,6 +72,11 @@ async function loadUserSettings(): Promise<void> {
 
   const keys = Utils.objectKeys(UserSettings.customSettings);
   keys.forEach((key) => {
+    if (key === "bookMovesColor" || key === "deviationColor") {
+      ExtensionHelper._dev_applyUserSettings(key);
+      return;
+    }
+
     if (
       key === "pairsPerRow" ||
       key === "pairsPerRowDuel" ||

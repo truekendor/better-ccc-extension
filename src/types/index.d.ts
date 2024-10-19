@@ -90,6 +90,11 @@ declare namespace user_config {
     showCapturedPieces: boolean;
     clearQueryStringOnCurrentGame: boolean;
 
+    // movetable styles
+    // todo move to visual settings?
+    deviationColor: string;
+    bookMovesColor: string;
+
     // todo
     // calcAdditionalStats: boolean
     // visualSettings: _dev_VisualSettings

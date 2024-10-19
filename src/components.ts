@@ -693,24 +693,7 @@ namespace components {
       // like old orange color
 
       const debouncedStyleChange = debounce({
-        cb: (value: string) => {
-          const rgbArr = Color.hexToRGBArray(value);
-          const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
-
-          document.body.style.setProperty(
-            "--ccc-deviation-move-clr",
-            `hsl(${h},${s}%,${l}%)`
-          );
-
-          const oldValue =
-            document.body.getAttribute("data-custom-styles") || "";
-          if (!oldValue.includes("deviation-clr")) {
-            document.body.setAttribute(
-              "data-custom-styles",
-              oldValue + " deviation-clr"
-            );
-          }
-        },
+        cb: (value: string) => ExtensionHelper.changeDeviationClr(value),
         wait: 300,
       });
 
@@ -726,8 +709,15 @@ namespace components {
 
       wrapper.append(inputLabel);
 
+      ExtensionHelper.localStorage.getState("deviationColor").then((val) => {
+        const { deviationColor } = val;
+
+        colorInput.value = deviationColor;
+      });
+
       return wrapper;
     }
+
     private static crBookMoveColorInput() {
       const wrapper = document.createElement("div");
       wrapper.classList.add("ccc-movetable-styles");
@@ -744,34 +734,7 @@ namespace components {
       // like old orange color
 
       const debouncedStyleChange = debounce({
-        cb: (value: string) => {
-          const lightnessShiftPercent = 18;
-
-          const rgbArr = Color.hexToRGBArray(value);
-          const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
-          const hoverLightness =
-            l + lightnessShiftPercent > 100
-              ? l - lightnessShiftPercent
-              : l + lightnessShiftPercent;
-
-          document.body.style.setProperty(
-            "--ccc-book-move-clr",
-            `hsl(${h},${s}%,${l}%)`
-          );
-          document.body.style.setProperty(
-            "--ccc-book-move-clr-hover",
-            `hsl(${h},${s}%,${hoverLightness}%)`
-          );
-
-          const oldValue =
-            document.body.getAttribute("data-custom-styles") || "";
-          if (!oldValue.includes("movetable-clr")) {
-            document.body.setAttribute(
-              "data-custom-styles",
-              oldValue + " movetable-clr"
-            );
-          }
-        },
+        cb: (val: string) => ExtensionHelper.changeBookMoveClr(val),
         wait: 300,
       });
 
@@ -786,6 +749,12 @@ namespace components {
       inputLabel.append(colorInput);
 
       wrapper.append(inputLabel);
+
+      ExtensionHelper.localStorage.getState("bookMovesColor").then((val) => {
+        const { bookMovesColor } = val;
+
+        colorInput.value = bookMovesColor;
+      });
 
       return wrapper;
     }
