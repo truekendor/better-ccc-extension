@@ -507,7 +507,7 @@ namespace components {
 
         // * =====
         // * =====
-        this.crLineSeparator("Moves Table"),
+        this.crLineSeparator("Moves table"),
 
         this.crBookMoveColorInput(),
         this.crDeviationColorInput(),
