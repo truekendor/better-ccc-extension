@@ -504,6 +504,11 @@ namespace components {
         }),
 
         this.crCrossTableStylesForm(),
+
+        // * =====
+        // * =====
+        this.crLineSeparator("Moves Table"),
+
         this.crBookMoveColorInput(),
         this.crDeviationColorInput(),
         // * ======
@@ -674,9 +679,15 @@ namespace components {
 
     private static crDeviationColorInput() {
       const wrapper = document.createElement("div");
+      wrapper.classList.add("ccc-movecolor-wrapper");
+
+      const inputLabel = document.createElement("label");
 
       const colorInput = document.createElement("input");
       colorInput.type = "color";
+
+      inputLabel.htmlFor = "ccc-book-deviation-color";
+      colorInput.id = "ccc-book-deviation-color";
 
       // todo add reset btn, and few default colors
       // like old orange color
@@ -710,27 +721,38 @@ namespace components {
         debouncedStyleChange(value);
       });
 
-      wrapper.append(colorInput);
+      inputLabel.textContent = "Game pair deviation text color";
+      inputLabel.append(colorInput);
+
+      wrapper.append(inputLabel);
 
       return wrapper;
     }
     private static crBookMoveColorInput() {
       const wrapper = document.createElement("div");
+      wrapper.classList.add("ccc-movecolor-wrapper");
+
+      const inputLabel = document.createElement("label");
 
       const colorInput = document.createElement("input");
       colorInput.type = "color";
+
+      inputLabel.htmlFor = "ccc-book-move-color";
+      colorInput.id = "ccc-book-move-color";
 
       // todo add reset btn, and few default colors
       // like old orange color
 
       const debouncedStyleChange = debounce({
         cb: (value: string) => {
-          const lightnessShift = 16;
+          const lightnessShiftPercent = 18;
 
           const rgbArr = Color.hexToRGBArray(value);
           const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
           const hoverLightness =
-            l + lightnessShift > 100 ? l - lightnessShift : l + lightnessShift;
+            l + lightnessShiftPercent > 100
+              ? l - lightnessShiftPercent
+              : l + lightnessShiftPercent;
 
           document.body.style.setProperty(
             "--ccc-book-move-clr",
@@ -760,7 +782,10 @@ namespace components {
         debouncedStyleChange(value);
       });
 
-      wrapper.append(colorInput);
+      inputLabel.textContent = "Book moves text color";
+      inputLabel.append(colorInput);
+
+      wrapper.append(inputLabel);
 
       return wrapper;
     }
