@@ -504,10 +504,10 @@ namespace components {
         }),
 
         this.crCrossTableStylesForm(),
-
         // * =====
         // * =====
         this.crLineSeparator("Moves table"),
+
 
         this.crBookMoveColorInput(),
         this.crDeviationColorInput(),
@@ -679,6 +679,7 @@ namespace components {
 
     private static crDeviationColorInput() {
       const wrapper = document.createElement("div");
+
       wrapper.classList.add("ccc-movetable-styles");
 
       const inputLabel = document.createElement("label");
@@ -686,14 +687,17 @@ namespace components {
       const colorInput = document.createElement("input");
       colorInput.type = "color";
 
+
       inputLabel.htmlFor = "ccc-book-deviation-color";
       colorInput.id = "ccc-book-deviation-color";
+
 
       // todo add reset btn, and few default colors
       // like old orange color
 
       const debouncedStyleChange = debounce({
         cb: (value: string) => ExtensionHelper.changeDeviationClr(value),
+
         wait: 300,
       });
 
@@ -703,6 +707,7 @@ namespace components {
 
         debouncedStyleChange(value);
       });
+
 
       inputLabel.textContent = "Game pair deviation text color";
       inputLabel.append(colorInput);
@@ -724,8 +729,10 @@ namespace components {
 
       const inputLabel = document.createElement("label");
 
+
       const colorInput = document.createElement("input");
       colorInput.type = "color";
+
 
       inputLabel.htmlFor = "ccc-book-move-color";
       colorInput.id = "ccc-book-move-color";
@@ -745,6 +752,7 @@ namespace components {
         debouncedStyleChange(value);
       });
 
+
       inputLabel.textContent = "Book moves text color";
       inputLabel.append(colorInput);
 
@@ -755,6 +763,7 @@ namespace components {
 
         colorInput.value = bookMovesColor;
       });
+
 
       return wrapper;
     }
