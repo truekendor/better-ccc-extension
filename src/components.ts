@@ -679,7 +679,7 @@ namespace components {
 
     private static crDeviationColorInput() {
       const wrapper = document.createElement("div");
-      wrapper.classList.add("ccc-movecolor-wrapper");
+      wrapper.classList.add("ccc-movetable-styles");
 
       const inputLabel = document.createElement("label");
 
@@ -730,7 +730,7 @@ namespace components {
     }
     private static crBookMoveColorInput() {
       const wrapper = document.createElement("div");
-      wrapper.classList.add("ccc-movecolor-wrapper");
+      wrapper.classList.add("ccc-movetable-styles");
 
       const inputLabel = document.createElement("label");
 
