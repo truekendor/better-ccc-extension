@@ -39,6 +39,15 @@
   border-radius: 5px;
 }
 
+.ccc-movecolor-wrapper {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  color: var(--ccc-settings-main-color);
+}
+
 .ccc-extension-settings-btn {
   background-color: transparent;
 
