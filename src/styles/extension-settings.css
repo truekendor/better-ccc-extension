@@ -39,6 +39,26 @@
   border-radius: 5px;
 }
 
+.ccc-movetable-styles {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  width: 100%;
+
+  color: var(--ccc-settings-main-color);
+}
+
+.ccc-movetable-styles > label {
+  display: flex;
+  align-items: center;
+
+  flex: 1;
+
+  justify-content: space-between;
+}
+
 .ccc-extension-settings-btn {
   background-color: transparent;
 

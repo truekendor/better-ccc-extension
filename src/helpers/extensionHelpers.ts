@@ -157,6 +157,96 @@ class ExtensionHelper {
     }
   }
 
+  /**
+   * todo add description
+   */
+  public static _dev_applyUserSettings<
+    K extends keyof Pick<
+      user_config.settings,
+      "bookMovesColor" | "deviationColor"
+    >
+  >(key: K): void {
+    switch (key) {
+      case "bookMovesColor":
+        this.changeDeviationClr(UserSettings.customSettings.deviationColor);
+        break;
+      case "deviationColor":
+        this.changeBookMoveClr(UserSettings.customSettings.bookMovesColor);
+        break;
+
+      default:
+        // exhaustive check
+        console.log(key satisfies never);
+        break;
+    }
+  }
+
+  public static async changeBookMoveClr(HEXvalue: string) {
+    await this.localStorage.setState({
+      bookMovesColor: HEXvalue,
+    });
+
+    if (HEXvalue === "") {
+      document.body.style.setProperty("--ccc-book-move-clr", "");
+      document.body.style.setProperty("--ccc-book-move-clr-hover", "");
+
+      return;
+    }
+
+    const lightnessShiftPercent = 18;
+
+    const rgbArr = Color.hexToRGBArray(HEXvalue);
+    const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
+    const hoverLightness =
+      l + lightnessShiftPercent > 100
+        ? l - lightnessShiftPercent
+        : l + lightnessShiftPercent;
+
+    document.body.style.setProperty(
+      "--ccc-book-move-clr",
+      `hsl(${h},${s}%,${l}%)`
+    );
+    document.body.style.setProperty(
+      "--ccc-book-move-clr-hover",
+      `hsl(${h},${s}%,${hoverLightness}%)`
+    );
+
+    const oldValue = document.body.getAttribute("data-custom-styles") || "";
+    if (!oldValue.includes("movetable-clr")) {
+      document.body.setAttribute(
+        "data-custom-styles",
+        oldValue + " movetable-clr"
+      );
+    }
+  }
+
+  public static async changeDeviationClr(HEXvalue: string) {
+    await this.localStorage.setState({
+      deviationColor: HEXvalue,
+    });
+
+    if (HEXvalue === "") {
+      document.body.style.setProperty("--ccc-deviation-move-clr", "");
+      return;
+    }
+
+    const rgbArr = Color.hexToRGBArray(HEXvalue);
+    const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
+
+    document.body.style.setProperty(
+      "--ccc-deviation-move-clr",
+      `hsl(${h},${s}%,${l}%)`
+    );
+
+    const oldValue = document.body.getAttribute("data-custom-styles") || "";
+    if (!oldValue.includes("deviation-clr")) {
+      document.body.setAttribute(
+        "data-custom-styles",
+        oldValue + " deviation-clr"
+      );
+    }
+  }
+
   private static handleShowCapturedPieces(): void {
     const capturedPiecesWrappers: NodeListOf<HTMLDivElement> =
       document.querySelectorAll(".ccc-captured-pieces-wrapper");

@@ -106,8 +106,14 @@ class ELO {
     return `${errorMargin}`;
   }
 
-  static LOS(score: number, stdDeviation: number) {
-    return ELO.Math.erfc(-(score-0.5) / (Math.sqrt(2) * stdDeviation)) / 2;
+  static LOS(elo: number, errorMargin: number) {
+    const minConfidencePercent = (1 - this.confidence) / 2;
+    const maxConfidencePercent = 1 - minConfidencePercent;
+
+    const eloStdDev = errorMargin / this.phiInv(maxConfidencePercent);
+    const LOS = ELO.Math.erfc(-elo / (Math.sqrt(2) * eloStdDev)) / 2;
+
+    return LOS;
   }
 
   private static scoreToElo(score: number): number {

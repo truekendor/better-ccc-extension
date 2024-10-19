@@ -504,6 +504,11 @@ namespace components {
         }),
 
         this.crCrossTableStylesForm(),
+        // * =====
+        // * =====
+        this.crLineSeparator("Moves table"),
+
+
         this.crBookMoveColorInput(),
         this.crDeviationColorInput(),
         // * ======
@@ -675,31 +680,24 @@ namespace components {
     private static crDeviationColorInput() {
       const wrapper = document.createElement("div");
 
+      wrapper.classList.add("ccc-movetable-styles");
+
+      const inputLabel = document.createElement("label");
+
       const colorInput = document.createElement("input");
       colorInput.type = "color";
+
+
+      inputLabel.htmlFor = "ccc-book-deviation-color";
+      colorInput.id = "ccc-book-deviation-color";
+
 
       // todo add reset btn, and few default colors
       // like old orange color
 
       const debouncedStyleChange = debounce({
-        cb: (value: string) => {
-          const rgbArr = Color.hexToRGBArray(value);
-          const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
+        cb: (value: string) => ExtensionHelper.changeDeviationClr(value),
 
-          document.body.style.setProperty(
-            "--ccc-deviation-move-clr",
-            `hsl(${h},${s}%,${l}%)`
-          );
-
-          const oldValue =
-            document.body.getAttribute("data-custom-styles") || "";
-          if (!oldValue.includes("deviation-clr")) {
-            document.body.setAttribute(
-              "data-custom-styles",
-              oldValue + " deviation-clr"
-            );
-          }
-        },
         wait: 300,
       });
 
@@ -710,46 +708,40 @@ namespace components {
         debouncedStyleChange(value);
       });
 
-      wrapper.append(colorInput);
+
+      inputLabel.textContent = "Game pair deviation text color";
+      inputLabel.append(colorInput);
+
+      wrapper.append(inputLabel);
+
+      ExtensionHelper.localStorage.getState("deviationColor").then((val) => {
+        const { deviationColor } = val;
+
+        colorInput.value = deviationColor;
+      });
 
       return wrapper;
     }
+
     private static crBookMoveColorInput() {
       const wrapper = document.createElement("div");
+      wrapper.classList.add("ccc-movetable-styles");
+
+      const inputLabel = document.createElement("label");
+
 
       const colorInput = document.createElement("input");
       colorInput.type = "color";
+
+
+      inputLabel.htmlFor = "ccc-book-move-color";
+      colorInput.id = "ccc-book-move-color";
 
       // todo add reset btn, and few default colors
       // like old orange color
 
       const debouncedStyleChange = debounce({
-        cb: (value: string) => {
-          const lightnessShift = 16;
-
-          const rgbArr = Color.hexToRGBArray(value);
-          const [h, s, l] = Color.RGBToHSLArray(...rgbArr);
-          const hoverLightness =
-            l + lightnessShift > 100 ? l - lightnessShift : l + lightnessShift;
-
-          document.body.style.setProperty(
-            "--ccc-book-move-clr",
-            `hsl(${h},${s}%,${l}%)`
-          );
-          document.body.style.setProperty(
-            "--ccc-book-move-clr-hover",
-            `hsl(${h},${s}%,${hoverLightness}%)`
-          );
-
-          const oldValue =
-            document.body.getAttribute("data-custom-styles") || "";
-          if (!oldValue.includes("movetable-clr")) {
-            document.body.setAttribute(
-              "data-custom-styles",
-              oldValue + " movetable-clr"
-            );
-          }
-        },
+        cb: (val: string) => ExtensionHelper.changeBookMoveClr(val),
         wait: 300,
       });
 
@@ -760,7 +752,18 @@ namespace components {
         debouncedStyleChange(value);
       });
 
-      wrapper.append(colorInput);
+
+      inputLabel.textContent = "Book moves text color";
+      inputLabel.append(colorInput);
+
+      wrapper.append(inputLabel);
+
+      ExtensionHelper.localStorage.getState("bookMovesColor").then((val) => {
+        const { bookMovesColor } = val;
+
+        colorInput.value = bookMovesColor;
+      });
+
 
       return wrapper;
     }

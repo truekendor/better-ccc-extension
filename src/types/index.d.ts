@@ -33,6 +33,27 @@ type LooseAutocomplete<T extends string> = T | Omit<string, T>;
 
 type Fn<T, U = T> = (...args: T[]) => U;
 
+// source:
+// https://youtu.be/52vHiczZ3Bc
+type OnlyFirst<F, S> = F & { [Key in keyof Omit<S, keyof F>]?: never };
+
+// eslint-disable-next-line @typescript-eslint/ban-types
+type MergeTypes<TypesArray extends any[], Res = {}> = TypesArray extends [
+  infer Head,
+  ...infer Rem
+]
+  ? MergeTypes<Rem, Res & Head>
+  : Res;
+
+type OneOf<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  TypesArray extends any[],
+  Res = never,
+  AllProperties = MergeTypes<TypesArray>
+> = TypesArray extends [infer Head, ...infer Rem]
+  ? OneOf<Rem, Res | OnlyFirst<Head, AllProperties>, AllProperties>
+  : Res;
+
 // * ===================
 // * content scripts types
 
@@ -68,6 +89,11 @@ declare namespace user_config {
     replaceClockSvg: boolean;
     showCapturedPieces: boolean;
     clearQueryStringOnCurrentGame: boolean;
+
+    // movetable styles
+    // todo move to visual settings?
+    deviationColor: string;
+    bookMovesColor: string;
 
     // todo
     // calcAdditionalStats: boolean

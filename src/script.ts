@@ -30,14 +30,25 @@ async function loadUserSettings(): Promise<void> {
       "showCapturedPieces",
       "clearQueryStringOnCurrentGame",
       "highlightReverseDeviation",
+      // movetable styles
+      "bookMovesColor",
+      "deviationColor",
     ])
     .then((state) => {
       const keys = Utils.objectKeys(state);
 
       // get user settings from extension local storage
       keys.forEach((key) => {
-        UserSettings.customSettings[key] =
-          state[key] ?? UserSettings.defaultSettings[key];
+        // just to make TS happy
+        // moving this outside somehow results in TS yelling at me
+        // even tho the logic is the same
+        if (key === "bookMovesColor" || key === "deviationColor") {
+          UserSettings.customSettings[key] =
+            state[key] || UserSettings.defaultSettings[key];
+        } else {
+          UserSettings.customSettings[key] =
+            state[key] ?? UserSettings.defaultSettings[key];
+        }
       });
     })
     .then(async () => {
@@ -45,14 +56,14 @@ async function loadUserSettings(): Promise<void> {
       const result = await ExtensionHelper.localStorage.getUserState();
       const allKeys = Utils.objectKeys(result);
 
-      allKeys.forEach((key) => {
+      allKeys.forEach(async (key) => {
         const settingAlreadyPresent =
           result[key] !== null && result[key] !== undefined;
         if (settingAlreadyPresent) {
           return;
         }
 
-        ExtensionHelper.localStorage.setState({
+        await ExtensionHelper.localStorage.setState({
           [key]: UserSettings.defaultSettings[key],
         });
       });
@@ -61,6 +72,11 @@ async function loadUserSettings(): Promise<void> {
 
   const keys = Utils.objectKeys(UserSettings.customSettings);
   keys.forEach((key) => {
+    if (key === "bookMovesColor" || key === "deviationColor") {
+      ExtensionHelper._dev_applyUserSettings(key);
+      return;
+    }
+
     if (
       key === "pairsPerRow" ||
       key === "pairsPerRowDuel" ||
@@ -152,14 +168,14 @@ function getImageIndexes(
   const grandParent = cell?.parentNode?.parentNode;
 
   if (parent && grandParent) {
-    for (let i = 0; i < parent?.childNodes?.length ?? 0; i++) {
+    for (let i = 0; i < parent?.childNodes?.length || 0; i++) {
       const current = parent?.childNodes[i];
       if (current !== cell) continue;
       index_1 = i;
       break;
     }
 
-    for (let i = 0; i < grandParent?.childNodes?.length ?? 0; i++) {
+    for (let i = 0; i < grandParent?.childNodes?.length || 0; i++) {
       const current = grandParent?.childNodes[i];
       // @ts-ignore
       if (current !== cell?.parentNode) continue;
@@ -650,18 +666,17 @@ function scrollToCurrentGame(): void {
     ".schedule-container"
   );
 
-  const lastGame: Element | null = container?.lastElementChild || null;
+  const finishedGamesList = _DOM_Store.bottomPanel.querySelectorAll(
+    ".schedule-game-link"
+  );
+  const lastKnownGame = finishedGamesList[finishedGamesList.length - 1];
+
+  const lastGame: Element | null =
+    lastKnownGame || container?.lastElementChild || null;
 
   if (currentGame) {
     currentGame.scrollIntoView();
   } else if (lastGame) {
     lastGame.scrollIntoView();
   }
-}
-function changeOpeningMoveColor() {
-  const color = "#c5c5c5";
-  const elements = document.querySelectorAll(".movetable-book-ply");
-  elements.forEach((element) => {
-    element.style.color = color;
-  });
 }
