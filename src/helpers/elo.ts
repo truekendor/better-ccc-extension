@@ -106,7 +106,6 @@ class ELO {
     return `${errorMargin}`;
   }
 
-
   static LOS(elo: number, errorMargin: number) {
     const minConfidencePercent = (1 - this.confidence) / 2;
     const maxConfidencePercent = 1 - minConfidencePercent;
@@ -116,7 +115,6 @@ class ELO {
 
     return LOS;
   }
-
 
   private static scoreToElo(score: number): number {
     return (-400 * Math.log(1 / score - 1)) / Math.LN10;
