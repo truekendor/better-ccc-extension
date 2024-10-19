@@ -178,6 +178,9 @@ body[data-custom-styles*="movetable-clr"] .movetable-book-ply:hover {
 .schedule-container > div :first-child {
   justify-content: center;
   text-align: center;
+
+  padding-left: 3px;
+  min-width: min-content;
 }
 
 /* moves in movelist */
