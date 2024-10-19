@@ -92,8 +92,8 @@ declare namespace user_config {
 
     // movetable styles
     // todo move to visual settings?
-    deviationColor: string;
-    bookMovesColor: string;
+    deviationColor: string | null;
+    bookMovesColor: string | null;
 
     // todo
     // calcAdditionalStats: boolean

@@ -181,12 +181,14 @@ class ExtensionHelper {
     }
   }
 
-  public static async changeBookMoveClr(HEXvalue: string) {
+  public static async changeBookMoveClr(
+    HEXvalue: user_config.settings["bookMovesColor"]
+  ) {
     await this.localStorage.setState({
       bookMovesColor: HEXvalue,
     });
 
-    if (HEXvalue === "") {
+    if (HEXvalue === "" || HEXvalue === null) {
       document.body.style.setProperty("--ccc-book-move-clr", "");
       document.body.style.setProperty("--ccc-book-move-clr-hover", "");
 
@@ -220,12 +222,14 @@ class ExtensionHelper {
     }
   }
 
-  public static async changeDeviationClr(HEXvalue: string) {
+  public static async changeDeviationClr(
+    HEXvalue: user_config.settings["deviationColor"]
+  ) {
     await this.localStorage.setState({
       deviationColor: HEXvalue,
     });
 
-    if (HEXvalue === "") {
+    if (HEXvalue === null || HEXvalue === "") {
       document.body.style.setProperty("--ccc-deviation-move-clr", "");
       return;
     }

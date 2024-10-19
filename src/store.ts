@@ -117,8 +117,8 @@ class UserSettings {
     clearQueryStringOnCurrentGame: true,
 
     // moves table styles
-    bookMovesColor: "#000000",
-    deviationColor: "#000000",
+    bookMovesColor: null,
+    deviationColor: null,
   } as const;
 
   static customSettings: user_config.settings = {
@@ -147,7 +147,7 @@ class UserSettings {
     clearQueryStringOnCurrentGame: true,
 
     // moves table styles
-    bookMovesColor: "#000000",
-    deviationColor: "#000000",
+    bookMovesColor: null,
+    deviationColor: null,
   };
 }

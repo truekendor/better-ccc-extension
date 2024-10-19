@@ -508,7 +508,6 @@ namespace components {
         // * =====
         this.crLineSeparator("Moves table"),
 
-
         this.crBookMoveColorInput(),
         this.crDeviationColorInput(),
         // * ======
@@ -687,10 +686,8 @@ namespace components {
       const colorInput = document.createElement("input");
       colorInput.type = "color";
 
-
       inputLabel.htmlFor = "ccc-book-deviation-color";
       colorInput.id = "ccc-book-deviation-color";
-
 
       // todo add reset btn, and few default colors
       // like old orange color
@@ -708,7 +705,6 @@ namespace components {
         debouncedStyleChange(value);
       });
 
-
       inputLabel.textContent = "Game pair deviation text color";
       inputLabel.append(colorInput);
 
@@ -717,7 +713,9 @@ namespace components {
       ExtensionHelper.localStorage.getState("deviationColor").then((val) => {
         const { deviationColor } = val;
 
-        colorInput.value = deviationColor;
+        if (deviationColor) {
+          colorInput.value = deviationColor;
+        }
       });
 
       return wrapper;
@@ -729,10 +727,8 @@ namespace components {
 
       const inputLabel = document.createElement("label");
 
-
       const colorInput = document.createElement("input");
       colorInput.type = "color";
-
 
       inputLabel.htmlFor = "ccc-book-move-color";
       colorInput.id = "ccc-book-move-color";
@@ -752,7 +748,6 @@ namespace components {
         debouncedStyleChange(value);
       });
 
-
       inputLabel.textContent = "Book moves text color";
       inputLabel.append(colorInput);
 
@@ -761,9 +756,10 @@ namespace components {
       ExtensionHelper.localStorage.getState("bookMovesColor").then((val) => {
         const { bookMovesColor } = val;
 
-        colorInput.value = bookMovesColor;
+        if (bookMovesColor) {
+          colorInput.value = bookMovesColor;
+        }
       });
-
 
       return wrapper;
     }
