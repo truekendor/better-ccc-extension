@@ -152,14 +152,14 @@ function getImageIndexes(
   const grandParent = cell?.parentNode?.parentNode;
 
   if (parent && grandParent) {
-    for (let i = 0; i < parent?.childNodes?.length ?? 0; i++) {
+    for (let i = 0; i < parent?.childNodes?.length || 0; i++) {
       const current = parent?.childNodes[i];
       if (current !== cell) continue;
       index_1 = i;
       break;
     }
 
-    for (let i = 0; i < grandParent?.childNodes?.length ?? 0; i++) {
+    for (let i = 0; i < grandParent?.childNodes?.length || 0; i++) {
       const current = grandParent?.childNodes[i];
       // @ts-ignore
       if (current !== cell?.parentNode) continue;
