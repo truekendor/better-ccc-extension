@@ -35,22 +35,35 @@ div.schedule-container > div:nth-child(4n + 2),
 }
 
 /* current game in schedule */
-.schedule-container > div.schedule-in-progress {
+.schedule-container > div.schedule-in-progress,
+.schedule-container
+  > div.schedule-game-link:not(div.schedule-in-progress)
+  + .schedule-row:not(.schedule-game-link) {
   outline: 1px solid hsla(var(--ccc-blue-light-raw), 0.4);
 
   background-color: unset;
 }
 
-.schedule-container div.schedule-in-progress {
+.schedule-container div.schedule-in-progress,
+.schedule-container
+  > div.schedule-game-link:not(div.schedule-in-progress)
+  + .schedule-row:not(.schedule-game-link) {
   position: relative;
   isolation: isolate;
 }
 
-.schedule-container div.schedule-in-progress > * {
+.schedule-container div.schedule-in-progress > *,
+.schedule-container
+  > div.schedule-game-link:not(div.schedule-in-progress)
+  + .schedule-row:not(.schedule-game-link)
+  > * {
   color: var(--ccc-blue-light-hsl) !important;
 }
 
-.schedule-container div.schedule-in-progress::before {
+.schedule-container div.schedule-in-progress::before,
+.schedule-container
+  > div.schedule-game-link:not(div.schedule-in-progress)
+  + .schedule-row:not(.schedule-game-link)::before {
   content: "";
   position: absolute;
 
@@ -165,6 +178,9 @@ body[data-custom-styles*="movetable-clr"] .movetable-book-ply:hover {
 .schedule-container > div :first-child {
   justify-content: center;
   text-align: center;
+
+  padding-left: 3px;
+  min-width: min-content;
 }
 
 /* moves in movelist */
@@ -232,7 +248,7 @@ body[data-custom-styles*="movetable-clr"] .movetable-book-ply:hover {
 }
 
 .crosstable-empty.crosstable-empty {
-  background-color: #21201f;
+  background-color: hsl(45, 7%, 8%);
 }
 
 /* settings modal styles */

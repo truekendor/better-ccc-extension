@@ -241,14 +241,12 @@ class HighlightDeviation {
 
     HighlightDeviation.clearHighlight();
 
-    // do not delete lol
+    
 
-    await new Promise((res) => {
-      requestAnimationFrame(() => {
-        res(null);
-      });
-    });
+// do not delete lol
     await Utils.sleepAsync(20);
+
+
     CountCapturedPieces.clear();
 
     const gameNumber = await ExtractPageData.getCurrentGameNumber();

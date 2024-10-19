@@ -115,6 +115,10 @@ class UserSettings {
     replaceClockSvg: true,
     showCapturedPieces: true,
     clearQueryStringOnCurrentGame: true,
+
+    // moves table styles
+    bookMovesColor: "#000000",
+    deviationColor: "#000000",
   } as const;
 
   static customSettings: user_config.settings = {
@@ -141,5 +145,9 @@ class UserSettings {
     showCapturedPieces: true,
     // removes event id from hash query if game is ongoing
     clearQueryStringOnCurrentGame: true,
+
+    // moves table styles
+    bookMovesColor: "#000000",
+    deviationColor: "#000000",
   };
 }

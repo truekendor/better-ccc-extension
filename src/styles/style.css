@@ -1,5 +1,5 @@
 :root {
-  --ccc-blue-light-raw: 199, 66%, 59%;
+  --ccc-blue-light-raw: 200, 85%, 60%;
   --ccc-blue-light-hsl: hsl(var(--ccc-blue-light-raw));
 }
 
