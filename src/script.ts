@@ -672,7 +672,10 @@ function scrollToCurrentGame(): void {
   const lastKnownGame = finishedGamesList[finishedGamesList.length - 1];
 
   const lastGame: Element | null =
-    lastKnownGame || container?.lastElementChild || null;
+    lastKnownGame?.nextElementSibling ||
+    lastKnownGame ||
+    container?.lastElementChild ||
+    null;
 
   if (currentGame) {
     currentGame.scrollIntoView();

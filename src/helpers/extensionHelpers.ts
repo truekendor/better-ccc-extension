@@ -167,10 +167,10 @@ class ExtensionHelper {
     >
   >(key: K): void {
     switch (key) {
-      case "bookMovesColor":
+      case "deviationColor":
         this.changeDeviationClr(UserSettings.customSettings.deviationColor);
         break;
-      case "deviationColor":
+      case "bookMovesColor":
         this.changeBookMoveClr(UserSettings.customSettings.bookMovesColor);
         break;
 
@@ -191,6 +191,14 @@ class ExtensionHelper {
     if (HEXvalue === "" || HEXvalue === null) {
       document.body.style.setProperty("--ccc-book-move-clr", "");
       document.body.style.setProperty("--ccc-book-move-clr-hover", "");
+
+      const prevProp = document.body.getAttribute("data-custom-styles");
+
+      if (prevProp && prevProp.includes("movetable-clr")) {
+        const newProp = prevProp.replace("movetable-clr", "");
+
+        document.body.setAttribute("data-custom-styles", newProp);
+      }
 
       return;
     }
@@ -231,6 +239,15 @@ class ExtensionHelper {
 
     if (HEXvalue === null || HEXvalue === "") {
       document.body.style.setProperty("--ccc-deviation-move-clr", "");
+
+      const prevProp = document.body.getAttribute("data-custom-styles");
+
+      if (prevProp && prevProp.includes("deviation-clr")) {
+        const newProp = prevProp.replace("deviation-clr", "");
+
+        document.body.setAttribute("data-custom-styles", newProp);
+      }
+
       return;
     }
 

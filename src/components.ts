@@ -708,7 +708,19 @@ namespace components {
       inputLabel.textContent = "Game pair deviation text color";
       inputLabel.append(colorInput);
 
-      wrapper.append(inputLabel);
+      const resetBtn = document.createElement("button");
+      resetBtn.classList.add("ccc-setting-reset");
+
+      const refreshSVG = SVG.Icons.refresh;
+      resetBtn.append(refreshSVG);
+
+      resetBtn.addEventListener("click", () => {
+        UserSettings.customSettings.deviationColor = null;
+
+        ExtensionHelper._dev_applyUserSettings("deviationColor");
+      });
+
+      wrapper.append(inputLabel, resetBtn);
 
       ExtensionHelper.localStorage.getState("deviationColor").then((val) => {
         const { deviationColor } = val;
@@ -751,7 +763,17 @@ namespace components {
       inputLabel.textContent = "Book moves text color";
       inputLabel.append(colorInput);
 
-      wrapper.append(inputLabel);
+      const resetBtn = document.createElement("button");
+      resetBtn.classList.add("ccc-setting-reset");
+      const refreshSVG = SVG.Icons.refresh;
+      resetBtn.append(refreshSVG);
+
+      resetBtn.addEventListener("click", () => {
+        UserSettings.customSettings.bookMovesColor = null;
+        ExtensionHelper._dev_applyUserSettings("bookMovesColor");
+      });
+
+      wrapper.append(inputLabel, resetBtn);
 
       ExtensionHelper.localStorage.getState("bookMovesColor").then((val) => {
         const { bookMovesColor } = val;

@@ -216,3 +216,18 @@
 
   margin-inline-start: 10px;
 }
+
+.ccc-movetable-styles label input {
+  min-width: 40px;
+
+  border: none;
+}
+
+button.ccc-setting-reset {
+  margin-left: 5px;
+
+  display: inline-flex;
+  align-items: center;
+
+  fill: rgb(230, 230, 230);
+}
