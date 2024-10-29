@@ -14,7 +14,8 @@
         "styles/default-ccc.css",
         "styles/pairs-per-row-media.css",
         "styles/dev-panel.css",
-        "styles/extension-settings.css"
+        "styles/extension-settings.css",
+        "styles/fast-crosstable.css"
       ],
       "js": [
         "chess-js.js",
@@ -50,12 +51,6 @@
     "48": "icons/icon_48.png",
     "32": "icons/icon_32.png"
   },
-  "web_accessible_resources": [
-    {
-      "resources": ["inject/index.js"],
-      "matches": ["<all_urls>"]
-    }
-  ],
-  "permissions": ["scripting", "storage", "tabs", "activeTab"],
+  "permissions": ["scripting", "storage", "tabs", "activeTab", "webRequest"],
   "host_permissions": ["https://cccc.chess.com/*", "https://www.chess.com/*"]
 }
