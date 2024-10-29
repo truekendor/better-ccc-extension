@@ -73,7 +73,7 @@ table._dev_modal-table {
   width: 100%;
 }
 
-._dev_modal-row ._dev_modal-row:nth-child(2n) {
+._dev_modal-row:nth-child(2n) {
   background-color: #1e1d1a;
 }
 
