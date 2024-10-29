@@ -151,3 +151,12 @@ class UserSettings {
     deviationColor: null,
   };
 }
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class _dev_EventState {
+  static state: chess_com.full_event_response;
+
+  static update(state: chess_com.full_event_response) {
+    this.state = state;
+  }
+}

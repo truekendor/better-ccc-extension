@@ -36,6 +36,7 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
         return;
       }
       onLoadHandler();
+      CustomWebSocket.connect();
     } else if (type === "reverse_pgn_request") {
       const { gameNumber, event } = payload;
       _bg_requestReverseGame(gameNumber, event).catch((e) => {
@@ -92,21 +93,12 @@ async function getCurrentTab(): Promise<
   browser.tabs.Tab | chrome.tabs.Tab | undefined
 > {
   try {
-    const chromeTab = await chrome.tabs.query({
+    const tab = await _bg_browserPrefix.tabs.query({
       active: true,
       currentWindow: true,
     });
 
-    if (chromeTab?.[0]) {
-      return chromeTab[0];
-    }
-
-    const firefoxTab = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    return firefoxTab[0];
+    return tab?.[0] || undefined;
   } catch (e: any) {
     console.log(e?.message ?? e);
   }
@@ -210,7 +202,7 @@ async function _bg_requestReverseGame(
 // }
 
 /**
- * returns moves string that looks like this
+ * @returns moves string that looks like this
  * ```
  * "1. e4 e5 2. Nf3 Nc6 3. Nf6 ..."
  * ```
@@ -223,7 +215,9 @@ function getMovesFromPgn(pgn: string): string[] {
 }
 
 /**
- * returns string[] with moves in SAN format
+ * @returns {string[]} with moves in SAN format
+ *
+ * @example
  * ```
  * ['e4', 'e5', 'Ke2', 'Ke7', 'Na3', ...]
  * ```
@@ -357,11 +351,50 @@ async function _sendMessageToContent(
 ): Promise<any> {
   try {
     const tab = await getCurrentTab();
-    if (!tab || !tab.id) return false;
+    if (!tab || !tab.id) {
+      return false;
+    }
 
-    _bg_browserPrefix.tabs.sendMessage(tab.id, message);
-    return false;
+    await _bg_browserPrefix.tabs.sendMessage(tab.id, message);
   } catch (e) {
     console.log("background::sendMessageToContent error: ", e);
+  }
+
+  return false;
+}
+
+class CustomWebSocket {
+  private static wsURL = "wss://cccc.chess.com/websocket";
+  private static websocket = new WebSocket(this.wsURL);
+
+  static connect() {
+    try {
+      console.log("Connecting to websocket");
+
+      this.websocket = new WebSocket(this.wsURL);
+
+      this.websocket.onmessage = this.messageHandler;
+      this.websocket.onclose = this.connect;
+    } catch (e) {
+      console.log("error: ", e);
+    }
+  }
+
+  private static messageHandler(message: MessageEvent) {
+    try {
+      const data = JSON.parse(message.data) as
+        | chess_com.full_event_response
+        | chess_com.ws_twitch_update;
+
+      console.log(data);
+
+      if (data?.type === "fullUpdate")
+        _sendMessageToContent({
+          type: "websocket_full_event_update",
+          payload: data,
+        });
+    } catch (e) {
+      console.log("error parsing WS message: ", e);
+    }
   }
 }

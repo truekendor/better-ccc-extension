@@ -27,7 +27,48 @@ class CrosstableHelper {
    */
   public static calculateStats(
     scoresArray: ResultAsScore[]
-  ): readonly [PTNML, WDL, AdditionalStats] {
+  ): readonly [PTNML, WDL] {
+    const wdlArray: WDL = [0, 0, 0]; // [W D L] in that order
+    scoresArray.forEach((score) => {
+      // score is either 1 0 -1
+      // so by doing this we automatically
+      // increment correct value
+      wdlArray[1 - score] += 1;
+    });
+
+    // get rid of an unfinished game pair
+    if (scoresArray.length % 2 === 1) {
+      scoresArray.pop();
+    }
+    const ptnml: PTNML = [0, 0, 0, 0, 0]; // ptnml(0-2)
+
+    let highestScore = 0;
+    let currentScore = 0;
+
+    for (let i = 0; i < scoresArray.length; i++) {
+      const cur = scoresArray[i]!;
+
+      currentScore += cur;
+      // update after finished pair
+      if (i % 2 === 1) {
+        highestScore = Math.max(currentScore, highestScore);
+      }
+    }
+
+    for (let i = 0; i < scoresArray.length; i += 2) {
+      const first = scoresArray[i]!;
+      const second = scoresArray[i + 1]!;
+      const res = first + second;
+
+      ptnml[2 + res] += 1;
+    }
+
+    return [ptnml, wdlArray] as const;
+  }
+
+  // todo add this later
+  // not yet ready for release
+  public static calcAllStats(scoresArray: ResultAsScore[]) {
     const wdlArray: WDL = [0, 0, 0]; // [W D L] in that order
     scoresArray.forEach((score) => {
       // score is either 1 0 -1
@@ -81,8 +122,6 @@ class CrosstableHelper {
       const res = first + second;
 
       if (res === 2) {
-        ptnml[4] += 1;
-
         longesLosslessCurrent += 1;
         longestWinCurrent += 1;
 
@@ -99,8 +138,6 @@ class CrosstableHelper {
         // reset
         longestWinlessCurrent = 0;
       } else if (res === 1) {
-        ptnml[3] += 1;
-
         longesLosslessCurrent += 1;
         longestWinCurrent += 1;
 
@@ -117,7 +154,6 @@ class CrosstableHelper {
         // reset
         longestWinlessCurrent = 0;
       } else if (res === 0) {
-        ptnml[2] += 1;
         longesLosslessCurrent += 1;
         longestWinlessCurrent += 1;
 
@@ -134,7 +170,6 @@ class CrosstableHelper {
         // reset
         longestWinCurrent = 0;
       } else if (res === -1) {
-        ptnml[1] += 1;
         longestWinlessCurrent += 1;
 
         longesLosslessRecord = Math.max(
@@ -151,7 +186,6 @@ class CrosstableHelper {
         longestWinCurrent = 0;
         longesLosslessCurrent = 0;
       } else {
-        ptnml[0] += 1;
         longestWinlessCurrent += 1;
 
         longesLosslessRecord = Math.max(

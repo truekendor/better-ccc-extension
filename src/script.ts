@@ -158,6 +158,7 @@ function convertCrossTable(): void {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getImageIndexes(
   cell: HTMLTableCellElement
 ): readonly [number, number] {
@@ -191,7 +192,7 @@ function getImageIndexes(
 }
 
 function convertCell(cell: HTMLTableCellElement): void {
-  const [index_1, index_2] = getImageIndexes(cell);
+  // const [index_1, index_2] = getImageIndexes(cell);
 
   // header with a score string like this: 205 - 195 [+10]
   const cellHeader: HTMLDivElement | null = cell.querySelector(
@@ -227,17 +228,16 @@ function convertCell(cell: HTMLTableCellElement): void {
     scoresArray,
     pairsPerRow || 1
   );
-  const [ptnml, wdlArray, stats] = CrosstableHelper.calculateStats(scoresArray);
+  const [ptnml, wdlArray] = CrosstableHelper.calculateStats(scoresArray);
 
   // eslint-disable-next-line no-constant-condition
   if (enginesAmount <= 8 && false) {
-    const caretSvg = cell.querySelector(".ccc-info-button");
-
-    if (!caretSvg) {
-      const additionalInfoWrapper =
-        components.CrossTable.crAdditionalStatButton(stats, index_1, index_2);
-      cell.append(additionalInfoWrapper);
-    }
+    // const caretSvg = cell.querySelector(".ccc-info-button");
+    // if (!caretSvg) {
+    //   const additionalInfoWrapper =
+    //     components.CrossTable.crAdditionalStatButton(stats, index_1, index_2);
+    //   cell.append(additionalInfoWrapper);
+    // }
   }
 
   // * adds/removes ptnml & elo+wdl stats
@@ -683,3 +683,145 @@ function scrollToCurrentGame(): void {
     lastGame.scrollIntoView();
   }
 }
+
+_dev_createFastCrosstableBtn();
+function _dev_createFastCrosstableBtn() {
+  const btn = document.createElement("button");
+  btn.textContent = "dev crosstable";
+
+  btn.classList.add("_dev_fast_crosstable-btn");
+
+  btn.addEventListener("pointerdown", (e) => {
+    e.stopPropagation();
+
+    _dev_createFastModal();
+  });
+
+  document.body.append(btn);
+}
+
+function _dev_createFastModal() {
+  const modalBackdrop = components._dev_FastCrosstable.crModalBackdrop();
+  const modal = components._dev_FastCrosstable.crContentWrapper();
+  const table = components._dev_FastCrosstable.crTable();
+
+  const { crosstable } = _dev_EventState.state;
+  const { standings } = _dev_EventState.state.standings;
+
+  console.log("full crosstable", crosstable);
+  console.log("state", _dev_EventState.state);
+
+  const firstRow = components._dev_FastCrosstable.crRow();
+  firstRow.style.background = "#1E1D1A";
+
+  for (let i = 0; i < standings.length; i++) {
+    const cur = standings[i];
+
+    if (i === 0) {
+      const th1 = document.createElement("th");
+      th1.colSpan = 2;
+      const th2 = document.createElement("th");
+      th2.textContent = "Total";
+
+      firstRow.append(th1, th2);
+    }
+
+    const th = document.createElement("th");
+    th.textContent = `${i + 1} ${cur.name}`;
+
+    firstRow.append(th);
+  }
+
+  table.append(firstRow);
+
+  for (let i = 0; i < standings.length; i++) {
+    const engine = standings[i];
+    const headToHeadInfo = crosstable[engine.name];
+
+    const row = components._dev_FastCrosstable.crRow();
+
+    const rankCell = document.createElement("td");
+    rankCell.textContent = `${i + 1}`;
+
+    const engineNameCell = document.createElement("td");
+    engineNameCell.textContent = `${standings[i].name}`;
+
+    const scoreCell = document.createElement("td");
+    scoreCell.textContent = `${engine.score}`;
+
+    row.append(rankCell, engineNameCell, scoreCell);
+
+    for (let j = 0; j < standings.length; j++) {
+      const opponent = standings[j];
+      const col = components._dev_FastCrosstable.crHeadToHeadCell();
+
+      if (engine.engineid === opponent.engineid) {
+        // todo add an option to create an empty cell
+        col.classList.add("_dev_modal-empty");
+        row.append(col);
+
+        continue;
+      }
+
+      const colResultsWrapper =
+        components._dev_FastCrosstable.crHtHResultsWrapper();
+
+      const { results, margin, p1Score, p2Score } =
+        headToHeadInfo[opponent.name];
+
+      const scoreWrapper = components._dev_FastCrosstable.crHtHScoreWrapper(
+        p1Score,
+        p2Score,
+        margin
+      );
+
+      col.append(scoreWrapper, colResultsWrapper);
+
+      for (const result of results) {
+        const gameResult = document.createElement("div");
+        gameResult.textContent = result.r;
+
+        colResultsWrapper.append(gameResult);
+      }
+
+      row.append(col);
+    }
+
+    table.append(row);
+  }
+
+  modal.append(table);
+  modalBackdrop.append(modal);
+  document.body.append(modalBackdrop);
+}
+
+function _dev_update_event_state(eventPayload: chess_com.full_event_response) {
+  if (!eventPayload) {
+    return;
+  }
+
+  // todo delete
+  console.log("%cupdated", "color: red;");
+
+  const btn = document.querySelector("._dev_fast_crosstable-btn")!;
+  btn.classList.add("_dev_ready");
+
+  _dev_EventState.update(eventPayload);
+}
+
+browserPrefix.runtime.onMessage.addListener(function (
+  message: message_pass.message
+  // sender,
+  // senderResponse
+) {
+  try {
+    const { type, payload } = message;
+
+    if (type === "websocket_full_event_update") {
+      _dev_update_event_state(payload);
+      return false;
+    }
+  } catch (e: any) {
+    console.log(e?.message);
+  }
+});

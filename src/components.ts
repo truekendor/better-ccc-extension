@@ -839,4 +839,97 @@ namespace components {
       return btn;
     }
   }
+
+  export class _dev_FastCrosstable {
+    static cssClasses = {
+      backdrop: "_dev_modal-backdrop",
+      content: "_dev_modal-content",
+      table: "_dev_modal-table",
+      row: "_dev_modal-row",
+      //
+      h2hCell: "_dev-head-to-head",
+      scoreWrapper: "_dev_modal-score-wrapper",
+      resultsGrid: "_dev_modal-results-grid",
+    } as const;
+
+    static crModalBackdrop() {
+      const modalBackdrop = document.createElement("div");
+      modalBackdrop.addEventListener("click", (e) => {
+        const target = e.target as Element;
+
+        if (target?.classList?.contains(this.cssClasses.content)) {
+          return;
+        }
+
+        document.body.removeChild(modalBackdrop);
+      });
+
+      modalBackdrop.classList.add(this.cssClasses.backdrop);
+
+      return modalBackdrop;
+    }
+
+    static crContentWrapper() {
+      const modalContentWrapper = document.createElement("div");
+      modalContentWrapper.classList.add(this.cssClasses.content);
+
+      return modalContentWrapper;
+    }
+
+    static crTable() {
+      const table = document.createElement("table");
+      table.addEventListener("click", (e) => {
+        e.stopPropagation();
+      });
+
+      table.classList.add(this.cssClasses.table);
+
+      return table;
+    }
+
+    static crRow() {
+      const row = document.createElement("tr");
+      row.classList.add(this.cssClasses.row);
+
+      return row;
+    }
+
+    static crHeadToHeadCell() {
+      const col = document.createElement("td");
+      col.classList.add(this.cssClasses.h2hCell);
+
+      return col;
+    }
+
+    static crHtHScoreWrapper(score1: number, score2: number, margin: number) {
+      const wrapper = document.createElement("div");
+      wrapper.classList.add(this.cssClasses.scoreWrapper);
+
+      const p1Score = document.createElement("div");
+      const p2Score = document.createElement("div");
+      const diff = document.createElement("div");
+
+      p1Score.textContent = `${score1}`;
+      p2Score.textContent = `${score2}`;
+
+      const sign = margin > 0 ? "+" : "";
+      diff.textContent = `[${sign}${margin}]`;
+
+      margin >= 0
+        ? diff.classList.add("ccc-res-win")
+        : diff.classList.add("ccc-res-loss");
+
+      wrapper.append(p1Score, p2Score, diff);
+
+      return wrapper;
+    }
+
+    static crHtHResultsWrapper() {
+      const resultsWrapper = document.createElement("div");
+
+      resultsWrapper.classList.add(this.cssClasses.resultsGrid);
+
+      return resultsWrapper;
+    }
+  }
 }

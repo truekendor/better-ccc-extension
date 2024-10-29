@@ -345,6 +345,8 @@ class ExtensionMessage {
     try {
       // @ts-expect-error "incompatible" browser return types
       browserPrefix.runtime.sendMessage(this.message) as Promise<unknown>;
+
+      return false;
     } catch (e) {
       Utils.logError(e);
     }

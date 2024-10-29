@@ -1,0 +1,148 @@
+._dev_fast_crosstable-btn {
+  position: fixed;
+
+  bottom: 5%;
+  left: 5%;
+
+  z-index: 9999;
+
+  padding: 10px 20px;
+
+  font-size: 20px;
+
+  background-color: firebrick;
+
+  color: white;
+
+  border: none;
+}
+
+._dev_fast_crosstable-btn._dev_ready {
+  background-color: rgb(79, 167, 79);
+}
+
+._dev_modal-backdrop {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: fixed;
+  inset: 0;
+
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+._dev_modal-content {
+  --ccc-loss: #fa412d;
+  --ccc-win: #81b64c;
+
+  background-color: #262421;
+
+  max-width: 90%;
+  max-height: 95%;
+
+  padding: 15px;
+
+  border-radius: 5px;
+
+  overflow-x: auto;
+
+  font-size: 0.8em;
+}
+
+table._dev_modal-table {
+  overflow: scroll;
+
+  border-collapse: collapse;
+  border-style: hidden;
+
+  border-spacing: 0px;
+
+  font-size: 0.8em;
+  max-width: 100%;
+  width: 100%;
+}
+
+._dev_modal-row {
+  text-align: center;
+  vertical-align: middle;
+
+  color: hsla(0, 0%, 100%, 0.5) !important;
+  font-weight: bold;
+
+  width: 100%;
+}
+
+._dev_modal-row ._dev_modal-row:nth-child(2n) {
+  background-color: #1e1d1a;
+}
+
+._dev_modal-row > th {
+  width: max-content;
+  min-width: 35px;
+}
+
+._dev_modal-row > td {
+  color: inherit;
+  border: 0.1rem solid hsla(0, 0%, 100%, 0.1);
+
+  padding: 4px;
+}
+
+._dev-head-to-head {
+  padding: 4px;
+}
+
+._dev-head-to-head._dev_modal-empty {
+  background-color: #161513;
+}
+
+/**
+* score wrapper
+*/
+
+._dev_modal-score-wrapper {
+  display: grid;
+  grid-auto-flow: column;
+
+  grid-template-columns: repeat(3, auto);
+
+  gap: 4px;
+
+  font-weight: 14px;
+
+  justify-content: center;
+  align-items: center;
+
+  width: 100%;
+
+  padding-bottom: 4px;
+}
+
+._dev_modal-score-wrapper > div.ccc-res-loss {
+  color: var(--ccc-loss);
+}
+
+._dev_modal-score-wrapper > div.ccc-res-win {
+  color: var(--ccc-win);
+}
+
+/**
+* Head to head grid
+*/
+
+._dev_modal-results-grid {
+  display: grid;
+  justify-content: center;
+  grid-auto-flow: column;
+
+  grid-template-columns: repeat(
+    var(--custom-column-amount, var(--column-amount)),
+    minmax(1.6rem, 1fr)
+  );
+  min-width: 100% !important;
+}
+
+._dev_modal-results-grid > div {
+  padding: 3px;
+}
