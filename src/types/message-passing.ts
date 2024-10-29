@@ -10,7 +10,8 @@ namespace message_pass {
     | "response_tb_standard"
     | "response_tb_mainline"
     | "remove_query"
-    | "response_interceptor";
+    | "response_interceptor"
+    | "websocket_full_event_update";
 
   export type message =
     | EventData
@@ -22,7 +23,8 @@ namespace message_pass {
     | TBResponseStandard
     | TBResponseMainline
     | RemoveTabQuery
-    | DebugMessage;
+    | DebugMessage
+    | WebsocketEventFullUpdate;
 
   type RuntimeMessageBuilder<
     T extends MessageType,
@@ -106,5 +108,10 @@ namespace message_pass {
     {
       details: chrome.webRequest.WebResponseCacheDetails;
     }
+  >;
+
+  type WebsocketEventFullUpdate = RuntimeMessageBuilder<
+    "websocket_full_event_update",
+    chess_com.full_event_response
   >;
 }

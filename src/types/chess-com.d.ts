@@ -39,10 +39,13 @@ declare namespace chess_com {
     kibitzerHistory: kibitzer_entry[];
   } | null;
 
-  // * ===================
-  // * Full event response type
-  // * like https://cccc.chess.com/archive?event=ccc21-rapid-semifinals
-  // * also the wss:// response
+  /**
+   * Full event response type
+   *
+   * https://cccc.chess.com/archive?event=ccc21-rapid-semifinals
+   *
+   * wss://cccc.chess.com/archive?event=ccc21-rapid-semifinals
+   */
   export type full_event_response = {
     type: "fullUpdate";
     pgn: string;
@@ -50,7 +53,9 @@ declare namespace chess_com {
     kibitzerHistory: kibitzer_entry[];
     res: game_result_as_score_first;
     /**
-     * string with event archive path like `archive/tournament-354909.pgn`
+     * string with event archive path
+     * @example
+     * "archive/tournament-354909.pgn"
      */
     archivePath: string;
     rules: string;
@@ -62,7 +67,9 @@ declare namespace chess_com {
     players: string[];
     end: game_end_reason;
     /**
-     * string with current event id like `ccc21-rapid-semifinals`
+     * string with current event id
+     * @example
+     * "ccc21-rapid-semifinals"
      */
     eventSlug: string;
     lastBookPly: number;
@@ -80,7 +87,12 @@ declare namespace chess_com {
     millisecondsLeftToVote: number | null;
     voteLeaderboard: VoteLeaderboardEntry[];
     voteAccuracyLeaderboard: VoteLeaderboardEntry[];
-  } | null;
+  };
+
+  export type ws_twitch_update = {
+    type: "twitchUpdate";
+    status: boolean;
+  };
 
   type kibitzer_history_log = {
     color: "white" | "black";
@@ -180,16 +192,18 @@ declare namespace chess_com {
 
   type crosstable = {
     [key: string]: {
-      [key: string]: {
-        results: {
-          r: game_result_as_score_second;
-          id: NumericStringInt;
-        };
-        p1Score: number;
-        p2Score: number;
-        margin: number;
-      };
+      [key: string]: crosstable_h2h_results;
     };
+  };
+
+  type crosstable_h2h_results = {
+    results: {
+      r: game_result_as_score_second;
+      id: NumericStringInt;
+    }[];
+    p1Score: number;
+    p2Score: number;
+    margin: number;
   };
 
   type head_to_head = {
