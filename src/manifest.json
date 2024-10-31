@@ -15,7 +15,8 @@
         "styles/pairs-per-row-media.css",
         "styles/dev-panel.css",
         "styles/extension-settings.css",
-        "styles/fast-crosstable.css"
+        "styles/fast-crosstable.css",
+        "styles/fast-schedule.css"
       ],
       "js": [
         "chess-js.js",

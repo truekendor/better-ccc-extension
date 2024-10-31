@@ -232,28 +232,35 @@ declare namespace chess_com {
     index: number;
   };
 
+  type schedule_future_game = {
+    p: [number, number];
+    /**
+     * timestamp
+     */
+    startTime: number;
+  };
+
+  type schedule_current_game = {
+    p: [number, number];
+    inProgress: boolean;
+  };
+
+  type schedule_past_game = {
+    p: [number, number];
+    id: NumericStringInt;
+    numMoves: number;
+    res: game_result_as_score_first;
+  };
+
   type schedule_entry =
-    | {
-        id: NumericStringInt;
-        p: [number, number];
-        numMoves: number;
-        res: game_result_as_score_first;
-      }
-    | {
-        p: [number, number];
-        startTime: number;
-      }
-    | {
-        p: [number, number];
-        inProgress: boolean;
-      };
+    | schedule_current_game
+    | schedule_future_game
+    | schedule_past_game;
 
   /**
    * websocket response types
    */
-  export namespace WS {
-    export type FullUpdate = full_event_response;
-
+  export namespace WebSocket {
     export type LiveInfo = {
       type: "liveInfo";
       info: info_history_log;
@@ -279,6 +286,11 @@ declare namespace chess_com {
       timestamp: NumericStringInt;
       w: number;
       b: number;
+    };
+
+    export type KibitzerUpdate = {
+      type: "kibitzerUpdate";
+      info: kibitzer_history_log;
     };
   }
 }

@@ -1,0 +1,92 @@
+.ccc-custom-schedule-btn {
+  position: fixed;
+
+  bottom: 5%;
+  left: 20%;
+
+  z-index: 9999;
+
+  padding: 10px 20px;
+
+  font-size: 20px;
+
+  background-color: rgb(79, 167, 79);
+
+  color: white;
+
+  border: none;
+}
+
+.ccc-custom-schedule-content:is(.ccc-custom-schedule-content) {
+  position: fixed;
+
+  top: 20px;
+  left: 40%;
+
+  display: grid;
+
+  width: 420px;
+  height: 400px;
+
+  overflow-y: scroll;
+  scrollbar-color: unset;
+
+  background-color: black;
+}
+
+.ccc-custom-schedule-row {
+  display: grid;
+  grid-template-columns: 5ch 30px 1fr 1fr 1fr 30px;
+  grid-auto-flow: column;
+
+  contain: strict;
+
+  align-items: center;
+
+  height: 34px;
+  width: 100%;
+  /* border-bottom: 1px solid rgba(255, 255, 255, 0.1); */
+  outline: 1px solid rgba(255, 255, 255, 0.1);
+
+  padding-inline: 4px;
+
+  background-color: #262522;
+
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    Helvetica, Arial, sans-serif;
+  color: hsla(0, 0%, 100%, 0.72);
+  font-size: 1.2rem;
+  text-overflow: ellipsis;
+}
+
+.ccc-custom-schedule-row:nth-child(4n + 1),
+.ccc-custom-schedule-row:nth-child(4n + 2) {
+  background-color: #1b1a18;
+}
+
+.ccc-custom-schedule-row div:first-child {
+  text-align: center;
+  padding-right: 4px;
+}
+
+.ccc-custom-schedule-row > div {
+  white-space: pre;
+}
+
+.ccc-custom-schedule-row > img {
+  width: 30px;
+  height: 30px;
+}
+
+/* todo move to other .css file */
+.ccc-display-none {
+  visibility: hidden;
+
+  z-index: -9999;
+  pointer-events: none;
+}
+
+/* todo delete later */
+.cpu-champs-page-graph {
+  pointer-events: none !important;
+}

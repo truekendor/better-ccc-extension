@@ -36,18 +36,43 @@
   --ccc-loss: #fa412d;
   --ccc-win: #81b64c;
 
+  position: relative;
+
   background-color: #262421;
 
   max-width: 90%;
   max-height: 95%;
 
   padding: 15px;
+  padding-top: 40px;
 
   border-radius: 5px;
 
   overflow-x: auto;
 
+  isolation: isolate;
+
   font-size: 0.8em;
+}
+
+.ccc-options-wrapper_dev {
+  position: absolute;
+  top: 10px;
+  left: 0;
+
+  display: grid;
+  align-items: center;
+  grid-template-columns: repeat(4, auto);
+
+  gap: 1.3rem;
+
+  height: var(--ccc-modal-pd-top);
+
+  margin-inline-start: 3rem;
+
+  color: rgb(199, 199, 199);
+
+  max-width: 500px;
 }
 
 table._dev_modal-table {
@@ -73,7 +98,7 @@ table._dev_modal-table {
   width: 100%;
 }
 
-._dev_modal-row:nth-child(2n) {
+._dev_modal-row:nth-child(2n + 1) {
   background-color: #1e1d1a;
 }
 
@@ -105,7 +130,7 @@ table._dev_modal-table {
   display: grid;
   grid-auto-flow: column;
 
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(4, auto);
 
   gap: 4px;
 
@@ -134,15 +159,23 @@ table._dev_modal-table {
 ._dev_modal-results-grid {
   display: grid;
   justify-content: center;
-  grid-auto-flow: column;
+  grid-auto-flow: row;
 
   grid-template-columns: repeat(
     var(--custom-column-amount, var(--column-amount)),
     minmax(1.6rem, 1fr)
   );
+  grid-template-rows: auto;
+
+  width: 100%;
   min-width: 100% !important;
 }
 
 ._dev_modal-results-grid > div {
-  padding: 3px;
+  padding: 0px 3px;
+
+  width: 100%;
+
+  grid-column: span 1;
+  grid-row: span 1;
 }

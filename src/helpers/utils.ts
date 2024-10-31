@@ -14,6 +14,13 @@ class Utils {
     pBlue: "blue",
   } as const;
 
+  private static incClosure = (function () {
+    let i = 0;
+    return () => {
+      return i++;
+    };
+  })();
+
   /** removes all whitespaces from the string */
   public static removeWhitespace(str: string): string {
     return str.replace(/\s/g, "");
@@ -92,6 +99,11 @@ class Utils {
     }
 
     return result;
+  }
+
+  public static intId() {
+    const number = this.incClosure();
+    return number;
   }
 }
 

@@ -105,6 +105,17 @@ class ExtensionHelper {
           .get(Object.keys(UserSettings.customSettings))
           .catch(Utils.logError) as Promise<Prettify<user_config.settings>>;
       },
+
+      switchBoolUserState: function (field: BooleanKeys<user_config.settings>) {
+        UserSettings.customSettings[field] =
+          !UserSettings.customSettings[field];
+
+        return browserPrefix?.storage.local
+          .set({
+            [field]: UserSettings.customSettings[field],
+          })
+          .catch(Utils.logError);
+      },
     } as const;
 
     return localStorageMethods;
@@ -126,9 +137,6 @@ class ExtensionHelper {
           fixClockSVG();
         }
         break;
-      case "allowKeyboardShortcuts":
-        toggleAllowKeyboardShortcuts();
-        break;
       case "showCapturedPieces":
         this.handleShowCapturedPieces();
         break;
@@ -146,6 +154,7 @@ class ExtensionHelper {
       case "allowNetworkGameRequest":
       case "elo":
       case "ptnml":
+      case "allowKeyboardShortcuts":
         break;
       case "clearQueryStringOnCurrentGame":
         this.handleClearURLHash();

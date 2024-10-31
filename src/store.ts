@@ -154,9 +154,19 @@ class UserSettings {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class _dev_EventState {
-  static state: chess_com.full_event_response;
+  // todo check if prev event and event that we're
+  // todo currently getting are the same
+  // todod check for event slug each time?
+  static olderEvent: chess_com.full_event_response | null = null;
+
+  // for websocket events
+  static ongoingEventState: chess_com.full_event_response | null = null;
+
+  // todo ideally this will be the only public state
+  // todo other two will be private
+  static currentEvent: chess_com.full_event_response | null = null;
 
   static update(state: chess_com.full_event_response) {
-    this.state = state;
+    this.currentEvent = state;
   }
 }

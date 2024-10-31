@@ -91,15 +91,14 @@ async function loadUserSettings(): Promise<void> {
     ExtensionHelper.messages.sendReady();
   }
 
-  ExtensionHelper.localStorage
+  const p1 = ExtensionHelper.localStorage
     .getState(["crosstablePairStyle"])
     .then((result) => {
       UserSettings.customSettings.crosstablePairStyle =
         result.crosstablePairStyle;
     });
 
-  // todo move to that one Promise.all
-  ExtensionHelper.localStorage
+  const p2 = ExtensionHelper.localStorage
     .getState(["pairsPerRow", "pairsPerRowDuel"])
     .then((result) => {
       UserSettings.customSettings.pairsPerRow =
@@ -107,7 +106,11 @@ async function loadUserSettings(): Promise<void> {
 
       UserSettings.customSettings.pairsPerRowDuel =
         result.pairsPerRowDuel ?? UserSettings.defaultSettings.pairsPerRowDuel;
+
+      applyPairsPerRowSetting();
     });
+
+  await Promise.all([p1, p2]);
 }
 
 // todo move to some state/storage
@@ -122,7 +125,7 @@ function convertCrossTable(): void {
   try {
     enginesAmount = document.querySelectorAll(".crosstable-empty").length || 0;
 
-    applyStylesToGrid();
+    applyPairsPerRowSetting();
 
     const optionsWrapper = document.querySelector(".ccc-options-wrapper");
     if (!optionsWrapper) {
@@ -340,6 +343,7 @@ function observeModalOpen(): void {
 }
 
 // handles creation of switch inputs for custom crosstable stats
+// todo rename
 function createOptionInputs(): void {
   const crossTableModal: HTMLDivElement | null = document.querySelector(
     ".modal-vue-modal-content"
@@ -357,16 +361,21 @@ function createOptionInputs(): void {
   const pairsPerRowForm = components.CrossTable.crPairsPerRowForm();
 
   // * create switches
-  const eloLabel = components.CrossTable.crSettingsSwitch("WDL + Elo", "elo");
-  const ptnmlLabel = components.CrossTable.crSettingsSwitch("Ptnml", "ptnml");
+  const eloLabel = components.CrossTable.crSettingsSwitch(
+    "WDL + Elo",
+    "elo",
+    true
+  );
+  const ptnmlLabel = components.CrossTable.crSettingsSwitch(
+    "Ptnml",
+    "ptnml",
+    true
+  );
 
   const extensionSettingsBtn =
     components.ExtensionSettings.crExtensionSettingsBtn();
 
   wrapper.append(pairsPerRowForm, eloLabel, ptnmlLabel, extensionSettingsBtn);
-
-  handleLabelListeners(eloLabel);
-  handleLabelListeners(ptnmlLabel);
 
   crossTableModal.insertBefore(wrapper, closeBtn);
 }
@@ -380,7 +389,7 @@ function addClassToCrossTableCell(crossTableCell: HTMLDivElement): void {
   }
 }
 
-function applyStylesToGrid(): void {
+function applyPairsPerRowSetting(): void {
   const rows = getPairsPerRowAmount();
 
   document.body.style.setProperty(
@@ -411,7 +420,8 @@ function keydownHandler(e: KeyboardEvent): void {
   if (e.code === "KeyU" && e.shiftKey && e.ctrlKey) {
     UserSettings.customSettings.allowKeyboardShortcuts =
       !UserSettings.customSettings.allowKeyboardShortcuts;
-    toggleAllowKeyboardShortcuts();
+
+    ExtensionHelper.localStorage.switchBoolUserState("allowKeyboardShortcuts");
 
     return;
   }
@@ -569,23 +579,6 @@ function openCrossTableHandler(): void {
   }
 }
 
-function handleSwitchEvent(field: BooleanKeys<user_config.settings>): void {
-  UserSettings.customSettings[field] = !UserSettings.customSettings[field];
-
-  convertCrossTable();
-
-  ExtensionHelper.localStorage.setState({
-    [field]: UserSettings.customSettings[field],
-  });
-}
-
-function toggleAllowKeyboardShortcuts(): void {
-  const { allowKeyboardShortcuts } = UserSettings.customSettings;
-  ExtensionHelper.localStorage.setState({ allowKeyboardShortcuts });
-
-  UserSettings.customSettings.allowKeyboardShortcuts = allowKeyboardShortcuts;
-}
-
 observeScheduleClick();
 function observeScheduleClick(): void {
   // container with schedule entries
@@ -630,23 +623,6 @@ function createScheduleLinks(): void {
   });
 }
 
-function handleLabelListeners(label: HTMLLabelElement): void {
-  const attr = label.getAttribute(
-    "data-name"
-  ) as BooleanKeys<user_config.settings>;
-
-  label.addEventListener("change", () => {
-    handleSwitchEvent(attr);
-  });
-
-  label.addEventListener("keydown", (e) => {
-    if (e.code !== "Enter") return;
-
-    label.querySelector("input")!.checked = !UserSettings.customSettings[attr];
-    handleSwitchEvent(attr);
-  });
-}
-
 _DOM_Store.scheduleBtn.addEventListener("click", () => {
   const scheduleContainer = _DOM_Store.bottomPanel.querySelector(
     ".schedule-container"
@@ -684,116 +660,10 @@ function scrollToCurrentGame(): void {
   }
 }
 
-_dev_createFastCrosstableBtn();
-function _dev_createFastCrosstableBtn() {
-  const btn = document.createElement("button");
-  btn.textContent = "dev crosstable";
+// todo
 
-  btn.classList.add("_dev_fast_crosstable-btn");
-
-  btn.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-
-    _dev_createFastModal();
-  });
-
-  document.body.append(btn);
-}
-
-function _dev_createFastModal() {
-  const modalBackdrop = components._dev_FastCrosstable.crModalBackdrop();
-  const modal = components._dev_FastCrosstable.crContentWrapper();
-  const table = components._dev_FastCrosstable.crTable();
-
-  const { crosstable } = _dev_EventState.state;
-  const { standings } = _dev_EventState.state.standings;
-
-  console.log("full crosstable", crosstable);
-  console.log("state", _dev_EventState.state);
-
-  const firstRow = components._dev_FastCrosstable.crRow();
-  firstRow.style.background = "#1E1D1A";
-
-  for (let i = 0; i < standings.length; i++) {
-    const cur = standings[i];
-
-    if (i === 0) {
-      const th1 = document.createElement("th");
-      th1.colSpan = 2;
-      const th2 = document.createElement("th");
-      th2.textContent = "Total";
-
-      firstRow.append(th1, th2);
-    }
-
-    const th = document.createElement("th");
-    th.textContent = `${i + 1} ${cur.name}`;
-
-    firstRow.append(th);
-  }
-
-  table.append(firstRow);
-
-  for (let i = 0; i < standings.length; i++) {
-    const engine = standings[i];
-    const headToHeadInfo = crosstable[engine.name];
-
-    const row = components._dev_FastCrosstable.crRow();
-
-    const rankCell = document.createElement("td");
-    rankCell.textContent = `${i + 1}`;
-
-    const engineNameCell = document.createElement("td");
-    engineNameCell.textContent = `${standings[i].name}`;
-
-    const scoreCell = document.createElement("td");
-    scoreCell.textContent = `${engine.score}`;
-
-    row.append(rankCell, engineNameCell, scoreCell);
-
-    for (let j = 0; j < standings.length; j++) {
-      const opponent = standings[j];
-      const col = components._dev_FastCrosstable.crHeadToHeadCell();
-
-      if (engine.engineid === opponent.engineid) {
-        // todo add an option to create an empty cell
-        col.classList.add("_dev_modal-empty");
-        row.append(col);
-
-        continue;
-      }
-
-      const colResultsWrapper =
-        components._dev_FastCrosstable.crHtHResultsWrapper();
-
-      const { results, margin, p1Score, p2Score } =
-        headToHeadInfo[opponent.name];
-
-      const scoreWrapper = components._dev_FastCrosstable.crHtHScoreWrapper(
-        p1Score,
-        p2Score,
-        margin
-      );
-
-      col.append(scoreWrapper, colResultsWrapper);
-
-      for (const result of results) {
-        const gameResult = document.createElement("div");
-        gameResult.textContent = result.r;
-
-        colResultsWrapper.append(gameResult);
-      }
-
-      row.append(col);
-    }
-
-    table.append(row);
-  }
-
-  modal.append(table);
-  modalBackdrop.append(modal);
-  document.body.append(modalBackdrop);
-}
+components.CustomCrosstable.crCustomCrosstableButton();
+components.CustomSchedule.crCustomScheduleBtn();
 
 function _dev_update_event_state(eventPayload: chess_com.full_event_response) {
   if (!eventPayload) {
@@ -825,3 +695,36 @@ browserPrefix.runtime.onMessage.addListener(function (
     console.log(e?.message);
   }
 });
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class _dev_CrosstableMethods {
+  static handleLabelListeners(label: HTMLLabelElement) {
+    const attr = label.getAttribute(
+      "data-name"
+    ) as BooleanKeys<user_config.settings>;
+
+    label.addEventListener("change", () => {
+      ExtensionHelper.localStorage.switchBoolUserState(attr);
+
+      convertCrossTable();
+    });
+
+    label.addEventListener("keydown", (e) => {
+      if (e.code !== "Enter") return;
+
+      label.querySelector("input")!.checked =
+        !UserSettings.customSettings[attr];
+      this.handleSwitchEvent(attr);
+    });
+  }
+
+  static handleSwitchEvent(field: BooleanKeys<user_config.settings>): void {
+    UserSettings.customSettings[field] = !UserSettings.customSettings[field];
+
+    convertCrossTable();
+
+    ExtensionHelper.localStorage.setState({
+      [field]: UserSettings.customSettings[field],
+    });
+  }
+}

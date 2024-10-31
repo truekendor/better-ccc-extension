@@ -32,7 +32,7 @@ class DebugPanel {
   }
 
   // * init panel
-  static init() {
+  static create() {
     this.crCollapseDebugPanelBtn();
     this.crDebugPanel();
   }
@@ -68,11 +68,12 @@ class DebugPanel {
       // this.panelButtons.crNextMoveBtn(),
       // this.panelButtons.crBookMovesBtn(),
       // this.panelButtons.crCalcTranspositionsBtn(),
+      this.crDisconnectWSBtn(),
       this.panelButtons.crConsoleLogBtn(),
       this.crPageLogsBtn()
     );
 
-    this.debugPanel.append(this.pingElement);
+    // this.debugPanel.append(this.pingElement);
     this.pingElement.classList.add("_dev_ping_elem");
 
     document.body.appendChild(this.debugPanel);
@@ -103,6 +104,24 @@ class DebugPanel {
         this.logsHistoryContainer.append(this.showChessCacheInHistoryLogs());
       }
     });
+
+    return btn;
+  }
+
+  private static crDisconnectWSBtn() {
+    const btn = document.createElement("button");
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+
+      new ExtensionMessage({
+        type: "_dev_disconnect_socket",
+        payload: null,
+      }).sendToBg();
+
+      return false;
+    });
+
+    btn.textContent = "Disconnect WS";
 
     return btn;
   }
@@ -245,7 +264,7 @@ class DebugPanel {
 
       static crConsoleLogBtn(): HTMLButtonElement {
         const btn = document.createElement("button");
-        btn.textContent = "click";
+        btn.textContent = "Log chess cache state";
 
         btn.classList.add("_dev-log-btn");
 

@@ -15,6 +15,10 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
   try {
     const { type, payload } = message;
 
+    if (type === "_dev_disconnect_socket") {
+      CustomWebSocket.disconnect();
+    }
+
     if (type === "remove_query") {
       _bg_browserPrefix.tabs.query({ currentWindow: true, active: true });
       getCurrentTab().then((tab) => {
@@ -371,12 +375,39 @@ class CustomWebSocket {
     try {
       console.log("Connecting to websocket");
 
+      this.websocket.close();
+
       this.websocket = new WebSocket(this.wsURL);
 
       this.websocket.onmessage = this.messageHandler;
       this.websocket.onclose = this.connect;
     } catch (e) {
       console.log("error: ", e);
+    }
+  }
+
+  static send(message: Record<string, string>) {
+    try {
+      this.websocket.send(JSON.stringify(message));
+    } catch (e) {
+      console.log("error sending message: ", e);
+    }
+  }
+
+  static disconnect() {
+    try {
+      this.websocket.close();
+    } catch (e) {
+      console.log("error: ", e);
+    }
+  }
+
+  // todo implement
+  static pingServer() {
+    try {
+      //
+    } catch (error) {
+      console.log(error);
     }
   }
 

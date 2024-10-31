@@ -78,7 +78,7 @@ declare namespace user_config {
     pairsPerRowDuel: number | "";
     displayEngineNames: boolean;
 
-    crosstablePairStyle: "ccc-faded" | "ccc-default" | "ccc-bleached";
+    crosstablePairStyle: "ccc-faded" | "ccc-default" | "ccc-light";
     // deviation highlight rules
     highlightReverseDeviation: boolean;
     allowNetworkGameRequest: boolean;

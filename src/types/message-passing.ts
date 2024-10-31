@@ -11,6 +11,7 @@ namespace message_pass {
     | "response_tb_mainline"
     | "remove_query"
     | "response_interceptor"
+    | "_dev_disconnect_socket"
     | "websocket_full_event_update";
 
   export type message =
@@ -24,6 +25,7 @@ namespace message_pass {
     | TBResponseMainline
     | RemoveTabQuery
     | DebugMessage
+    | DisconnectSocket
     | WebsocketEventFullUpdate;
 
   type RuntimeMessageBuilder<
@@ -33,6 +35,8 @@ namespace message_pass {
     type: T;
     payload: P;
   };
+
+  type DisconnectSocket = RuntimeMessageBuilder<"_dev_disconnect_socket", null>;
 
   type EventData = RuntimeMessageBuilder<
     "event_data",

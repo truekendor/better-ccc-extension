@@ -218,15 +218,8 @@ result table section
   color: var(--ccc-color) !important;
 }
 
-[data-style="ccc-bleached"]
-  #ccc-result:not(.ccc-loss, .ccc-win, .ccc-double-loss, .ccc-double-win) {
-  color: var(--nonexistent-placeholder-variable) !important;
-}
-
 [data-style="ccc-default"] #ccc-result {
-  /* color: ; */
-  width: 100%;
-  max-width: 100%;
+  /* color: var(--ccc-color, currentColor) !important; */
 }
 
 .ccc-border-left {
@@ -278,6 +271,10 @@ pair highlight
   background-color: var(--double-win-bg);
 }
 
+[data-style="ccc-default"] #ccc-result.ccc-double-win.win {
+  color: var(--ccc-double-win-font-color) !important;
+}
+
 .ccc-win {
   background-color: var(--won-bg);
 }
@@ -298,6 +295,10 @@ pair highlight
   --ccc-color: var(--ccc-double-loss-font-color);
 
   background-color: var(--double-loss-bg);
+}
+
+[data-style="ccc-default"] #ccc-result.ccc-double-loss.loss {
+  color: var(--ccc-double-loss-font-color) !important;
 }
 
 .ccc-draw {
