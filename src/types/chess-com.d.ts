@@ -47,6 +47,10 @@ declare namespace chess_com {
    * wss://cccc.chess.com/archive?event=ccc21-rapid-semifinals
    */
   export type full_event_response = {
+    /**
+     * only for websocket game response
+     */
+    newGame?: boolean;
     type: "fullUpdate";
     pgn: string;
     info: InfoEntry[];
