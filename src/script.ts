@@ -107,6 +107,8 @@ async function loadUserSettings(): Promise<void> {
       UserSettings.customSettings.pairsPerRowDuel =
         result.pairsPerRowDuel ?? UserSettings.defaultSettings.pairsPerRowDuel;
 
+      // todo not reliable cause cols amount is dependant on
+      // todo amount of engine participants
       applyPairsPerRowSetting();
     });
 
@@ -676,21 +678,28 @@ function _dev_update_event_state(eventPayload: chess_com.full_event_response) {
   const btn = document.querySelector("._dev_fast_crosstable-btn")!;
   btn.classList.add("_dev_ready");
 
-  _dev_EventState.update(eventPayload);
+  _dev_EventState.updateWSSEvent(eventPayload);
 }
 
 browserPrefix.runtime.onMessage.addListener(function (
-  message: message_pass.message
+  message: message_pass.BgToContent.message
   // sender,
   // senderResponse
 ) {
   try {
     const { type, payload } = message;
 
-    if (type === "websocket_full_event_update") {
+    console.log("message: ", message);
+
+    if (type === "full_event_response-wss") {
       _dev_update_event_state(payload);
-      return false;
+    } else if (type === "full_event_response-https") {
+      console.log("hello there");
+      console.log(payload);
+      _dev_EventState.updateHTTPSEvent(payload);
     }
+
+    return false;
   } catch (e: any) {
     console.log(e?.message);
   }

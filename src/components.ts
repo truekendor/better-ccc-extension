@@ -857,7 +857,15 @@ namespace components {
       btn.addEventListener("pointerdown", (e) => {
         e.stopPropagation();
 
-        this.crCustomCrosstable();
+        const existingCrosstable = document.querySelector(
+          `.${this.cssClasses.backdrop}`
+        );
+
+        if (existingCrosstable) {
+          document.body.removeChild(existingCrosstable);
+        } else {
+          this.crCustomCrosstable();
+        }
       });
 
       document.body.append(btn);
@@ -894,15 +902,17 @@ namespace components {
       const modal = this.crContentWrapper();
       const table = this.crTable();
 
-      if (!_dev_EventState?.currentEvent) {
+      const currentEvent = _dev_EventState.getCurrentEvent();
+
+      if (!currentEvent) {
         return;
       }
 
-      const { crosstable } = _dev_EventState.currentEvent;
-      const { standings } = _dev_EventState.currentEvent.standings;
+      const { crosstable } = currentEvent;
+      const { standings } = currentEvent.standings;
 
       console.log("full crosstable", crosstable);
-      console.log("state", _dev_EventState.currentEvent);
+      console.log("state", currentEvent);
 
       const firstRow = this.crRow();
       firstRow.style.background = "#1E1D1A";
@@ -1106,7 +1116,9 @@ namespace components {
           document.body.appendChild(this.crScheduleModal());
           return;
         } else {
+          console.time("remove schedule");
           document.body.removeChild(existingModal);
+          console.timeEnd("remove schedule");
 
           return;
         }
@@ -1121,14 +1133,12 @@ namespace components {
       const content = document.createElement("div");
       content.classList.add(this.cssClasses.content);
 
-      if (
-        !_dev_EventState?.currentEvent ||
-        !("schedule" in _dev_EventState.currentEvent)
-      ) {
+      const currentEvent = _dev_EventState.getCurrentEvent();
+      if (!currentEvent || !("schedule" in currentEvent)) {
         return content;
       }
 
-      const { schedule, players } = _dev_EventState.currentEvent;
+      const { schedule, players } = currentEvent;
 
       const currentGameNumber = this.binarySearchCurrentGame(schedule);
 
@@ -1162,8 +1172,8 @@ namespace components {
 
     private static crRow(
       gameNumber: number,
-      p1Name: string,
-      p2Name: string,
+      p1Name: string | undefined,
+      p2Name: string | undefined,
       scheduleEntry: chess_com.schedule_entry
     ) {
       const wrapper = document.createElement("div");
@@ -1173,13 +1183,13 @@ namespace components {
       gameNumberEl.textContent = `${gameNumber}`;
 
       const engineName1 = document.createElement("div");
-      engineName1.textContent = p1Name;
+      engineName1.textContent = p1Name || "";
 
       const engineName2 = document.createElement("div");
-      engineName2.textContent = p2Name;
+      engineName2.textContent = p2Name || "";
 
-      const engineLogoElem1 = this.createEngineLogo(p1Name);
-      const engineLogoElem2 = this.createEngineLogo(p2Name);
+      const engineLogoElem1 = this.createEngineLogo(p1Name || "");
+      const engineLogoElem2 = this.createEngineLogo(p2Name || "");
 
       const isEnded = "id" in scheduleEntry;
       const isGameOngoing = "inProgress" in scheduleEntry;
@@ -1209,8 +1219,8 @@ namespace components {
     private static crSimpleRow(
       gameNumber: number,
       currentGameNumber: number,
-      p1Name: string,
-      p2Name: string
+      p1Name: string | undefined,
+      p2Name: string | undefined
     ) {
       const wrapper = document.createElement("div");
 
@@ -1218,10 +1228,10 @@ namespace components {
       gameNumberEl.textContent = `${gameNumber}`;
 
       const engineName1 = document.createElement("div");
-      engineName1.textContent = p1Name;
+      engineName1.textContent = p1Name || "";
 
       const engineName2 = document.createElement("div");
-      engineName2.textContent = p2Name;
+      engineName2.textContent = p2Name || "";
 
       const engineLogoElem1 = document.createElement("img");
       this.getLogoLink(p1Name);
@@ -1247,7 +1257,7 @@ namespace components {
       return wrapper;
     }
 
-    private static createEngineLogo(engineName: string) {
+    private static createEngineLogo(engineName: string | undefined) {
       const engineLogo = document.createElement("img");
       engineLogo.src = this.getLogoLink(engineName);
       engineLogo.alt = `${engineName} engine`;
@@ -1255,8 +1265,10 @@ namespace components {
       return engineLogo;
     }
 
-    private static getLogoLink(engineName: string) {
-      return `https://images.chesscomfiles.com/chess-themes/computer_chess_championship/avatars/sm_${engineName.toLowerCase()}.png`;
+    private static getLogoLink(engineName: string | undefined) {
+      return engineName === undefined
+        ? ""
+        : `https://images.chesscomfiles.com/chess-themes/computer_chess_championship/avatars/sm_${engineName.toLowerCase()}.png`;
     }
 
     /**

@@ -32,6 +32,10 @@
   scrollbar-color: unset;
 
   background-color: black;
+
+  /* todo remove or add custom property  */
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 42432px;
 }
 
 .ccc-custom-schedule-row {

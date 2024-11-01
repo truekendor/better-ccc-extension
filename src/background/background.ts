@@ -8,7 +8,7 @@
 const _bg_browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
 _bg_browserPrefix.runtime.onMessage.addListener(function (
-  message: message_pass.message
+  message: message_pass.ContentToBg.message
   // sender,
   // senderResponse
 ) {
@@ -76,7 +76,7 @@ _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
 
     const { event, game } = URLHelper.getEventAndGame(tab);
 
-    const message: message_pass.message = {
+    const message: message_pass.BgToContent.message = {
       type: "tab_update",
       payload: {
         event,
@@ -118,7 +118,7 @@ async function onLoadHandler(): Promise<false | undefined> {
 
     const { event, game } = URLHelper.getEventAndGame(tab);
 
-    const message: message_pass.message = {
+    const message: message_pass.BgToContent.message = {
       type: "tab_update",
       payload: {
         event,
@@ -128,22 +128,38 @@ async function onLoadHandler(): Promise<false | undefined> {
 
     _sendMessageToContent(message);
 
+    if (event) {
+      console.log("event name: ", event);
+
+      const fullEventResponse = await fetch(
+        `https://cccc.chess.com/archive?event=${event}`
+      );
+
+      const httpsEventData =
+        (await fullEventResponse.json()) as chess_com.full_event_response;
+
+      _sendMessageToContent({
+        type: "full_event_response-https",
+        payload: httpsEventData,
+      });
+    }
+
     if (game && event) {
       const reverseGameNumber = game % 2 === 1 ? game + 1 : game - 1;
 
       const urlToFetch = URLHelper.getArchiveGameURL(event, reverseGameNumber);
-      const data = await fetch(urlToFetch);
-      const response = (await data.json()) as chess_com.game_response;
+      const response = await fetch(urlToFetch);
+      const data = (await response.json()) as chess_com.game_response;
 
-      if (!response) {
+      if (!data) {
         console.log("game request error:: game not found");
         return false;
       }
 
-      const message: message_pass.message = {
+      const message: message_pass.BgToContent.message = {
         type: "reverse_pgn_response",
         payload: {
-          pgn: getMovesFromPgn(response.pgn),
+          pgn: getMovesFromPgn(data.pgn),
           reverseGameNumber,
           gameNumber: game,
           eventId: event,
@@ -178,7 +194,7 @@ async function _bg_requestReverseGame(
 
   const pgnArray = getMovesFromPgn(result.pgn);
 
-  const message: message_pass.message = {
+  const message: message_pass.BgToContent.message = {
     type: "reverse_pgn_response",
     payload: {
       gameNumber,
@@ -351,7 +367,7 @@ class TB7Score {
  * sends a message to the content scripts
  */
 async function _sendMessageToContent(
-  message: message_pass.message
+  message: message_pass.BgToContent.message
 ): Promise<any> {
   try {
     const tab = await getCurrentTab();
@@ -417,13 +433,14 @@ class CustomWebSocket {
         | chess_com.full_event_response
         | chess_com.ws_twitch_update;
 
-      console.log(data);
+      if (data?.type === "fullUpdate") {
+        console.log(data);
 
-      if (data?.type === "fullUpdate")
         _sendMessageToContent({
-          type: "websocket_full_event_update",
+          type: "full_event_response-wss",
           payload: data,
         });
+      }
     } catch (e) {
       console.log("error parsing WS message: ", e);
     }

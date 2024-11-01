@@ -2,7 +2,7 @@
 class ExtensionHelper {
   // todo rewrite
   private static messageMethods = {
-    sendMessage: (message: message_pass.message) => {
+    sendMessage: (message: message_pass.ContentToBg.message) => {
       try {
         // @ts-expect-error incompatible browser return types
         browserPrefix.runtime.sendMessage(message);
@@ -14,7 +14,7 @@ class ExtensionHelper {
 
     /** sends ready to BG script on document load */
     sendReady: () => {
-      const message: message_pass.message = {
+      const message: message_pass.ContentToBg.message = {
         type: "onload",
         payload: {
           doRequest: !ExtractPageData.isMobile,
@@ -344,9 +344,9 @@ class ExtensionHelper {
 }
 
 class ExtensionMessage {
-  private message: message_pass.message;
+  private message: message_pass.ContentToBg.message;
 
-  constructor(message: message_pass.message) {
+  constructor(message: message_pass.ContentToBg.message) {
     this.message = message;
   }
 

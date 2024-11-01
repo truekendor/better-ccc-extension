@@ -11,7 +11,9 @@ ChessGameObservers.observeAll();
 // *
 
 class OnMessageHandlers {
-  static async tabUpdateHandler(message: message_pass.message): Promise<void> {
+  static async tabUpdateHandler(
+    message: message_pass.BgToContent.message
+  ): Promise<void> {
     if (
       !UserSettings.customSettings.highlightReverseDeviation ||
       message.type !== "tab_update"
@@ -58,7 +60,7 @@ class OnMessageHandlers {
     });
   }
 
-  static pgnResponseHandler(message: message_pass.message): void {
+  static pgnResponseHandler(message: message_pass.BgToContent.message): void {
     if (
       !UserSettings.customSettings.highlightReverseDeviation ||
       message.type !== "reverse_pgn_response"
@@ -96,7 +98,7 @@ class OnMessageHandlers {
 }
 
 browserPrefix.runtime.onMessage.addListener(function (
-  message: message_pass.message
+  message: message_pass.BgToContent.message
   // sender,
   // senderResponse
 ) {

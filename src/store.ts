@@ -154,19 +154,33 @@ class UserSettings {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class _dev_EventState {
-  // todo check if prev event and event that we're
-  // todo currently getting are the same
-  // todod check for event slug each time?
-  static olderEvent: chess_com.full_event_response | null = null;
+  // websocket event state
+  private static wssEventState: chess_com.full_event_response | null = null;
+  // https event state. For older events
+  private static httpsEventState: chess_com.full_event_response | null = null;
 
-  // for websocket events
-  static ongoingEventState: chess_com.full_event_response | null = null;
+  static updateWSSEvent(state: chess_com.full_event_response) {
+    this.wssEventState = state;
+  }
 
-  // todo ideally this will be the only public state
-  // todo other two will be private
-  static currentEvent: chess_com.full_event_response | null = null;
+  static updateHTTPSEvent(state: chess_com.full_event_response) {
+    this.httpsEventState = state;
+  }
 
-  static update(state: chess_com.full_event_response) {
-    this.currentEvent = state;
+  static getCurrentEvent() {
+    const event =
+      _State.eventId === this.httpsEventState?.eventSlug
+        ? this.httpsEventState
+        : this.wssEventState;
+
+    // todo delete
+    console.log(
+      "state: ",
+      _State.eventId,
+      this.httpsEventState,
+      this.wssEventState
+    );
+
+    return event;
   }
 }
