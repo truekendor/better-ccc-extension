@@ -17,7 +17,9 @@ const formatter = Intl.NumberFormat(undefined, {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
 
-loadUserSettings().catch(Utils.logError);
+loadUserSettings().catch((err) => {
+  console.log("error loading user state: ", err);
+});
 async function loadUserSettings(): Promise<void> {
   await ExtensionHelper.localStorage
     .getState([
@@ -68,7 +70,9 @@ async function loadUserSettings(): Promise<void> {
         });
       });
     })
-    .catch(Utils.logError);
+    .catch((err) => {
+      console.log("error loading bool state", err);
+    });
 
   const keys = Utils.objectKeys(UserSettings.customSettings);
   keys.forEach((key) => {
@@ -158,8 +162,9 @@ function convertCrossTable(): void {
     engineImages.push(...Array.from(images ?? []));
 
     activeCells.forEach(convertCell);
-  } catch (e: unknown) {
-    Utils.logError(e);
+  } catch (err: unknown) {
+    // @ts-ignore
+    console.log(`error ${this?.name}`, err);
   }
 }
 
@@ -253,7 +258,7 @@ function convertCell(cell: HTMLTableCellElement): void {
   const eloAction = !UserSettings.customSettings["elo"] ? "add" : "remove";
 
   if (!ptnmlElement) {
-    const ptnmlWrapper = components.CrossTable.crPTNMLStat(ptnml);
+    const ptnmlWrapper = components.CrossTable.crPTNMLStatElement(ptnml);
     cellHeader.append(ptnmlWrapper);
     ptnmlWrapper.classList[ptnmlAction]("ccc-display-none");
   } else {
@@ -261,7 +266,7 @@ function convertCell(cell: HTMLTableCellElement): void {
   }
 
   if (!eloWdlElement) {
-    const eloWdlWrapper = components.CrossTable.crWDLStat(wdlArray);
+    const eloWdlWrapper = components.CrossTable.crWDLEloStatElement(wdlArray);
 
     cellHeader.append(eloWdlWrapper);
     eloWdlWrapper.classList[eloAction]("ccc-display-none");
@@ -313,8 +318,9 @@ function observeInitial(): void {
       childList: true,
       subtree: true,
     });
-  } catch (e: unknown) {
-    Utils.logError(e);
+  } catch (err: unknown) {
+    // @ts-ignore
+    console.log(`Error::${this?.name}`, err);
   }
 }
 
@@ -576,8 +582,9 @@ function openCrossTableHandler(): void {
     );
 
     convertCrossTable();
-  } catch (e: unknown) {
-    Utils.logError(e);
+  } catch (err: unknown) {
+    // @ts-ignore
+    console.log(`Error:${this?.name}`);
   }
 }
 
@@ -664,8 +671,8 @@ function scrollToCurrentGame(): void {
 
 // todo
 
-components.CustomCrosstable.crCustomCrosstableButton();
-components.CustomSchedule.crCustomScheduleBtn();
+CustomCrosstable.crCustomCrosstableButton();
+CustomSchedule.crCustomScheduleBtn();
 
 function _dev_update_event_state(eventPayload: chess_com.full_event_response) {
   if (!eventPayload) {

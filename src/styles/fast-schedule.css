@@ -17,6 +17,9 @@
   border: none;
 }
 
+/**
+* this selector to boost specificity 
+*/
 .ccc-custom-schedule-content:is(.ccc-custom-schedule-content) {
   position: fixed;
 
@@ -34,8 +37,18 @@
   background-color: black;
 
   /* todo remove or add custom property  */
+  gap: 10px;
   content-visibility: auto;
   contain-intrinsic-size: 1px 42432px;
+}
+
+.ccc-custom-schedule-content .ccc-custom-schedule_virtual-wrapper {
+  display: grid;
+
+  width: 100%;
+
+  outline: 1px solid red;
+  padding-inline: 4px;
 }
 
 .ccc-custom-schedule-row {

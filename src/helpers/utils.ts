@@ -30,10 +30,6 @@ class Utils {
     return Object.keys(obj) as Array<keyof T>;
   }
 
-  public static logError(e: any): void {
-    console.log(e?.message ?? e);
-  }
-
   public static log(
     message: string | number,
     color: keyof typeof this.colorMap

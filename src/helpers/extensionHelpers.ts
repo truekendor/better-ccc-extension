@@ -6,8 +6,8 @@ class ExtensionHelper {
       try {
         // @ts-expect-error incompatible browser return types
         browserPrefix.runtime.sendMessage(message);
-      } catch (e) {
-        Utils.logError(e);
+      } catch (err) {
+        console.log("error: ", err);
       }
       return false;
     },
@@ -24,8 +24,8 @@ class ExtensionHelper {
       try {
         // @ts-expect-error some cross browser error idc
         browserPrefix.runtime.sendMessage(message);
-      } catch (e) {
-        Utils.logError(e);
+      } catch (err) {
+        console.log(err);
       }
 
       return false;
@@ -89,21 +89,23 @@ class ExtensionHelper {
   static get localStorage() {
     const localStorageMethods = {
       getState: function <T extends keyof user_config.settings>(keys: T | T[]) {
-        return browserPrefix?.storage?.local
-          .get(keys)
-          .catch(Utils.logError) as Promise<
-          Prettify<Pick<user_config.settings, T>>
-        >;
+        return browserPrefix?.storage?.local.get(keys).catch((err) => {
+          console.log("error: ", err);
+        }) as Promise<Prettify<Pick<user_config.settings, T>>>;
       },
 
       setState: function <T extends Partial<user_config.settings>>(obj: T) {
-        return browserPrefix?.storage?.local.set(obj).catch(Utils.logError);
+        return browserPrefix?.storage?.local
+          .set(obj)
+          .catch((err) => console.log(err));
       },
 
       getUserState: function () {
         return browserPrefix.storage.local
           .get(Object.keys(UserSettings.customSettings))
-          .catch(Utils.logError) as Promise<Prettify<user_config.settings>>;
+          .catch((err) => {
+            console.log("error: ", err);
+          }) as Promise<Prettify<user_config.settings>>;
       },
 
       switchBoolUserState: function (field: BooleanKeys<user_config.settings>) {
@@ -114,7 +116,7 @@ class ExtensionHelper {
           .set({
             [field]: UserSettings.customSettings[field],
           })
-          .catch(Utils.logError);
+          .catch((err) => console.log(err));
       },
     } as const;
 
@@ -356,8 +358,8 @@ class ExtensionMessage {
       browserPrefix.runtime.sendMessage(this.message) as Promise<unknown>;
 
       return false;
-    } catch (e) {
-      Utils.logError(e);
+    } catch (err) {
+      console.log(`Error: `, err);
     }
   }
 }
