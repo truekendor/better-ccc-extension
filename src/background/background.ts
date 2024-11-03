@@ -261,58 +261,6 @@ function parsePGNMoves(pgn: string): string[] {
 
 // todo add description
 class URLHelper {
-  // todo delete
-  // static getEventAndGameFromHashQuery(tab: Tab): {
-  //   event: string | null;
-  //   game: number | null;
-  // } {
-  //   const url = tab?.url;
-
-  //   // get "#" query params
-  //   const textAfterHash = url?.split("#")?.[1];
-
-  //   const eventAndGame: {
-  //     event: string | null;
-  //     game: number | null;
-  //   } = {
-  //     event: null,
-  //     game: null,
-  //   };
-
-  //   if (
-  //     !url ||
-  //     !url.includes("computer-chess-championship") ||
-  //     !textAfterHash
-  //   ) {
-  //     return eventAndGame;
-  //   }
-
-  //   const allHashQueries = textAfterHash?.split("&");
-  //   const queries = allHashQueries.map((query) => {
-  //     return query.split("=");
-  //   });
-
-  //   try {
-  //     queries.forEach((el) => {
-  //       if (el[0] === "event") {
-  //         if (!el[1]) throw new Error("Event name is empty");
-
-  //         eventAndGame.event = el[1];
-  //         return;
-  //       }
-  //       if (el[0] === "game") {
-  //         if (!el[1]) throw new Error("Game number is empty");
-
-  //         eventAndGame.game = parseInt(el[1]);
-  //       }
-  //     });
-  //   } catch (e: any) {
-  //     console.log(e?.message ?? e);
-  //   }
-
-  //   return eventAndGame;
-  // }
-
   static getEventAndGameFromURL(
     url: string | null | undefined,
     separator: "#" | "?"

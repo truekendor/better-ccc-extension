@@ -698,7 +698,6 @@ browserPrefix.runtime.onMessage.addListener(function (
     if (type === "full_event_response-wss") {
       _dev_update_event_state(payload);
     } else if (type === "full_event_response-https") {
-      console.log("hello there");
       console.log(payload);
       _dev_EventState.updateHTTPSEvent(payload);
     }
