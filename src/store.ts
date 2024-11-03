@@ -155,19 +155,22 @@ class UserSettings {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class _dev_EventState {
   // websocket event state
-  private static wssEventState: chess_com.full_event_response | null = null;
+  private static wssEventState: chess_com.wss_event_response | null = null;
   // https event state. For older events
-  private static httpsEventState: chess_com.full_event_response | null = null;
+  private static httpsEventState: chess_com.https_event_response | null = null;
 
   static updateWSSEvent(state: chess_com.full_event_response) {
     this.wssEventState = state;
   }
 
-  static updateHTTPSEvent(state: chess_com.full_event_response) {
+  static updateHTTPSEvent(state: chess_com.https_event_response) {
     this.httpsEventState = state;
   }
 
-  static getCurrentEvent() {
+  static getCurrentEvent():
+    | chess_com.wss_event_response
+    | chess_com.https_event_response
+    | null {
     const event =
       _State.eventId === this.httpsEventState?.eventSlug
         ? this.httpsEventState

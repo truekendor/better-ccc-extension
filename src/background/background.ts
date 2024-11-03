@@ -136,7 +136,7 @@ async function onLoadHandler(): Promise<false | undefined> {
       );
 
       const httpsEventData =
-        (await fullEventResponse.json()) as chess_com.full_event_response;
+        (await fullEventResponse.json()) as chess_com.https_event_response;
 
       _sendMessageToContent({
         type: "full_event_response-https",

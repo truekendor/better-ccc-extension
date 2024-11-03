@@ -104,12 +104,12 @@ namespace message_pass {
 
     type WebsocketEventFullUpdate = RuntimeMessageBuilder<
       "full_event_response-wss",
-      chess_com.full_event_response
+      chess_com.wss_event_response
     >;
 
     type FullEventResponseHTTPS = RuntimeMessageBuilder<
       "full_event_response-https",
-      chess_com.full_event_response
+      chess_com.https_event_response
     >;
 
     type TabUpdate = RuntimeMessageBuilder<

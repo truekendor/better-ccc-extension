@@ -39,18 +39,7 @@ declare namespace chess_com {
     kibitzerHistory: kibitzer_entry[];
   } | null;
 
-  /**
-   * Full event response type
-   *
-   * https://cccc.chess.com/archive?event=ccc21-rapid-semifinals
-   *
-   * wss://cccc.chess.com/archive?event=ccc21-rapid-semifinals
-   */
-  export type full_event_response = {
-    /**
-     * only for websocket game response
-     */
-    newGame?: boolean;
+  type full_event_response_base = {
     type: "fullUpdate";
     pgn: string;
     info: InfoEntry[];
@@ -69,7 +58,6 @@ declare namespace chess_com {
       b: number;
     };
     players: string[];
-    end: game_end_reason;
     /**
      * string with current event id
      * @example
@@ -92,6 +80,28 @@ declare namespace chess_com {
     voteLeaderboard: VoteLeaderboardEntry[];
     voteAccuracyLeaderboard: VoteLeaderboardEntry[];
   };
+
+  type wss_event_response = Prettify<
+    full_event_response_base & {
+      newGame?: boolean;
+    }
+  >;
+
+  type https_event_response = Prettify<
+    full_event_response_base & {
+      // only for archive events
+      end: game_end_reason;
+    }
+  >;
+
+  /**
+   * Full event response type
+   *
+   * https://cccc.chess.com/archive?event=ccc21-rapid-semifinals
+   *
+   * wss://cccc.chess.com/archive?event=ccc21-rapid-semifinals
+   */
+  export type full_event_response = https_event_response | wss_event_response;
 
   export type ws_twitch_update = {
     type: "twitchUpdate";
