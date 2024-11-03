@@ -10,6 +10,7 @@ class CustomCrosstable {
     scoreWrapper: "_dev_modal-score-wrapper",
     resultsGrid: "_dev_modal-results-grid",
     crosstableOptionsWrapper: "ccc-options-wrapper_dev",
+    gamePairWrapper: "ccc-custom-table_pair-wrapper",
   } as const;
 
   static crCustomCrosstableButton() {
@@ -154,11 +155,56 @@ class CustomCrosstable {
         );
         headToHeadCell.append(scoreWrapper, ptnmlEl, eloEl, colResultsWrapper);
 
-        for (const result of opponentMatches?.results || []) {
-          const gameResult = document.createElement("div");
-          gameResult.textContent = result.r;
+        // for (const result of opponentMatches?.results || []) {
+        //   const gameResult = document.createElement("div");
+        //   gameResult.textContent = result.r;
 
-          colResultsWrapper.append(gameResult);
+        //   colResultsWrapper.append(gameResult);
+        // }
+
+        if (opponentMatches?.results) {
+          const { results } = opponentMatches;
+          for (let i = 0; i < results.length; i += 2) {
+            const result1 = results[i];
+            const result2 = results[i + 1];
+
+            const gamePairElem = document.createElement("div");
+
+            const gameResult1 = document.createElement("div");
+            const gameResult2 = document.createElement("div");
+
+            gameResult1.textContent = result1.r;
+            gameResult2.textContent = result2?.r || "";
+
+            gamePairElem.append(gameResult1, gameResult2);
+
+            gamePairElem.classList.add(this.cssClasses.gamePairWrapper);
+
+            if (!result2) {
+              colResultsWrapper.append(gamePairElem);
+              break;
+            }
+
+            const scoreArr = this.getResultAsScore([
+              results[i],
+              results[i + 1],
+            ]);
+            const pairScore = scoreArr[0] + scoreArr[1];
+
+            if (pairScore === 2) {
+              gamePairElem.classList.add("ccc-double-win");
+            } else if (pairScore === 1) {
+              gamePairElem.classList.add("ccc-win");
+            } else if (pairScore === 0) {
+              gamePairElem.classList.add("ccc-draw");
+            } else if (pairScore === -1) {
+              gamePairElem.classList.add("ccc-loss");
+            } else {
+              gamePairElem.classList.add("ccc-double-loss");
+            }
+
+            colResultsWrapper.append(gamePairElem);
+          }
         }
 
         row.append(headToHeadCell);

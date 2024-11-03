@@ -679,9 +679,6 @@ function _dev_update_event_state(eventPayload: chess_com.full_event_response) {
     return;
   }
 
-  // todo delete
-  console.log("%cupdated", "color: red;");
-
   const btn = document.querySelector("._dev_fast_crosstable-btn")!;
   btn.classList.add("_dev_ready");
 

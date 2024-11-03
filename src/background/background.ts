@@ -24,7 +24,7 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
       getCurrentTab().then((tab) => {
         if (!tab || !tab.id || !tab.url) return;
 
-        const { event, game } = URLHelper.getEventAndGame(tab);
+        const { event, game } = URLHelper.getEventAndGameFromURL(tab?.url, "#");
 
         if (event && !game) {
           const replaceUrl = tab.url.replace(`event=${event}`, "");
@@ -74,7 +74,7 @@ _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
       return;
     }
 
-    const { event, game } = URLHelper.getEventAndGame(tab);
+    const { event, game } = URLHelper.getEventAndGameFromURL(tab?.url, "#");
 
     const message: message_pass.BgToContent.message = {
       type: "tab_update",
@@ -116,7 +116,7 @@ async function onLoadHandler(): Promise<false | undefined> {
       return false;
     }
 
-    const { event, game } = URLHelper.getEventAndGame(tab);
+    const { event, game } = URLHelper.getEventAndGameFromURL(tab?.url, "#");
 
     const message: message_pass.BgToContent.message = {
       type: "tab_update",
@@ -261,15 +261,65 @@ function parsePGNMoves(pgn: string): string[] {
 
 // todo add description
 class URLHelper {
-  static getEventAndGame(tab: Tab): {
+  // todo delete
+  // static getEventAndGameFromHashQuery(tab: Tab): {
+  //   event: string | null;
+  //   game: number | null;
+  // } {
+  //   const url = tab?.url;
+
+  //   // get "#" query params
+  //   const textAfterHash = url?.split("#")?.[1];
+
+  //   const eventAndGame: {
+  //     event: string | null;
+  //     game: number | null;
+  //   } = {
+  //     event: null,
+  //     game: null,
+  //   };
+
+  //   if (
+  //     !url ||
+  //     !url.includes("computer-chess-championship") ||
+  //     !textAfterHash
+  //   ) {
+  //     return eventAndGame;
+  //   }
+
+  //   const allHashQueries = textAfterHash?.split("&");
+  //   const queries = allHashQueries.map((query) => {
+  //     return query.split("=");
+  //   });
+
+  //   try {
+  //     queries.forEach((el) => {
+  //       if (el[0] === "event") {
+  //         if (!el[1]) throw new Error("Event name is empty");
+
+  //         eventAndGame.event = el[1];
+  //         return;
+  //       }
+  //       if (el[0] === "game") {
+  //         if (!el[1]) throw new Error("Game number is empty");
+
+  //         eventAndGame.game = parseInt(el[1]);
+  //       }
+  //     });
+  //   } catch (e: any) {
+  //     console.log(e?.message ?? e);
+  //   }
+
+  //   return eventAndGame;
+  // }
+
+  static getEventAndGameFromURL(
+    url: string | null | undefined,
+    separator: "#" | "?"
+  ): {
     event: string | null;
     game: number | null;
   } {
-    const url = tab?.url;
-
-    // get "#" query params
-    const textAfterHash = url?.split("#")?.[1];
-
     const eventAndGame: {
       event: string | null;
       game: number | null;
@@ -278,11 +328,13 @@ class URLHelper {
       game: null,
     };
 
-    if (
-      !url ||
-      !url.includes("computer-chess-championship") ||
-      !textAfterHash
-    ) {
+    if (!url) {
+      return eventAndGame;
+    }
+
+    const textAfterHash = url.split(separator)?.[1];
+
+    if (!textAfterHash) {
       return eventAndGame;
     }
 
@@ -294,13 +346,17 @@ class URLHelper {
     try {
       queries.forEach((el) => {
         if (el[0] === "event") {
-          if (!el[1]) throw new Error("Event name is empty");
+          if (!el[1]) {
+            throw new Error("Event name is empty");
+          }
 
           eventAndGame.event = el[1];
           return;
         }
         if (el[0] === "game") {
-          if (!el[1]) throw new Error("Game number is empty");
+          if (!el[1]) {
+            throw new Error("Game number is empty");
+          }
 
           eventAndGame.game = parseInt(el[1]);
         }

@@ -1,3 +1,36 @@
+:root {
+  /* for fonts in won/lost game pairs */
+  --ccc-loss-font-color: hsl(0, 100%, 72%);
+  --ccc-win-font-color: hsl(121, 51%, 62%);
+
+  --ccc-double-win-font-color: hsl(107, 58%, 95%);
+  --ccc-double-loss-font-color: hsl(0, 100%, 87%);
+
+  /* default chesscom win font color */
+  --ccc-chesscom-clr-win: #81b64c;
+
+  --ccc-border-color: hsl(0, 0%, 45%);
+
+  --won-bg: hsla(81, 63%, 62%, 0.17);
+  --loss-bg: hsla(9, 86%, 61%, 0.17);
+
+  /* --double-win-bg: hsla(111, 84%, 39%, 0.35); */
+  /* --double-loss-bg: hsla(0, 90%, 36%, 0.36); */
+  --double-win-bg: hsla(92, 82%, 51%, 0.42);
+  --double-loss-bg: hsla(358, 82%, 45%, 0.42);
+
+  --draw-bg: transparent;
+
+  --ccc-wdl-font-size: 1.15rem;
+  --ccc-wdl-line-height: ;
+
+  --ccc-light-gray: hsl(0, 0%, 73%);
+  --ccc-err-margin-clr: var(--ccc-light-gray);
+
+  --ccc-old-book-move-clr: rgb(255, 165, 0);
+  --ccc-old-book-move-clr-2: rgb(228, 161, 17);
+}
+
 ._dev_fast_crosstable-btn {
   position: fixed;
 
@@ -162,7 +195,7 @@ table._dev_modal-table {
   grid-auto-flow: row;
 
   grid-template-columns: repeat(
-    var(--custom-column-amount, var(--column-amount)),
+    calc(var(--custom-column-amount, var(--column-amount)) / 2),
     minmax(1.6rem, 1fr)
   );
   grid-template-rows: auto;
@@ -171,11 +204,18 @@ table._dev_modal-table {
   min-width: 100% !important;
 }
 
-._dev_modal-results-grid > div {
-  padding: 0px 3px;
+.ccc-custom-table_pair-wrapper {
+  display: flex;
 
-  width: 100%;
+  border-left: 1px solid gray;
+  border-right: 1px solid gray;
 
   grid-column: span 1;
   grid-row: span 1;
+}
+
+.ccc-custom-table_pair-wrapper > div {
+  padding: 0px 3px;
+
+  width: 100%;
 }

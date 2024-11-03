@@ -6,11 +6,32 @@ class CustomSchedule {
     //
     button: "ccc-custom-schedule-btn",
     row: "ccc-custom-schedule-row",
+    _dev_preventObserverDeletion: "__________DEV",
+    _dev_containsCurrentGame: "_____DEV_____",
   };
 
-  private static virtualWrapperCapacity = 20 as const;
-  private static initialScroll = true;
+  private static virtualWrapperList: HTMLDivElement[] = [];
+  private static virtualWrapperCapacity = 30 as const;
 
+  private static virtualWrapperSettings = {
+    capacity: 6,
+    rowHeight: 34,
+    list: [],
+  };
+
+  private static eventStats: Pick<
+    chess_com.full_event_response,
+    "schedule" | "players"
+  > & {
+    currentGameNumber: number;
+  } = {
+    currentGameNumber: -1,
+    players: [],
+    schedule: [],
+  };
+
+  // * ======================
+  // * methods
   static crCustomScheduleBtn() {
     const btn = document.createElement("button");
 
@@ -44,14 +65,12 @@ class CustomSchedule {
   }
 
   private static crScheduleModal() {
-    this.initialScroll = true;
-
-    const content = document.createElement("div");
-    content.classList.add(this.cssClasses.content);
+    const contentWrapper = document.createElement("div");
+    contentWrapper.classList.add(this.cssClasses.content);
 
     const currentEvent = _dev_EventState.getCurrentEvent();
     if (!currentEvent || !("schedule" in currentEvent)) {
-      return content;
+      return contentWrapper;
     }
 
     const { schedule, players } = currentEvent;
@@ -61,45 +80,41 @@ class CustomSchedule {
       currentGameNumber = this.searchCurrentGameIndex(schedule);
     }
 
+    this.eventStats.schedule = schedule;
+    this.eventStats.players = players;
+    this.eventStats.currentGameNumber = currentGameNumber;
+
     console.log(currentGameNumber);
 
     console.time("cr_row");
-    // for (let i = 0; i < schedule.length; i++) {
-    //   const cur = schedule[i];
 
-    //   const row = this.crRow(i + 1, players[cur.p[0]], players[cur.p[1]], cur);
+    this.virtualWrapperList.length = 0;
 
-    //   // const row = this.crSimpleRow(
-    //   //   i + 1,
-    //   //   currentGameNumber + 1,
-    //   //   players[cur.p[0]],
-    //   //   players[cur.p[1]]
-    //   // );
-
-    //   content.append(row);
-    // }
     for (let i = 0; i < schedule.length; i += this.virtualWrapperCapacity) {
       const virtualWrapper = this.crVirtualWrapper(
         schedule,
         players,
         i / this.virtualWrapperCapacity,
-        content,
+        contentWrapper,
         currentGameNumber
       );
 
-      // const row = this.crSimpleRow(
-      //   i + 1,
-      //   currentGameNumber + 1,
-      //   players[cur.p[0]],
-      //   players[cur.p[1]]
-      // );
-
-      content.append(virtualWrapper);
+      contentWrapper.append(virtualWrapper);
+      this.virtualWrapperList.push(virtualWrapper);
     }
+
+    if (currentGameNumber === -1) {
+      this.addRowsToVirtualWrapper(this.virtualWrapperList[0], 0);
+      this.paintNeighborElements(1);
+      this.paintNeighborElements(0);
+      this.paintNeighborElements(this.virtualWrapperList.length - 1);
+    }
+
+    this.scrollToCurrentGame(currentGameNumber);
 
     console.timeEnd("cr_row");
 
-    return content;
+    return contentWrapper;
   }
 
   private static crRow(
@@ -210,44 +225,57 @@ class CustomSchedule {
     parentElem: HTMLDivElement,
     currentGameNumber: number
   ) {
-    const wrapper = document.createElement("div");
-    const _rowHeight = 34;
-    wrapper.classList.add(this.cssClasses.virtualWrapper);
+    const virtualWrapper = document.createElement("div");
+    const rowHeight = 34;
+    virtualWrapper.classList.add(this.cssClasses.virtualWrapper);
 
     const rowAmount = Math.min(
       schedule.length - wrapperIndex * this.virtualWrapperCapacity,
       this.virtualWrapperCapacity
     );
 
-    const containsCurrentGame =
-      wrapperIndex * this.virtualWrapperCapacity < currentGameNumber &&
-      (wrapperIndex + 1) * this.virtualWrapperCapacity > currentGameNumber;
+    const containsCurrentGame = this.containsCurrentGame(
+      currentGameNumber,
+      wrapperIndex
+    );
 
-    wrapper.style.height = `${_rowHeight * rowAmount}px`;
-    wrapper.style.outline = "1px solid red";
-    // wrapper.style.display = "contents";
+    virtualWrapper.style.height = `${rowHeight * rowAmount}px`;
 
+    if (containsCurrentGame) {
+      this.addRowsToVirtualWrapper(virtualWrapper, wrapperIndex);
+    }
+
+    // todo move outside
     const intObserver = new IntersectionObserver(
       (entires) => {
-        entires.forEach((entry) => {
-          if (entry.isIntersecting || containsCurrentGame) {
-            for (let i = 0; i < rowAmount; i++) {
-              const scheduleIndex =
-                wrapperIndex * this.virtualWrapperCapacity + i;
+        const entry = entires[0];
 
-              const row = this.crRow(
-                scheduleIndex + 1,
-                players[schedule[scheduleIndex].p[0]],
-                players[schedule[scheduleIndex].p[1]],
-                schedule[scheduleIndex]
-              );
+        if (!entry.isIntersecting && !containsCurrentGame) {
+          const containsInitialScrollClasses =
+            virtualWrapper.classList.contains(
+              this.cssClasses._dev_preventObserverDeletion
+            );
 
-              wrapper.append(row);
-            }
-          } else {
-            Utils.removeChildNodes(wrapper);
+          if (!containsCurrentGame && !containsInitialScrollClasses) {
+            Utils.removeChildNodes(virtualWrapper);
           }
-        });
+
+          if (containsInitialScrollClasses) {
+            virtualWrapper.classList.remove(
+              this.cssClasses._dev_preventObserverDeletion
+            );
+          }
+
+          return;
+        }
+
+        if (containsCurrentGame) {
+          virtualWrapper.classList.add(
+            this.cssClasses._dev_containsCurrentGame
+          );
+        }
+
+        this.addRowsToVirtualWrapper(virtualWrapper, wrapperIndex);
       },
       {
         root: parentElem,
@@ -256,43 +284,88 @@ class CustomSchedule {
       }
     );
 
-    intObserver.observe(wrapper);
+    intObserver.observe(virtualWrapper);
 
-    if (containsCurrentGame && this.initialScroll) {
-      this._dev(wrapper, currentGameNumber);
-    }
-
-    return wrapper;
+    return virtualWrapper;
   }
 
-  private static async _dev(
-    wrapper: HTMLDivElement,
-    currentGameNumber: number
+  static addRowsToVirtualWrapper(
+    virtualWrapper: HTMLDivElement,
+    wrapperIndex: number
   ) {
-    await Utils.doubleAnimationFramePromise();
-    wrapper.scrollIntoView();
+    if (virtualWrapper.children.length > 0) {
+      return;
+    }
 
-    await Utils.doubleAnimationFramePromise();
+    const { players, schedule } = this.eventStats;
 
-    const currentGameInnerIndex =
-      currentGameNumber % this.virtualWrapperCapacity;
+    Utils.log(`Adding row to wrapper: ${wrapperIndex}`, "green");
 
-    // todo rename
-    const hm = wrapper.children[currentGameInnerIndex];
+    const rowAmount = Math.min(
+      schedule.length - wrapperIndex * this.virtualWrapperCapacity,
+      this.virtualWrapperCapacity
+    );
 
-    hm.scrollIntoView();
+    for (let i = 0; i < rowAmount; i++) {
+      const scheduleIndex = wrapperIndex * this.virtualWrapperCapacity + i;
 
-    await Utils.doubleAnimationFramePromise();
+      const row = this.crRow(
+        scheduleIndex + 1,
+        players[schedule[scheduleIndex].p[0]],
+        players[schedule[scheduleIndex].p[1]],
+        schedule[scheduleIndex]
+      );
 
-    hm.scrollBy({
-      top: 200,
-    });
+      virtualWrapper.append(row);
+    }
+  }
 
-    await Utils.doubleAnimationFramePromise();
+  private static async scrollToCurrentGame(currentGameNumber: number) {
+    Utils.log(`current game number: ${currentGameNumber}`, "pWhite");
 
-    hm.scrollBy({
-      top: 200,
-    });
+    for (let i = 0; i < this.virtualWrapperList.length; i++) {
+      const containsCurrentGame = this.containsCurrentGame(
+        currentGameNumber,
+        i
+      );
+      const wrapper = this.virtualWrapperList[i];
+
+      if (!containsCurrentGame) {
+        continue;
+      }
+
+      this.paintNeighborElements(i);
+
+      wrapper.scrollIntoView();
+      await Utils.doubleAnimationFramePromise();
+
+      const currentGameVirtualIndex =
+        currentGameNumber % this.virtualWrapperCapacity;
+
+      const currentRowElem = wrapper.children[currentGameVirtualIndex];
+
+      currentRowElem.scrollIntoView();
+
+      break;
+    }
+  }
+
+  private static paintNeighborElements(index: number) {
+    for (let j = 0; j <= 4; j++) {
+      const sum = 2 - j;
+      const neighborElement = this.virtualWrapperList[index - sum];
+
+      if (sum === 0) {
+        continue;
+      }
+
+      if (neighborElement) {
+        this.addRowsToVirtualWrapper(neighborElement, index - sum);
+        neighborElement.classList.add(
+          this.cssClasses._dev_preventObserverDeletion
+        );
+      }
+    }
   }
 
   /**
@@ -335,5 +408,35 @@ class CustomSchedule {
     }
 
     return index;
+  }
+
+  private static containsCurrentGame(
+    currentGameNumber: number,
+    wrapperIndex: number
+  ) {
+    const containsCurrentGame =
+      wrapperIndex * this.virtualWrapperCapacity < currentGameNumber &&
+      (wrapperIndex + 1) * this.virtualWrapperCapacity > currentGameNumber;
+
+    return containsCurrentGame;
+  }
+}
+
+// todo delete?
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class CustomScheduleHelper {
+  static elList: HTMLDivElement[] = [];
+  static virtualEl: HTMLDivElement;
+
+  static addElToList(el: (typeof CustomScheduleHelper.elList)[number]) {
+    this.elList.push(el);
+  }
+
+  static clearElList() {
+    this.elList.length = 0;
+  }
+
+  static updateVEl(el: typeof CustomScheduleHelper.virtualEl) {
+    el;
   }
 }
