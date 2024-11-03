@@ -13,6 +13,7 @@ class CustomSchedule {
   private static virtualWrapperList: HTMLDivElement[] = [];
   private static virtualWrapperCapacity = 30 as const;
 
+  // todo delete?
   private static virtualWrapperSettings = {
     capacity: 6,
     rowHeight: 34,
@@ -76,7 +77,15 @@ class CustomSchedule {
     const { schedule, players } = currentEvent;
 
     let currentGameNumber = this.binarySearchCurrentGameIndex(schedule);
-    if (currentGameNumber === -1) {
+
+    const event = _dev_EventState.getCurrentEvent();
+    const eventEnded = event && "id" in event;
+
+    // todo check if the "end" flag is present in case games are played
+    // todo after the last game of the event is played
+    const isGamesReplayed = currentGameNumber === -1 && !eventEnded;
+
+    if (isGamesReplayed) {
       currentGameNumber = this.searchCurrentGameIndex(schedule);
     }
 
@@ -105,9 +114,13 @@ class CustomSchedule {
 
     if (currentGameNumber === -1) {
       this.addRowsToVirtualWrapper(this.virtualWrapperList[0], 0);
-      this.paintNeighborElements(1);
-      this.paintNeighborElements(0);
-      this.paintNeighborElements(this.virtualWrapperList.length - 1);
+      this.filleNeighborVirtualElements(1, 1, 1);
+      this.filleNeighborVirtualElements(0, 1, 1);
+      this.filleNeighborVirtualElements(
+        this.virtualWrapperList.length - 1,
+        1,
+        1
+      );
     }
 
     this.scrollToCurrentGame(currentGameNumber);
@@ -115,67 +128,6 @@ class CustomSchedule {
     console.timeEnd("cr_row");
 
     return contentWrapper;
-  }
-
-  private static crRow(
-    gameNumber: number,
-    p1Name: string | undefined,
-    p2Name: string | undefined,
-    scheduleEntry: chess_com.schedule_entry
-  ) {
-    const wrapper = document.createElement("div");
-    wrapper.classList.add(this.cssClasses.row);
-
-    const gameNumberEl = document.createElement("div");
-    gameNumberEl.textContent = `${gameNumber}`;
-
-    const engineName1 = document.createElement("div");
-    engineName1.textContent = p1Name || "";
-
-    const engineName2 = document.createElement("div");
-    engineName2.textContent = p2Name || "";
-
-    const engineLogoElem1 = this.createEngineLogo(p1Name || "");
-    const engineLogoElem2 = this.createEngineLogo(p2Name || "");
-
-    const isEnded = "id" in scheduleEntry;
-    const isGameOngoing = "inProgress" in scheduleEntry;
-
-    const resultEl = document.createElement("div");
-
-    if (isEnded) {
-      resultEl.textContent = `${scheduleEntry.res}\n${scheduleEntry.numMoves}`;
-    } else if (isGameOngoing) {
-      resultEl.textContent = `In Progress`;
-    } else {
-      resultEl.textContent = "Future";
-    }
-
-    wrapper.append(
-      gameNumberEl,
-      engineLogoElem1,
-      engineName1,
-      resultEl,
-      engineName2,
-      engineLogoElem2
-    );
-
-    return wrapper;
-  }
-
-  private static createEngineLogo(engineName: string | undefined) {
-    const engineLogo = document.createElement("img");
-
-    engineLogo.src = this.getLogoLink(engineName);
-    engineLogo.alt = `${engineName} engine`;
-
-    return engineLogo;
-  }
-
-  private static getLogoLink(engineName: string | undefined) {
-    return engineName === undefined || engineName === ""
-      ? ""
-      : `https://images.chesscomfiles.com/chess-themes/computer_chess_championship/avatars/sm_${engineName.toLowerCase()}.png`;
   }
 
   private static crVirtualWrapper(
@@ -194,7 +146,7 @@ class CustomSchedule {
       this.virtualWrapperCapacity
     );
 
-    const containsCurrentGame = this.containsCurrentGame(
+    const containsCurrentGame = this.isVirtualWrapperContainsCurrentGame(
       currentGameNumber,
       wrapperIndex
     );
@@ -249,6 +201,68 @@ class CustomSchedule {
     return virtualWrapper;
   }
 
+  private static crRow(
+    gameNumber: number,
+    p1Name: string | undefined,
+    p2Name: string | undefined,
+    scheduleEntry: chess_com.schedule_entry
+  ) {
+    const wrapper = document.createElement("div");
+    wrapper.classList.add(this.cssClasses.row);
+
+    const gameNumberEl = document.createElement("div");
+    gameNumberEl.textContent = `${gameNumber}`;
+
+    const engineName1 = document.createElement("div");
+    engineName1.textContent = p1Name || "";
+
+    const engineName2 = document.createElement("div");
+    engineName2.textContent = p2Name || "";
+
+    const engineLogoElem1 = this.createEngineLogo(p1Name || "");
+    const engineLogoElem2 = this.createEngineLogo(p2Name || "");
+
+    const isEnded = "id" in scheduleEntry;
+    const isGameOngoing = "inProgress" in scheduleEntry;
+
+    const resultEl = document.createElement("div");
+
+    if (isEnded) {
+      resultEl.textContent = `${scheduleEntry.res}\n${scheduleEntry.numMoves}`;
+    } else if (isGameOngoing) {
+      resultEl.textContent = `In Progress`;
+    } else {
+      // todo change this
+      resultEl.textContent = "Future";
+    }
+
+    wrapper.append(
+      gameNumberEl,
+      engineLogoElem1,
+      engineName1,
+      resultEl,
+      engineName2,
+      engineLogoElem2
+    );
+
+    return wrapper;
+  }
+
+  private static createEngineLogo(engineName: string | undefined) {
+    const engineLogo = document.createElement("img");
+
+    engineLogo.src = this.getLogoLink(engineName);
+    engineLogo.alt = `${engineName} engine`;
+
+    return engineLogo;
+  }
+
+  private static getLogoLink(engineName: string | undefined) {
+    return engineName === undefined || engineName === ""
+      ? ""
+      : `https://images.chesscomfiles.com/chess-themes/computer_chess_championship/avatars/sm_${engineName.toLowerCase()}.png`;
+  }
+
   static addRowsToVirtualWrapper(
     virtualWrapper: HTMLDivElement,
     wrapperIndex: number
@@ -258,8 +272,6 @@ class CustomSchedule {
     }
 
     const { players, schedule } = this.eventStats;
-
-    Utils.log(`Adding row to wrapper: ${wrapperIndex}`, "green");
 
     const rowAmount = Math.min(
       schedule.length - wrapperIndex * this.virtualWrapperCapacity,
@@ -281,10 +293,8 @@ class CustomSchedule {
   }
 
   private static async scrollToCurrentGame(currentGameNumber: number) {
-    Utils.log(`current game number: ${currentGameNumber}`, "pWhite");
-
     for (let i = 0; i < this.virtualWrapperList.length; i++) {
-      const containsCurrentGame = this.containsCurrentGame(
+      const containsCurrentGame = this.isVirtualWrapperContainsCurrentGame(
         currentGameNumber,
         i
       );
@@ -294,10 +304,12 @@ class CustomSchedule {
         continue;
       }
 
-      this.paintNeighborElements(i);
+      this.filleNeighborVirtualElements(i, 1, 1);
 
       wrapper.scrollIntoView();
+
       await Utils.doubleAnimationFramePromise();
+      await null;
 
       const currentGameVirtualIndex =
         currentGameNumber % this.virtualWrapperCapacity;
@@ -310,17 +322,28 @@ class CustomSchedule {
     }
   }
 
-  private static paintNeighborElements(index: number) {
-    for (let j = 0; j <= 4; j++) {
-      const sum = 2 - j;
-      const neighborElement = this.virtualWrapperList[index - sum];
+  /**
+   * Fills virtual wrappers that are neighbors to the
+   * wrapper that contains current game
+   *
+   * This is needed to avoid IntersectionObserver bug
+   */
+  private static filleNeighborVirtualElements(
+    wrapperIndex: number,
+    ahead: number,
+    behind: number
+  ) {
+    for (let i = 0; i <= ahead + behind; i++) {
+      const sum = i - behind;
 
       if (sum === 0) {
         continue;
       }
 
+      const neighborElement = this.virtualWrapperList[wrapperIndex + sum];
+
       if (neighborElement) {
-        this.addRowsToVirtualWrapper(neighborElement, index - sum);
+        this.addRowsToVirtualWrapper(neighborElement, wrapperIndex + sum);
         neighborElement.classList.add(
           this.cssClasses._dev_preventObserverDeletion
         );
@@ -370,7 +393,7 @@ class CustomSchedule {
     return index;
   }
 
-  private static containsCurrentGame(
+  private static isVirtualWrapperContainsCurrentGame(
     currentGameNumber: number,
     wrapperIndex: number
   ) {
@@ -379,24 +402,5 @@ class CustomSchedule {
       (wrapperIndex + 1) * this.virtualWrapperCapacity > currentGameNumber;
 
     return containsCurrentGame;
-  }
-}
-
-// todo delete?
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-class CustomScheduleHelper {
-  static elList: HTMLDivElement[] = [];
-  static virtualEl: HTMLDivElement;
-
-  static addElToList(el: (typeof CustomScheduleHelper.elList)[number]) {
-    this.elList.push(el);
-  }
-
-  static clearElList() {
-    this.elList.length = 0;
-  }
-
-  static updateVEl(el: typeof CustomScheduleHelper.virtualEl) {
-    el;
   }
 }
