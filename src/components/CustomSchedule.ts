@@ -163,49 +163,9 @@ class CustomSchedule {
     return wrapper;
   }
 
-  private static crSimpleRow(
-    gameNumber: number,
-    currentGameNumber: number,
-    p1Name: string | undefined,
-    p2Name: string | undefined
-  ) {
-    const wrapper = document.createElement("div");
-
-    const gameNumberEl = document.createElement("div");
-    gameNumberEl.textContent = `${gameNumber}`;
-
-    const engineName1 = document.createElement("div");
-    engineName1.textContent = p1Name || "";
-
-    const engineName2 = document.createElement("div");
-    engineName2.textContent = p2Name || "";
-
-    const engineLogoElem1 = document.createElement("img");
-    this.getLogoLink(p1Name);
-    // engineLogoElem1.src = this.getLogoLink(p1Name);
-    engineLogoElem1.alt = `${p1Name} engine`;
-
-    const engineLogoElem2 = document.createElement("img");
-    this.getLogoLink(p2Name);
-    // engineLogoElem2.src = this.getLogoLink(p2Name);
-    engineLogoElem2.alt = `${p2Name} engine`;
-
-    const resultEl = document.createElement("div");
-
-    wrapper.append(
-      gameNumberEl,
-      engineLogoElem1,
-      engineName1,
-      resultEl,
-      engineName2,
-      engineLogoElem2
-    );
-
-    return wrapper;
-  }
-
   private static createEngineLogo(engineName: string | undefined) {
     const engineLogo = document.createElement("img");
+
     engineLogo.src = this.getLogoLink(engineName);
     engineLogo.alt = `${engineName} engine`;
 
@@ -213,7 +173,7 @@ class CustomSchedule {
   }
 
   private static getLogoLink(engineName: string | undefined) {
-    return engineName === undefined
+    return engineName === undefined || engineName === ""
       ? ""
       : `https://images.chesscomfiles.com/chess-themes/computer_chess_championship/avatars/sm_${engineName.toLowerCase()}.png`;
   }
