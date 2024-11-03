@@ -155,13 +155,6 @@ class CustomCrosstable {
         );
         headToHeadCell.append(scoreWrapper, ptnmlEl, eloEl, colResultsWrapper);
 
-        // for (const result of opponentMatches?.results || []) {
-        //   const gameResult = document.createElement("div");
-        //   gameResult.textContent = result.r;
-
-        //   colResultsWrapper.append(gameResult);
-        // }
-
         if (opponentMatches?.results) {
           const { results } = opponentMatches;
           for (let i = 0; i < results.length; i += 2) {
