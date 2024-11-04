@@ -207,6 +207,8 @@ class CustomSchedule {
     p2Name: string | undefined,
     scheduleEntry: chess_com.schedule_entry
   ) {
+    // todo add <a> tag
+
     const wrapper = document.createElement("div");
     wrapper.classList.add(this.cssClasses.row);
 
@@ -214,10 +216,10 @@ class CustomSchedule {
     gameNumberEl.textContent = `${gameNumber}`;
 
     const engineName1 = document.createElement("div");
-    engineName1.textContent = p1Name || "";
+    engineName1.textContent = `${p1Name}`;
 
     const engineName2 = document.createElement("div");
-    engineName2.textContent = p2Name || "";
+    engineName2.textContent = `${p2Name}`;
 
     const engineLogoElem1 = this.createEngineLogo(p1Name || "");
     const engineLogoElem2 = this.createEngineLogo(p2Name || "");
@@ -229,11 +231,34 @@ class CustomSchedule {
 
     if (isEnded) {
       resultEl.textContent = `${scheduleEntry.res}\n${scheduleEntry.numMoves}`;
+
+      if (scheduleEntry.res === "1-0") {
+        engineName1.classList.add("win");
+        engineName2.classList.add("loss");
+      } else if (scheduleEntry.res === "0-1") {
+        engineName1.classList.add("loss");
+        engineName2.classList.add("win");
+      } else {
+        engineName1.classList.add("draw");
+        engineName2.classList.add("draw");
+      }
     } else if (isGameOngoing) {
       resultEl.textContent = `In Progress`;
     } else {
       // todo change this
-      resultEl.textContent = "Future";
+      const now = Date.now();
+      const diff = scheduleEntry.startTime - now;
+
+      const minutes = Math.round(diff / 60_000);
+      let estimatedTime = "";
+
+      if (minutes < 60) {
+        estimatedTime = `In ${minutes} minutes`;
+      } else {
+        estimatedTime = `In ${Math.floor(minutes / 60)} hours`;
+      }
+
+      resultEl.textContent = estimatedTime;
     }
 
     wrapper.append(
@@ -263,7 +288,7 @@ class CustomSchedule {
       : `https://images.chesscomfiles.com/chess-themes/computer_chess_championship/avatars/sm_${engineName.toLowerCase()}.png`;
   }
 
-  static addRowsToVirtualWrapper(
+  private static addRowsToVirtualWrapper(
     virtualWrapper: HTMLDivElement,
     wrapperIndex: number
   ) {

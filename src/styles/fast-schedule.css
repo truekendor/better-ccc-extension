@@ -95,6 +95,10 @@
   height: 30px;
 }
 
+.ccc-custom-schedule-row > img + div {
+  padding-left: 10px;
+}
+
 /* todo move to other .css file */
 .ccc-display-none {
   visibility: hidden;
