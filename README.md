@@ -9,6 +9,13 @@
 - Open [this link](https://addons.mozilla.org/en-US/firefox/addon/better-ccc/) in your browser and install the add-on
 
 
+## Firefox: build from source (desktop, Firefox 140+ / ESR)
+- `npm install && npm run package:firefox` (compiles the TypeScript and writes `builds/better-ccc-<version>-firefox.xpi`; `node scripts/package-firefox.mjs --out <file.xpi>` to choose the path)
+- **Temporary install (any Firefox):** open `about:debugging#/runtime/this-firefox` → `Load Temporary Add-on...` → select `src/manifest.json` (after `npm run build`) or the built `.xpi`. It is removed when Firefox restarts.
+- **Permanent install of the unsigned `.xpi` (ESR, Developer Edition, Nightly only):** in `about:config` set `xpinstall.signatures.required` to `false`, then `about:addons` → gear icon → `Install Add-on From File...` → select the `.xpi`. Release Firefox always requires an AMO-signed `.xpi`.
+- Firefox lets you control which sites a Manifest V3 add-on can access. If the toolbar button shows a `!` badge (or the add-on does nothing on CCC), click the button and allow access to `chess.com`, or enable it in `about:addons` → better-ccc → `Permissions`.
+- Optional: `npx web-ext lint --source-dir src` runs Mozilla's add-on linter (the same checks as AMO). It isn't needed for the build.
+
 ## Chrome / Edge / Other Chromium based browsers
 - Unzip one of the archives from the chrome folder
 - Open `chrome://extensions/` page

@@ -289,7 +289,7 @@ class HighlightDeviation {
 // ! _DEV_INJECT
 
 const s = document.createElement("script");
-s.src = chrome.runtime.getURL("inject/index.js");
+s.src = browserPrefix.runtime.getURL("inject/index.js");
 s.onload = function () {
   // @ts-expect-error
   this?.remove?.();

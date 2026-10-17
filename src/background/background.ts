@@ -4,8 +4,70 @@
 /// <reference path="../types/chess-com.d.ts" />
 /// <reference path="../types/chess-js.ts" />
 
-// todo fix this
-const _bg_browserPrefix: Browsers = chrome?.storage ? chrome : browser;
+// Firefox exposes the promise-based `browser` namespace (and a `chrome` alias),
+// Chrome only exposes `chrome` (promise-based in MV3)
+const _bg_browserPrefix: Browsers =
+  typeof browser !== "undefined" ? browser : chrome;
+
+// * =========================
+// * host permissions (Firefox MV3)
+//
+// In Firefox MV3, host permissions (host_permissions + content_scripts
+// matches) are user-controllable: they are granted on install since
+// Firefox 127, but the user can revoke them in about:addons.
+// Without them the content scripts don't run and the archive fetch
+// to cccc.chess.com fails (CORS).
+// If they're missing we show a "!" badge on the toolbar button and
+// clicking it asks for them. In Chrome they are always granted so this is a no-op.
+
+const _bg_requiredOrigins = {
+  origins: ["https://www.chess.com/*", "https://cccc.chess.com/*"],
+};
+// chrome.* typings are used for these calls: both namespaces return promises
+const _bg_api = _bg_browserPrefix as typeof chrome;
+/** last known state, `null` until checked */
+let _bg_hostPermissionsGranted: boolean | null = null;
+
+async function _bg_updatePermissionBadge(): Promise<void> {
+  try {
+    if (!_bg_api.permissions || !_bg_api.action) return;
+    const granted = await _bg_api.permissions.contains(_bg_requiredOrigins);
+    _bg_hostPermissionsGranted = granted;
+
+    await _bg_api.action.setBadgeText({ text: granted ? "" : "!" });
+    await _bg_api.action.setTitle({
+      title: granted
+        ? "Better CCC"
+        : "Better CCC: click to allow access to chess.com",
+    });
+  } catch (e: any) {
+    console.log(e?.message ?? e);
+  }
+}
+
+_bg_api.action?.onClicked.addListener(() => {
+  if (_bg_hostPermissionsGranted) return;
+  const wasMissing = _bg_hostPermissionsGranted === false;
+
+  // must be called synchronously from the user action (Firefox requirement)
+  _bg_api.permissions
+    .request(_bg_requiredOrigins)
+    .then((granted) => {
+      if (!granted || !wasMissing) return;
+      // content scripts only run on newly loaded pages: reload the CCC tab
+      return getCurrentTab().then((tab) => {
+        if (tab?.id && tab.url?.includes("chess.com/")) {
+          return _bg_api.tabs.reload(tab.id);
+        }
+      });
+    })
+    .catch((e: any) => console.log(e?.message ?? e))
+    .finally(_bg_updatePermissionBadge);
+});
+_bg_api.permissions?.onAdded?.addListener(_bg_updatePermissionBadge);
+_bg_api.permissions?.onRemoved?.addListener(_bg_updatePermissionBadge);
+// runs each time the background script/worker starts (install, startup, wake-up)
+_bg_updatePermissionBadge();
 
 _bg_browserPrefix.runtime.onMessage.addListener(function (
   message: message_pass.message
@@ -16,7 +78,6 @@ _bg_browserPrefix.runtime.onMessage.addListener(function (
     const { type, payload } = message;
 
     if (type === "remove_query") {
-      _bg_browserPrefix.tabs.query({ currentWindow: true, active: true });
       getCurrentTab().then((tab) => {
         if (!tab || !tab.id || !tab.url) return;
 
@@ -88,25 +149,14 @@ _bg_browserPrefix.tabs.onUpdated.addListener(function (tabId, changeInfo, tab) {
   }
 });
 
-async function getCurrentTab(): Promise<
-  browser.tabs.Tab | chrome.tabs.Tab | undefined
-> {
+async function getCurrentTab(): Promise<Tab | undefined> {
   try {
-    const chromeTab = await chrome.tabs.query({
+    const tabs = await _bg_api.tabs.query({
       active: true,
       currentWindow: true,
     });
 
-    if (chromeTab?.[0]) {
-      return chromeTab[0];
-    }
-
-    const firefoxTab = await browser.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
-
-    return firefoxTab[0];
+    return tabs[0];
   } catch (e: any) {
     console.log(e?.message ?? e);
   }
@@ -359,7 +409,8 @@ async function _sendMessageToContent(
     const tab = await getCurrentTab();
     if (!tab || !tab.id) return false;
 
-    _bg_browserPrefix.tabs.sendMessage(tab.id, message);
+    // rejects when the tab has no content script (e.g. permission not granted)
+    Promise.resolve(_bg_api.tabs.sendMessage(tab.id, message)).catch(() => {});
     return false;
   } catch (e) {
     console.log("background::sendMessageToContent error: ", e);

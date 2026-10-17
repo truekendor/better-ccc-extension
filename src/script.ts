@@ -14,8 +14,10 @@ const formatter = Intl.NumberFormat(undefined, {
   maximumFractionDigits: 2,
 });
 
+// prefer the promise-based `browser` namespace (Firefox), fall back to `chrome`
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const browserPrefix: Browsers = chrome?.storage ? chrome : browser;
+const browserPrefix: Browsers =
+  typeof browser !== "undefined" ? browser : chrome;
 
 loadUserSettings().catch(Utils.logError);
 async function loadUserSettings(): Promise<void> {
