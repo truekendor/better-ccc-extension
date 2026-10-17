@@ -3,49 +3,76 @@
   container-type: inline-size;
 }
 
+/*
+ * Layout of the clock row:
+ *   .enginedata-clock-wrapper
+ *     > .ccc-captured-pieces-wrapper  (inserted by the extension, 1st child)
+ *     > ...chess.com elements (50 move rule etc.)
+ *     > div:last-child                (clock icon + remaining time)
+ *
+ * The captured pieces are a regular flex item (no absolute positioning /
+ * transforms) so they can never be painted over the remaining time.
+ * The row wraps: when the pieces don't fit next to the clock they move to
+ * their own line above it.
+ */
 .enginedata-container .enginedata-clock-wrapper {
   position: relative !important;
 
   display: flex !important;
+  flex-wrap: wrap !important;
   align-items: center !important;
+  row-gap: 2px;
 
   font-size: 15px !important;
   line-height: 1 !important;
 }
 
+/* clock icon + remaining time: never shrink, never wrap */
 .enginedata-container .enginedata-clock-wrapper > div:last-child {
   margin-left: auto;
+
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .ccc-captured-pieces-wrapper {
   --svg-size: 16px;
 
-  position: absolute;
-  bottom: 0;
-
-  transform: translateY(-170%);
+  position: static;
 
   display: flex;
   flex-wrap: wrap;
-
-  margin-left: -3px;
-  width: calc(10px + 100%);
-
   align-items: center;
+
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--svg-size);
 
   font-size: var(--svg-size) !important;
   line-height: 1;
+}
 
-  height: min-content;
-  /* height: var(--svg-size) !important; */
+.ccc-captured-pieces-wrapper:not(:empty) {
+  margin-inline-end: 6px;
+}
+
+.ccc-captured-pieces-wrapper.ccc-hide {
+  display: none !important;
 }
 
 .ccc-captured-pieces-wrapper > span {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+
   margin: 0 !important;
   height: var(--svg-size) !important;
 }
 
 .ccc-captured-pieces-wrapper > span > svg {
+  flex-shrink: 0;
+
   height: 95% !important;
   width: auto !important;
 }
@@ -58,19 +85,9 @@
   .ccc-captured-pieces-wrapper {
     --svg-size: 20px;
     font-size: var(--svg-size) !important;
-    height: var(--svg-size) !important;
 
-    flex-wrap: nowrap;
-
-    width: min-content;
-    max-width: 50% !important;
-
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .ccc-captured-pieces-wrapper > span {
-    height: var(--svg-size) !important;
+    /* centered between the left edge and the clock */
+    margin-inline: auto;
   }
 
   .ccc-captured-pieces-wrapper > span > svg {
@@ -82,96 +99,32 @@
   .ccc-captured-pieces-wrapper {
     --svg-size: 18px;
     font-size: calc(var(--svg-size) - 2px) !important;
-    height: var(--svg-size) !important;
-
-    flex-wrap: nowrap;
-
-    width: min-content;
-    max-width: 100% !important;
-
-    left: 50%;
-    transform: translate(-50%, -110%);
-  }
-
-  .ccc-captured-pieces-wrapper > span {
-    height: var(--svg-size) !important;
-  }
-
-  .ccc-captured-pieces-wrapper > span > svg {
-    height: var(--svg-size) !important;
   }
 }
 
+/* narrow layouts: pieces always get their own line above the clock */
 @container (max-width: 270px) {
   .ccc-captured-pieces-wrapper {
     --svg-size: 18px;
-
-    position: absolute;
-    bottom: 0;
-    left: 0;
-
-    transform: translateY(-170%);
-
-    display: flex;
-    flex-wrap: wrap;
-
-    margin-left: -3px;
-    width: calc(10px + 100%) !important;
-    max-width: calc(10px + 100%) !important;
-
-    align-items: center;
-
     font-size: 16px !important;
-    line-height: 1;
 
-    height: min-content;
-    transform: translateY(-170%);
+    flex-basis: 100%;
+    margin-inline: 0;
   }
 
-  .ccc-captured-pieces-wrapper > span {
-    margin: 0 !important;
-    height: var(--svg-size) !important;
+  .ccc-captured-pieces-wrapper:not(:empty) {
+    margin-inline-end: 0;
   }
 
   .ccc-captured-pieces-wrapper > span > svg {
     height: 95% !important;
-    width: auto !important;
   }
 }
 
 @container (max-width: 160px) {
   .ccc-captured-pieces-wrapper {
     --svg-size: 16px;
-
-    position: absolute;
-    bottom: 0;
-    left: 0;
-
-    display: flex;
-    flex-wrap: wrap;
-
-    margin-left: -3px;
-    width: calc(10px + 100%) !important;
-    max-width: calc(10px + 100%) !important;
-
-    align-items: center;
-
     font-size: 13px !important;
-    line-height: 1;
-
-    height: min-content;
-
-    transform: translateY(-170%);
-  }
-
-  .ccc-captured-pieces-wrapper > span {
-    margin: 0 !important;
-    height: var(--svg-size) !important;
-  }
-
-  .ccc-captured-pieces-wrapper > span > svg {
-    height: 95% !important;
-    width: auto !important;
   }
 }
 
@@ -185,10 +138,4 @@
 
 .enginedata-container .enginedata-clock-wrapper.enginedata-mobile {
   right: unset !important;
-}
-
-.enginedata-container
-  .enginedata-clock-wrapper.enginedata-mobile
-  .ccc-captured-pieces-wrapper {
-  translate: 20px;
 }
