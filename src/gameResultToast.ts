@@ -29,6 +29,8 @@ type GameEndInfo = {
   black: string;
   /** extra line under the result, e.g. "Game 467 · 86 moves"; may be empty */
   reason: string;
+  /** number of moves shown in the schedule, if known */
+  moveCount?: number;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -56,6 +58,14 @@ class GameEndWatcher {
   private static readonly TB_ADJUDICATION_PIECES = 6;
   /** fen -> is a tablebase draw */
   private static readonly tablebaseCache = new Map<string, boolean>();
+  /**
+   * results guessed from the clocks (time forfeit), checked again against
+   * the schedule: the page keeps counting down after any game end
+   */
+  private static readonly provisionalResults = new Map<string, GameOutcome>();
+  private static lastMoveAt = 0;
+  /** no move for this long with the clock at zero = time forfeit */
+  private static readonly FLAG_GRACE_MS = 1500;
   private static readonly cachedNames = { white: "", black: "" };
 
   static init(): void {
@@ -84,6 +94,10 @@ class GameEndWatcher {
     window.addEventListener("hashchange", () => {
       this.livePgn = null;
     });
+
+    window.setInterval(() => {
+      this.checkTimeForfeit();
+    }, 500);
   }
 
   /** CCC puts `game=N` in the hash while an archived game is displayed */
@@ -115,6 +129,7 @@ class GameEndWatcher {
       this.cacheEngineNames();
 
       if (pgn.length > previousPgn.length) {
+        this.lastMoveAt = Date.now();
         this.checkBoardResult(pgn);
       }
       return;
@@ -128,11 +143,16 @@ class GameEndWatcher {
       Date.now() - this.liveSince >= this.MIN_WATCH_TIME_MS &&
       !this.gamesEndedOnBoard.has(previousPgn.join(" "))
     ) {
-      this.handleLiveGameEnded(previousPgn, { ...this.cachedNames });
+      this.handleLiveGameEnded(
+        previousPgn,
+        { ...this.cachedNames },
+        this.provisionalResults.get(previousPgn.join(" "))
+      );
     }
 
     this.livePgn = pgn;
     this.liveSince = Date.now();
+    this.lastMoveAt = Date.now();
     this.cachedNames.white = "";
     this.cachedNames.black = "";
     this.cacheEngineNames();
@@ -253,9 +273,98 @@ class GameEndWatcher {
     });
   }
 
+  /**
+   * the side to move ran out of time: its clock shows zero and no move came.
+   * Shown as provisional, the schedule confirms or corrects it later
+   */
+  private static checkTimeForfeit(): void {
+    const pgn = this.livePgn;
+
+    if (!pgn || pgn.length < this.MIN_PLIES || this.isArchiveView()) {
+      return;
+    }
+
+    const key = pgn.join(" ");
+    if (this.gamesEndedOnBoard.has(key) || this.provisionalResults.has(key)) {
+      return;
+    }
+    if (Date.now() - this.lastMoveAt < this.FLAG_GRACE_MS) {
+      return;
+    }
+
+    const toMove = pgn.length % 2 === 0 ? "white" : "black";
+    const seconds = this.readClockSeconds(toMove);
+
+    if (seconds === null || seconds > 0) {
+      return;
+    }
+
+    let opponentCanMate = true;
+    try {
+      this.board.actions.setPGN(pgn);
+      const fenHistory = this.board.fields.FenHistoryFull;
+      const fen = fenHistory[fenHistory.length - 1] ?? "";
+      opponentCanMate = this.canMate(fen, toMove === "white" ? "black" : "white");
+    } catch {
+      // keep the default: a win for the opponent
+    }
+
+    const outcome: GameOutcome = !opponentCanMate
+      ? "draw"
+      : toMove === "white"
+      ? "black"
+      : "white";
+
+    this.provisionalResults.set(key, outcome);
+
+    GameResultToast.notify({
+      outcome,
+      white: this.getEngineName("white"),
+      black: this.getEngineName("black"),
+      reason: `Time forfeit · ${Math.ceil(pgn.length / 2)} moves`,
+    });
+  }
+
+  /** remaining time shown on the engine panel, null if not displayed */
+  private static readClockSeconds(color: "white" | "black"): number | null {
+    const text = document
+      .getElementById(`${color}-player`)
+      ?.querySelector(".enginedata-clock")
+      ?.textContent?.trim();
+
+    // "1:22", "0:02.11", "1:02:03", maybe "-0:01"
+    const match = text?.match(/(-)?((?:\d+:)?\d+:\d{2}(?:\.\d+)?)/);
+    if (!match) {
+      return null;
+    }
+
+    const seconds = match[2]!
+      .split(":")
+      .reduce((total, part) => total * 60 + parseFloat(part), 0);
+
+    return match[1] ? -seconds : seconds;
+  }
+
+  /** false when `color` only has a king, or a king and one minor piece */
+  private static canMate(fen: string, color: "white" | "black"): boolean {
+    const board = fen.split(" ")[0] ?? "";
+    const pieces = board.replace(/[^a-zA-Z]/g, "");
+    const own = Array.from(pieces).filter((piece) =>
+      color === "white" ? piece === piece.toUpperCase() : piece === piece.toLowerCase()
+    );
+    const nonKing = own.filter((piece) => piece.toLowerCase() !== "k");
+
+    if (nonKing.length === 0) {
+      return false;
+    }
+
+    return !(nonKing.length === 1 && /[bn]/i.test(nonKing[0]!));
+  }
+
   private static async handleLiveGameEnded(
     finalPgn: string[],
-    names: { white: string; black: string }
+    names: { white: string; black: string },
+    provisional?: GameOutcome
   ): Promise<void> {
     try {
       const row = await this.waitForFinishedGameRow();
@@ -273,14 +382,35 @@ class GameEndWatcher {
       info.white ||= names.white;
       info.black ||= names.black;
 
-      const gameKey = [_State.eventId ?? "", row.gameNumber, finalPgn[0]].join(
-        "|"
-      );
+      // a game re-loaded (e.g. replayed after a crash) is not a game end:
+      // the row before "In Progress..." is then an older game
+      const watchedMoves = Math.ceil(finalPgn.length / 2);
+      if (
+        info.moveCount !== undefined &&
+        Math.abs(info.moveCount - watchedMoves) > 1
+      ) {
+        console.log(
+          `better-ccc: schedule row has ${info.moveCount} moves, watched game had ${watchedMoves}: no toast`
+        );
+        return;
+      }
+
+      const gameKey = [_State.eventId ?? "", row.gameNumber].join("|");
 
       if (this.notifiedGames.has(gameKey)) {
         return;
       }
       this.notifiedGames.add(gameKey);
+
+      // the time forfeit toast was right
+      if (provisional === info.outcome) {
+        return;
+      }
+      if (provisional) {
+        info.reason = ["Corrected result", info.reason]
+          .filter(Boolean)
+          .join(" · ");
+      }
 
       GameResultToast.notify(info);
     } catch (e) {
@@ -416,6 +546,7 @@ class GameEndWatcher {
       white: cleanName(whiteCell),
       black: cleanName(blackCell),
       reason,
+      moveCount: moves ? parseInt(moves, 10) : undefined,
     };
   }
 
