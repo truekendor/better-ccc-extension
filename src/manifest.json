@@ -43,7 +43,12 @@
     }
   ],
   "background": {
-    "service_worker": "background/background.js"
+    "service_worker": "background/background.js",
+    "scripts": ["background/background.js"]
+  },
+  "action": {
+    "default_icon": "icons/icon_48.png",
+    "default_title": "Better CCC"
   },
   "icons": {
     "128": "icons/icon_128.png",
@@ -53,9 +58,21 @@
   "web_accessible_resources": [
     {
       "resources": ["inject/index.js"],
-      "matches": ["<all_urls>"]
+      "matches": ["https://www.chess.com/*"]
     }
   ],
   "permissions": ["scripting", "storage", "tabs", "activeTab"],
-  "host_permissions": ["https://cccc.chess.com/*", "https://www.chess.com/*"]
+  "host_permissions": ["https://cccc.chess.com/*", "https://www.chess.com/*"],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{081d4f1e-d881-4aea-af85-4c2799f86c24}",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
+    }
+  }
 }
