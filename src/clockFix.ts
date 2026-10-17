@@ -13,9 +13,12 @@ function fixClockSVG(): void {
     // container with broken <object> element && <span> with remaining time
     const brokenClockWrapper = container.lastElementChild!;
 
-    // broken <object> element
-    const clockElement =
-      brokenClockWrapper.firstElementChild! as HTMLObjectElement;
+    // broken <object> element. Current chess.com markup renders its own icon
+    // (or nothing) before the remaining time: nothing to fix then, and taking
+    // the first child would hide the remaining time itself
+    const clockElement = brokenClockWrapper.querySelector("object");
+    if (!clockElement) return;
+
     const remainingTimeElement =
       brokenClockWrapper.lastElementChild! as HTMLSpanElement;
 

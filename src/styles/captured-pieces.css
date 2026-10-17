@@ -7,27 +7,27 @@
  * Layout of the clock row:
  *   .enginedata-clock-wrapper
  *     > .ccc-captured-pieces-wrapper  (inserted by the extension, 1st child)
- *     > ...chess.com elements (50 move rule etc.)
- *     > div:last-child                (clock icon + remaining time)
+ *     > div                           (chess.com, 50 move rule)
+ *     > div.enginedata-clock          (turn icon + remaining time)
  *
- * The captured pieces are a regular flex item (no absolute positioning /
- * transforms) so they can never be painted over the remaining time.
- * The row wraps: when the pieces don't fit next to the clock they move to
- * their own line above it.
+ * The engine card has a fixed height with overflow: hidden and the clock row
+ * is its last line, so the row must never wrap (a wrapped clock is clipped).
+ * Wide cards: pieces sit on the left of the clock, in the same row.
+ * Narrow cards: pieces sit right above the clock row (bottom: 100%), so they
+ * can never be painted over the remaining time.
  */
 .enginedata-container .enginedata-clock-wrapper {
   position: relative !important;
 
   display: flex !important;
-  flex-wrap: wrap !important;
+  flex-wrap: nowrap !important;
   align-items: center !important;
-  row-gap: 2px;
 
   font-size: 15px !important;
   line-height: 1 !important;
 }
 
-/* clock icon + remaining time: never shrink, never wrap */
+/* turn icon + remaining time: never shrink, never wrap */
 .enginedata-container .enginedata-clock-wrapper > div:last-child {
   margin-left: auto;
 
@@ -41,13 +41,12 @@
   position: static;
 
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
 
   flex: 0 1 auto;
   min-width: 0;
-  max-width: 100%;
-  min-height: var(--svg-size);
+  overflow: hidden;
 
   font-size: var(--svg-size) !important;
   line-height: 1;
@@ -85,9 +84,6 @@
   .ccc-captured-pieces-wrapper {
     --svg-size: 20px;
     font-size: var(--svg-size) !important;
-
-    /* centered between the left edge and the clock */
-    margin-inline: auto;
   }
 
   .ccc-captured-pieces-wrapper > span > svg {
@@ -102,14 +98,19 @@
   }
 }
 
-/* narrow layouts: pieces always get their own line above the clock */
+/* narrow cards: pieces above the clock row, growing upwards */
 @container (max-width: 270px) {
   .ccc-captured-pieces-wrapper {
-    --svg-size: 18px;
-    font-size: 16px !important;
+    --svg-size: 16px;
+    font-size: 14px !important;
 
-    flex-basis: 100%;
-    margin-inline: 0;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 2px);
+
+    flex-wrap: wrap-reverse;
+    overflow: visible;
   }
 
   .ccc-captured-pieces-wrapper:not(:empty) {
@@ -118,13 +119,6 @@
 
   .ccc-captured-pieces-wrapper > span > svg {
     height: 95% !important;
-  }
-}
-
-@container (max-width: 160px) {
-  .ccc-captured-pieces-wrapper {
-    --svg-size: 16px;
-    font-size: 13px !important;
   }
 }
 
