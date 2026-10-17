@@ -525,6 +525,12 @@ namespace components {
           tooltip: "",
         }),
         this.crExtensionSettingRow({
+          key: "extraHotkeys",
+          description: "Extra hotkeys (press ?)",
+          tooltip:
+            "1-5: switch bottom panel tab, L: jump to the live game, E: event list, ?: show all hotkeys",
+        }),
+        this.crExtensionSettingRow({
           key: "highlightReverseDeviation",
           description: "Highlight reverse deviation",
           tooltip:

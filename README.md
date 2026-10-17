@@ -33,6 +33,7 @@
   - ![deviation](https://github.com/truekendor/better-ccc-extension/blob/main/img/preview-highlight.jpg)
   - Click on schedule button to scroll to the current game ![schedule button click](https://github.com/truekendor/better-ccc-extension/blob/main/img/schedule-click.jpg)
   - GUI bugfixes
+  - Extra hotkeys with a `?` help overlay listing every shortcut (can be turned off in the extension settings: `Extra hotkeys`)
  
 ## Hotkeys 
 
@@ -43,6 +44,18 @@ You can close `cross table`/`engine info` modals by pressing `Esc`
 Press `C` to open `Cross table`
 
 Press `S` to open `Schedule`
+
+Extra hotkeys (toggle `Extra hotkeys` in the extension settings):
+
+Press `?` to show/hide the list of all hotkeys
+
+Press `1`-`5` to switch the bottom panel tab (`Vote` / `Standings` / `Schedule` / `Match` / `Info`)
+
+Press `L` to jump to the live game (opens the schedule if needed)
+
+Press `E` to open/close the event list
+
+Hotkeys are ignored while typing in an input field
 
 
 # Acknowledgements

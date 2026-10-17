@@ -30,6 +30,7 @@ async function loadUserSettings(): Promise<void> {
       "showCapturedPieces",
       "clearQueryStringOnCurrentGame",
       "highlightReverseDeviation",
+      "extraHotkeys",
       // movetable styles
       "bookMovesColor",
       "deviationColor",

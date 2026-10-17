@@ -150,6 +150,11 @@ class ExtensionHelper {
       case "clearQueryStringOnCurrentGame":
         this.handleClearURLHash();
         break;
+      case "extraHotkeys":
+        if (!UserSettings.customSettings.extraHotkeys) {
+          ExtraHotkeys.closeHelp();
+        }
+        break;
       default:
         // exhaustive check
         console.log(key satisfies never);
