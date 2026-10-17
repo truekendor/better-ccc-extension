@@ -13,7 +13,9 @@
  * - the live moves are tracked while they grow move by move
  * - when they are replaced by a different, shorter game (and no archived game
  *   was opened, CCC adds `game=` to the hash for those) the live game ended
- * - the result is read from the schedule row right before the new
+ * - mates ("#") and draws by rule are reported as soon as the move is
+ *   played (checked with chess.js)
+ * - otherwise (adjudication) the result is read from the schedule row right before the new
  *   "In Progress..." row. The schedule is only rendered while its tab is
  *   open, so the tab is opened for a moment if needed.
  */
@@ -46,6 +48,9 @@ class GameEndWatcher {
   private static settleTimerId = 0;
 
   private static readonly notifiedGames = new Set<string>();
+  /** final moves of the games already reported from the board position */
+  private static readonly gamesEndedOnBoard = new Set<string>();
+  private static readonly board = ChessJS.chess();
   private static readonly cachedNames = { white: "", black: "" };
 
   static init(): void {
@@ -103,6 +108,10 @@ class GameEndWatcher {
     if (previousPgn && this.isContinuation(previousPgn, pgn)) {
       this.livePgn = pgn;
       this.cacheEngineNames();
+
+      if (pgn.length > previousPgn.length) {
+        this.checkBoardResult(pgn);
+      }
       return;
     }
 
@@ -111,7 +120,8 @@ class GameEndWatcher {
       previousPgn &&
       previousPgn.length >= this.MIN_PLIES &&
       pgn.length < previousPgn.length &&
-      Date.now() - this.liveSince >= this.MIN_WATCH_TIME_MS
+      Date.now() - this.liveSince >= this.MIN_WATCH_TIME_MS &&
+      !this.gamesEndedOnBoard.has(previousPgn.join(" "))
     ) {
       this.handleLiveGameEnded(previousPgn, { ...this.cachedNames });
     }
@@ -121,6 +131,50 @@ class GameEndWatcher {
     this.cachedNames.white = "";
     this.cachedNames.black = "";
     this.cacheEngineNames();
+  }
+
+  /**
+   * reports the result right away when it is decided on the board:
+   * mate ("#") or draw by rule. Adjudicated games (resign / TB / eval
+   * draw rules) are reported when the next game starts
+   */
+  private static checkBoardResult(pgn: string[]): void {
+    const key = pgn.join(" ");
+
+    if (this.gamesEndedOnBoard.has(key)) {
+      return;
+    }
+
+    let result: { outcome: GameOutcome; reason: string } | null = null;
+
+    if (pgn[pgn.length - 1]?.includes("#")) {
+      // white plays the odd plies
+      result = {
+        outcome: pgn.length % 2 === 1 ? "white" : "black",
+        reason: "Checkmate",
+      };
+    } else {
+      try {
+        this.board.actions.setPGN(pgn);
+        result = this.board.boardResult;
+      } catch {
+        // move not understood, let the schedule tell the result
+        return;
+      }
+    }
+
+    if (!result) {
+      return;
+    }
+
+    this.gamesEndedOnBoard.add(key);
+
+    GameResultToast.notify({
+      outcome: result.outcome,
+      white: this.getEngineName("white"),
+      black: this.getEngineName("black"),
+      reason: `${result.reason} · ${Math.ceil(pgn.length / 2)} moves`,
+    });
   }
 
   private static async handleLiveGameEnded(

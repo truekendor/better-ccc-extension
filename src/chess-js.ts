@@ -2224,6 +2224,34 @@ namespace ChessJS {
       return this.fen();
     }
 
+    /** result decided on the board (mate or draw by rule), null otherwise */
+    get boardResult(): {
+      outcome: "white" | "black" | "draw";
+      reason: string;
+    } | null {
+      if (this.isCheckmate()) {
+        // the side to move is mated
+        return {
+          outcome: this.turn() === "w" ? "black" : "white",
+          reason: "Checkmate",
+        };
+      }
+      if (this.isStalemate()) {
+        return { outcome: "draw", reason: "Stalemate" };
+      }
+      if (this.isInsufficientMaterial()) {
+        return { outcome: "draw", reason: "Insufficient material" };
+      }
+      if (this.isThreefoldRepetition()) {
+        return { outcome: "draw", reason: "Threefold repetition" };
+      }
+      if (this._halfMoves >= 100) {
+        return { outcome: "draw", reason: "50-move rule" };
+      }
+
+      return null;
+    }
+
     // the names _move and move are already taken
     private mkMove(move: string): void {
       this.move(move);
