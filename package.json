@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build": "tsc",
+    "test": "tsc && node --test test/",
     "dev": "tsc --watch",
     "package:firefox": "tsc && node scripts/package-firefox.mjs"
   },

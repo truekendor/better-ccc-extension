@@ -27,5 +27,8 @@ jobs:
     - name: Build extension
       run: npm run build
 
+    - name: Run tests
+      run: npm test
+
     - name: Package Firefox xpi (validates manifest references)
       run: node scripts/package-firefox.mjs
