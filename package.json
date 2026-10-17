@@ -1,7 +1,8 @@
 {
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "package:firefox": "tsc && node scripts/package-firefox.mjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.241",
