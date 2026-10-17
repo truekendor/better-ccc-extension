@@ -1,25 +1,59 @@
-(function (): void {
-  const blackPiecesWrapper = components.Webpage.crCapturedPiecesWrapper();
-  const whitePiecesWrapper = components.Webpage.crCapturedPiecesWrapper();
-
+/**
+ * Puts a captured pieces wrapper as first child of each engine clock row.
+ * CCC re-creates the engine panels (Engines/Analysis tab switch, layout
+ * changes...), so this runs again whenever a clock row has lost its wrapper.
+ * Returns true if a wrapper was inserted.
+ */
+function ensureCapturedPiecesWrappers(): boolean {
   const clockWrappers: NodeListOf<HTMLDivElement> = document.querySelectorAll(
     ".enginedata-clock-wrapper"
   );
 
-  // .forEach to make TS happy
+  let inserted = false;
+
+  // first clock row is the top engine, second one the bottom engine
   clockWrappers.forEach((wrapper, i) => {
-    if (!wrapper.firstChild) {
+    if (i > 1 || !wrapper.firstChild) {
       return;
     }
-    if (i === 0) {
-      wrapper.insertBefore(blackPiecesWrapper, wrapper.firstChild);
+    if (wrapper.querySelector(":scope > .ccc-captured-pieces-wrapper")) {
       return;
     }
-    if (i === 1) {
-      wrapper.insertBefore(whitePiecesWrapper, wrapper.firstChild);
-      return;
+
+    const piecesWrapper = components.Webpage.crCapturedPiecesWrapper();
+    if (!UserSettings.customSettings.showCapturedPieces) {
+      piecesWrapper.classList.add("ccc-hide");
     }
+
+    wrapper.insertBefore(piecesWrapper, wrapper.firstChild);
+    inserted = true;
   });
+
+  return inserted;
+}
+
+(function watchEnginePanels(): void {
+  ensureCapturedPiecesWrappers();
+
+  const root = document.querySelector(".cpu-champs-page-main") ?? document.body;
+  let scheduled = false;
+
+  const observer = new MutationObserver(() => {
+    if (scheduled) {
+      return;
+    }
+    scheduled = true;
+
+    requestAnimationFrame(() => {
+      scheduled = false;
+
+      if (ensureCapturedPiecesWrappers()) {
+        CountCapturedPieces.recount();
+      }
+    });
+  });
+
+  observer.observe(root, { childList: true, subtree: true });
 })();
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -56,13 +90,17 @@ class CountCapturedPieces {
     q: 9,
   } as const;
 
-  private static whitePiecesWrapper = document.querySelectorAll(
-    ".ccc-captured-pieces-wrapper"
-  )[1]!;
+  /** last counted position, to fill re-created wrappers */
+  private static lastFen = "";
 
-  private static blackPiecesWrapper = document.querySelector(
-    ".ccc-captured-pieces-wrapper"
-  )!;
+  // looked up on every count: CCC re-creates the engine panels
+  private static get whitePiecesWrapper(): Element | null {
+    return document.querySelectorAll(".ccc-captured-pieces-wrapper")[1] ?? null;
+  }
+
+  private static get blackPiecesWrapper(): Element | null {
+    return document.querySelector(".ccc-captured-pieces-wrapper");
+  }
 
   private static boardState: Prettify<
     Record<ChessPieces, number> & {
@@ -103,6 +141,7 @@ class CountCapturedPieces {
       console.log("Count Material\nFEN is undefined");
       return;
     }
+    this.lastFen = fen;
 
     // removes digits and "/" from FEN string
     const pieceArray = fen
@@ -126,8 +165,16 @@ class CountCapturedPieces {
       this.boardState.piecesLeft -= diff;
     });
 
-    Utils.removeChildNodes(this.whitePiecesWrapper);
-    Utils.removeChildNodes(this.blackPiecesWrapper);
+    const whitePiecesWrapper = this.whitePiecesWrapper;
+    const blackPiecesWrapper = this.blackPiecesWrapper;
+
+    // engine panels not rendered (other middle tab): recount() refills them
+    if (!whitePiecesWrapper || !blackPiecesWrapper) {
+      return;
+    }
+
+    Utils.removeChildNodes(whitePiecesWrapper);
+    Utils.removeChildNodes(blackPiecesWrapper);
 
     keys.forEach((key) => {
       if (
@@ -182,15 +229,15 @@ class CountCapturedPieces {
       }
 
       if (isWhitePiece) {
-        this.blackPiecesWrapper.appendChild(span);
+        blackPiecesWrapper.appendChild(span);
       } else {
-        this.whitePiecesWrapper.appendChild(span);
+        whitePiecesWrapper.appendChild(span);
       }
     });
 
     if (this.boardState.capturePoints > 0) {
       const blacksScore: HTMLSpanElement =
-        this.blackPiecesWrapper.querySelector("._ccc-capture-score")!;
+        blackPiecesWrapper.querySelector("._ccc-capture-score")!;
 
       if (blacksScore) {
         blacksScore.textContent = "";
@@ -200,10 +247,10 @@ class CountCapturedPieces {
       span.classList.add("_ccc-capture-score");
 
       span.textContent += `+${Math.abs(this.boardState.capturePoints)}`;
-      this.whitePiecesWrapper.append(span);
+      whitePiecesWrapper.append(span);
     } else if (this.boardState.capturePoints < 0) {
       const whitesScore: HTMLSpanElement =
-        this.whitePiecesWrapper.querySelector("._ccc-capture-score")!;
+        whitePiecesWrapper.querySelector("._ccc-capture-score")!;
 
       if (whitesScore) {
         whitesScore.textContent = "";
@@ -213,12 +260,19 @@ class CountCapturedPieces {
       span.classList.add("_ccc-capture-score");
 
       span.textContent += `+${Math.abs(this.boardState.capturePoints)}`;
-      this.blackPiecesWrapper.append(span);
+      blackPiecesWrapper.append(span);
     }
   }
 
   static get piecesLeft(): number {
     return this.boardState.piecesLeft;
+  }
+
+  /** fills the wrappers again, e.g. after CCC re-created them */
+  static recount(): void {
+    if (this.lastFen) {
+      this.count(this.lastFen);
+    }
   }
 
   static clear() {
