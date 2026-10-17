@@ -6,8 +6,9 @@
  * and an optional chime when the *live* game finishes.
  *
  * The end of the live game is detected by the scripts in `gameEnd/`
- * (loaded before this one), which call `GameResultToast.notify` once per
- * game: see gameEnd/gameEndWatcher.ts for how.
+ * (loaded before this one, helped by inject/index.js in the page), which
+ * call `GameResultToast.notify` once per game: see
+ * gameEnd/gameEndWatcher.ts for how.
  */
 
 type GameEndInfo = {

@@ -8,6 +8,7 @@ import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import vm from "node:vm";
 
 import {
   LiveGame,
@@ -23,7 +24,7 @@ import {
   scheduleRow,
 } from "./harness.mjs";
 
-const { GameEndRules: R, GameEndArbiter: A, GameEndConfig: C } = loadLogic();
+const { GameEndRules: R, GameEndArbiter: A, GameEndConfig: C, EvalConvention: E } = loadLogic();
 
 const GAMES = Object.fromEntries(
   JSON.parse(readFixture("ccc-games.json")).map((game) => [game.termination, game])
@@ -40,13 +41,6 @@ const LEGALL = "e4 e5 Nf3 d6 Bc4 Bg4 Nc3 g6 Nxe5 Bxd1 Bxf7+ Ke7 Nd5#".split(" ")
 const LOYD_STALEMATE =
   "e3 a5 Qh5 Ra6 Qxa5 h5 h4 Rah6 Qxc7 f6 Qxd7+ Kf7 Qxb7 Qd3 Qxb8 Qh7 Qxc8 Kg6 Qe6".split(" ");
 
-const reading = (magnitude, isMate = false, whitePov = null) => ({
-  color: null,
-  text: "",
-  magnitude,
-  isMate,
-  whitePov,
-});
 const candidate = (outcome, confidence, source = "board") => ({
   outcome,
   confidence,
@@ -54,10 +48,21 @@ const candidate = (outcome, confidence, source = "board") => ({
   reason: "",
 });
 
+/** eval draw counter over archived plies ([san, score, secs, left], book: score null) */
+function evalDrawFiresAt(plies) {
+  let count = 0;
+  for (let i = 0; i < plies.length; i++) {
+    const [san, score] = plies[i];
+    count = R.nextEvalDrawCount(count, { san, score: score === null ? null : R.parseEval(score).pawns });
+    if (R.isEvalDrawReached(count, i + 1)) return i + 1;
+  }
+  return null;
+}
+
 // * =========================
 // * pure functions
 
-describe("GameEndRules: evals", () => {
+describe("GameEndRules: evals and engine stats", () => {
   test("parseEval reads normal and mate scores", () => {
     assert.deepEqual(plain(R.parseEval("+M13")), { pawns: 1000, mateIn: 13 });
     assert.deepEqual(plain(R.parseEval("-M5")), { pawns: -1000, mateIn: -5 });
@@ -79,58 +84,67 @@ describe("GameEndRules: evals", () => {
     }
   });
 
-  test("parsePanelEval takes the token after the engine rank", () => {
-    assert.deepEqual(plain(R.parsePanelEval("Torch #1 + 0.80 2:13")), { pawns: 0.8, mateIn: null });
-    assert.deepEqual(plain(R.parsePanelEval("Reckless #2 + 4.45 13/50 0:01.11")), {
-      pawns: 4.45,
-      mateIn: null,
-    });
-    assert.deepEqual(plain(R.parsePanelEval("Reckless #2 +M1")), { pawns: 1000, mateIn: 1 });
-    assert.deepEqual(plain(R.parsePanelEval("Torch #1 +M15 0:08")), { pawns: 1000, mateIn: 15 });
-    assert.deepEqual(plain(R.parsePanelEval("Torch\n#1\n+ 0.01\n0:14")), { pawns: 0.01, mateIn: null });
-    assert.equal(R.parsePanelEval("Torch #1 3:02"), null);
-    assert.equal(R.parsePanelEval("Torch\n#1\n3:02"), null);
-    assert.equal(R.parsePanelEval(""), null);
+  test("evals are white-relative (the server negates Black's score)", () => {
+    assert.equal(E.POINT_OF_VIEW, "white");
+    assert.equal(E.toWhitePov("black", R.parseEval("-1.50")), -1.5);
   });
 
-  test("parseStatsEvals finds one eval per stats row", () => {
-    const rows = (text) =>
-      Array.from(R.parseStatsEvals(text), (parsed) => parsed.mateIn ?? parsed.pawns);
-
-    assert.deepEqual(
-      rows("+1.01 25 537.49M 2:08 171.28M 60 +0.80 36 1.02B 2:20 155.30M 245 481216-1.5-1-0.500.511.5"),
-      [1.01, 0.8]
-    );
-    // first move of a game: one row, no time column
-    assert.deepEqual(rows("+1.18 22 219.96M 147.38M 13 2468-1.5-1-0.500.511.5"), [1.18]);
-    assert.deepEqual(
-      rows("+M1 239 119.3K 0:04 9.45M 0 +M1 96 432.0K 0:23 5.61M 23.8K 20406080100"),
-      [1, 1]
-    );
-    assert.deepEqual(
-      rows("Eval Depth Nodes Time Speed TB Hits 0.00 33 3.57B 2:33 152.27M 5.0K -0.00 32 1.37B 2:43 148.92M 9"),
-      [0, -0]
-    );
-    assert.deepEqual(rows(""), []);
-    assert.deepEqual(rows(null), []);
-  });
-
-  test("inferAdjudication: draw when both evals are small, wins only with a known sign", () => {
-    assert.equal(R.inferAdjudication([reading(0.01), reading(0)]), "draw");
-    assert.equal(R.inferAdjudication([reading(0.25), reading(0.25)]), "draw");
-    assert.equal(R.inferAdjudication([reading(0.01), reading(0.3)]), null);
-    assert.equal(R.inferAdjudication([reading(1000, true), reading(1000, true)]), null);
-    assert.equal(R.inferAdjudication([reading(0.01)]), null);
-    assert.equal(R.inferAdjudication([reading(0.01), null]), null);
-    // unknown sign (the page's convention): big evals are not a win
-    assert.equal(R.inferAdjudication([reading(8), reading(9)]), null);
-    assert.equal(R.inferAdjudication([reading(6, false, 6), reading(7, false, 7)]), "white");
-    assert.equal(R.inferAdjudication([reading(6, false, -6), reading(1000, true, -1000)]), "black");
-    assert.equal(R.inferAdjudication([reading(6, false, 6), reading(7, false, -7)]), null);
+  test("valueBoxSignature: Depth, Nodes, Speed, TB Hits (not Time, the clock, nor the rebuilt Eval)", () => {
+    const spans = ["+0.61", "24", "90.88M", "2:30", "188.93M", "4"];
+    assert.equal(R.valueBoxSignature(spans), "24|90.88M|188.93M|4");
+    // the clock after a move, the eval rebuilt from the PGN at the end
+    assert.equal(R.valueBoxSignature([...spans.slice(0, 3), "2:32", ...spans.slice(4)]), R.valueBoxSignature(spans));
+    assert.equal(R.valueBoxSignature(["-0.00", ...spans.slice(1)]), R.valueBoxSignature(spans));
+    // a search line
+    assert.notEqual(R.valueBoxSignature(["+0.61", "24", "91.20M", "2:30", "188.93M", "4"]), R.valueBoxSignature(spans));
+    assert.equal(R.valueBoxSignature(["", "", "", "", "", ""]), "|||");
   });
 });
 
-describe("GameEndRules: clocks and stats", () => {
+describe("GameEndRules: CCC rules", () => {
+  test("captures and pawn moves restart the 50-move counter", () => {
+    for (const san of ["exd5", "Nxe4", "e4", "e8=Q+", "bxa8=N", "Qxf7#"]) {
+      assert.equal(R.isCaptureOrPawnMove(san), true, san);
+    }
+    for (const san of ["Nf3", "O-O", "O-O-O", "Kb1", "Rg6+", "Qa8"]) {
+      assert.equal(R.isCaptureOrPawnMove(san), false, san);
+    }
+  });
+
+  test("eval draw: ±0.10 for 20 plies from fullmove 50, captures and pawn moves restart at 1", () => {
+    const next = (count, san, score) => R.nextEvalDrawCount(count, { san, score });
+
+    assert.equal(next(5, "Qb3", 0.01), 6);
+    assert.equal(next(5, "Qb3", -0.1), 6);
+    assert.equal(next(5, "Qb3", 0.11), 0);
+    assert.equal(next(5, "Qb3", 1000), 0);
+    assert.equal(next(5, "Nxa3", 0.04), 1);
+    assert.equal(next(5, "Nxa3", 0.12), 0);
+    assert.equal(next(5, "h4", 0), 1);
+    // unknown score (book move, instant move without info): start over
+    assert.equal(next(5, "Qb3", null), 0);
+
+    assert.equal(R.isEvalDrawReached(20, 100), true);
+    assert.equal(R.isEvalDrawReached(20, 99), false);
+    assert.equal(R.isEvalDrawReached(19, 140), false);
+    assert.equal(R.isEvalDrawReached(35, 133), true);
+  });
+
+  test("eval draw: fires at the last ply of the adjudicated archived game, never early in others", () => {
+    assert.equal(evalDrawFiresAt(ADJUDICATED_GAME.plies), ADJUDICATED_GAME.plies.length);
+    for (const game of [THREEFOLD_GAME, MATE_GAME, TABLEBASE_GAME]) {
+      assert.equal(evalDrawFiresAt(game.plies), null, game.termination);
+    }
+  });
+
+  test("tablebase lookups only for a capture leaving 6 men or less", () => {
+    assert.equal(R.isTablebaseCandidate("Nxa5", "8/8/8/Nk6/8/1b4P1/5K1P/8 b - - 0 50"), true);
+    assert.equal(R.isTablebaseCandidate("Kb4", "8/8/8/Nk6/8/1b4P1/5K1P/8 b - - 0 50"), false);
+    assert.equal(R.isTablebaseCandidate("Nxa5", "8/8/8/Nk6/8/1b4P1/5KPP/8 b - - 0 50"), false);
+  });
+});
+
+describe("GameEndRules: clocks and game over", () => {
   test("parseClockSeconds reads every clock format, empty is unknown", () => {
     assert.equal(R.parseClockSeconds("3:02"), 182);
     assert.equal(R.parseClockSeconds("0:23"), 23);
@@ -158,51 +172,174 @@ describe("GameEndRules: clocks and stats", () => {
     assert.equal(R.isClockStopped(2.11, null), false);
   });
 
-  test("statsSignature drops the headers and whitespace, null when not shown", () => {
-    const text =
-      "Eval Depth Nodes Time Speed TB Hits\n+1.01 25 537.49M 2:08 171.28M 60\n+0.80  36 1.02B 2:20 155.30M 245";
-    assert.equal(
-      R.statsSignature(text),
-      "+1.01 25 537.49M 2:08 171.28M 60 +0.80 36 1.02B 2:20 155.30M 245"
-    );
-    assert.equal(R.statsSignature(text.replace(/\n/g, " ")), R.statsSignature(text));
-    assert.notEqual(R.statsSignature(text), R.statsSignature(text.replace("1.02B", "1.43B")));
-    assert.equal(R.statsSignature("Eval Depth Nodes Time Speed TB Hits"), null);
-    assert.equal(R.statsSignature(""), null);
-    assert.equal(R.statsSignature(null), null);
+  test("freezeState: the side to move's box unchanged since the ply", () => {
+    const state = (input, ms) =>
+      R.freezeState({ now: 0, since: 0, boxKnown: true, changedAt: null, ...input }, ms);
+
+    assert.equal(state({ now: 1499 }), "waiting");
+    assert.equal(state({ now: 1500 }), "frozen");
+    assert.equal(state({ now: 1999 }, C.FREEZE_HIDDEN_MS), "waiting");
+    assert.equal(state({ now: 9000, changedAt: 300 }), "active");
+    assert.equal(state({ now: 9000, boxKnown: false }), "unknown");
+    assert.equal(state({ now: 9000, since: null }), "unknown");
+    assert.equal(state({ now: 5999 }, C.UNEXPLAINED_FREEZE_MS), "waiting");
+    assert.equal(state({ now: 6000 }, C.UNEXPLAINED_FREEZE_MS), "frozen");
   });
 
-  test("classifyGameOver: engines active, frozen, flag, adjudication, wrong clock", () => {
-    const over = (input) => plain(R.classifyGameOver(input));
+  test("classifyFlag: searched until the flag, stopped before, wrong clock", () => {
+    const flag = (input) =>
+      R.classifyFlag({ now: 4000, since: 0, boxKnown: true, changedAt: 2200, flagAt: 2500, ...input });
 
-    // stats frozen STALL_MS, clock unknown
-    assert.equal(over({ now: 7999, lastMoveAt: 0, statsChangedAt: 0, flagAt: null }).over, false);
-    assert.equal(over({ now: 8000, lastMoveAt: 0, statsChangedAt: 0, flagAt: null }).end, "adjudication");
-    // nothing known
-    assert.equal(over({ now: 99_999, lastMoveAt: 0, statsChangedAt: null, flagAt: null }).over, false);
-    // engines stopped at the move, the side to move had 2.1 s
-    assert.equal(over({ now: 3999, lastMoveAt: 0, statsChangedAt: 400, flagAt: 2500 }).over, false);
+    // 1.5 s after the clock ran out
+    assert.equal(flag({ now: 3999 }), "not-yet");
+    assert.equal(flag({}), "time-forfeit");
+    assert.equal(flag({ flagAt: null, now: 99_999 }), "not-yet");
+    // the engine stopped well before its clock ran out: the game ended otherwise
+    assert.equal(flag({ changedAt: 900 }), "not-a-flag");
+    assert.equal(flag({ changedAt: null }), "not-a-flag");
+    assert.equal(flag({ changedAt: 1300 }), "unclear");
+    // still searching well after its flag time: the clock reading was wrong
+    assert.equal(flag({ now: 6000, changedAt: 4100 }), "not-yet");
+    // stats not shown
+    assert.equal(flag({ boxKnown: false }), "unclear");
+  });
+
+  test("isEventEndSuspected: a while after the end, or a long pause with idle engines", () => {
+    const suspected = (input) =>
+      R.isEventEndSuspected({ now: 0, lastMoveAt: 0, endedAt: null, freeze: "frozen", ...input });
+
+    assert.equal(suspected({ now: 44_999 }), false);
+    assert.equal(suspected({ now: 45_000 }), true);
+    assert.equal(suspected({ now: 45_000, freeze: "unknown" }), true);
+    assert.equal(suspected({ now: 99_000, freeze: "active" }), false);
+    assert.equal(suspected({ now: 20_999, endedAt: 6000 }), false);
+    assert.equal(suspected({ now: 21_000, endedAt: 6000 }), true);
+  });
+});
+
+describe("GameEndRules: results shown by the page", () => {
+  const message = (type, payload, source = "better-ccc-page") =>
+    plain(R.parsePageMessage({ source, type, json: JSON.stringify(payload) }));
+
+  test("parsePageMessage validates the messages of inject/index.js", () => {
     assert.deepEqual(
-      (({ over: o, by, end }) => ({ o, by, end }))(
-        over({ now: 4000, lastMoveAt: 0, statsChangedAt: 400, flagAt: 2500 })
-      ),
-      { o: true, by: "clock", end: "adjudication" }
+      message("result", {
+        whiteName: "Reckless",
+        blackName: "Torch",
+        score: "1/2-1/2",
+        reason: "Draw by adjudication: SyzygyTB",
+      }),
+      {
+        type: "result",
+        whiteName: "Reckless",
+        blackName: "Torch",
+        outcome: "draw",
+        reason: "Draw by adjudication: SyzygyTB",
+      }
     );
-    // the engine printed 300 ms before its clock ran out
-    assert.equal(over({ now: 4100, lastMoveAt: 0, statsChangedAt: 2200, flagAt: 2500 }).end, "time-forfeit");
-    // stopped 1.2 s before: can't tell
-    assert.equal(over({ now: 4100, lastMoveAt: 0, statsChangedAt: 1300, flagAt: 2500 }).end, "unclear");
-    // the engine still prints well after its flag time: the clock reading was wrong
-    assert.equal(over({ now: 4600, lastMoveAt: 0, statsChangedAt: 4100, flagAt: 2500 }).over, false);
-    // clock ran out, stats not shown
-    assert.equal(over({ now: 5000, lastMoveAt: 0, statsChangedAt: null, flagAt: 2000 }).end, "unclear");
+    assert.deepEqual(
+      message("gameUpdate", {
+        gameNr: 212836,
+        live: false,
+        termination: "drawSyzygy",
+        outcome: "1/2-1/2",
+        white: "Reckless",
+        black: "Torch",
+        plyCount: 157,
+      }),
+      {
+        type: "gameUpdate",
+        gameNr: "212836",
+        live: false,
+        termination: "drawSyzygy",
+        outcome: "draw",
+        white: "Reckless",
+        black: "Torch",
+        plyCount: 157,
+      }
+    );
+    assert.equal(message("gameUpdate", { gameNr: "212837", live: true }).outcome, null);
+
+    assert.equal(message("result", { score: "1-0" }, "someone-else"), null);
+    assert.equal(message("result", { score: "*" }), null);
+    assert.equal(message("gameUpdate", { live: true }), null);
+    assert.equal(message("newMove", { move: "e2e4" }), null);
+    assert.equal(R.parsePageMessage({ source: "better-ccc-page", type: "result", json: "{oops" }), null);
+    assert.equal(R.parsePageMessage("better-ccc-page"), null);
+    assert.equal(R.parsePageMessage(null), null);
   });
 
-  test("isEventEndSuspected needs a long pause and idle engines", () => {
-    assert.equal(R.isEventEndSuspected({ now: 44_999, lastMoveAt: 0, statsChangedAt: null }), false);
-    assert.equal(R.isEventEndSuspected({ now: 45_000, lastMoveAt: 0, statsChangedAt: null }), true);
-    assert.equal(R.isEventEndSuspected({ now: 50_000, lastMoveAt: 0, statsChangedAt: 45_000 }), false);
-    assert.equal(R.isEventEndSuspected({ now: 53_000, lastMoveAt: 0, statsChangedAt: 45_000 }), true);
+  test("result reasons and termination codes become toast labels", () => {
+    const labels = {
+      "White mates": "Checkmate",
+      "Black mates": "Checkmate",
+      "Draw by adjudication: SyzygyTB": "Tablebase draw",
+      "Draw by adjudication": "Adjudication",
+      "White wins by adjudication": "Adjudication",
+      "Draw by 3-fold repetition": "Repetition",
+      "Draw by fifty moves rule": "50-move rule",
+      "Draw by stalemate": "Stalemate",
+      "Draw by insufficient mating material": "Insufficient material",
+      "Black loses on time": "Time forfeit",
+      "White disconnects": "Disconnection",
+      "White's connection stalls": "Connection stall",
+      "Black makes an illegal move": "Illegal move",
+      "Something new": "Something new",
+    };
+    for (const [reason, label] of Object.entries(labels)) {
+      const outcome = reason.startsWith("Draw") ? "draw" : "white";
+      assert.equal(R.socketReasonLabel(reason, outcome), label, reason);
+    }
+
+    assert.equal(R.terminationLabel("drawSyzygy"), "Tablebase draw");
+    assert.equal(R.terminationLabel("drawAdj"), "Adjudication");
+    assert.equal(R.terminationLabel("whiteMates"), "Checkmate");
+    assert.equal(R.terminationLabel("blackTimeout"), "Time forfeit");
+    assert.equal(R.terminationLabel("whiteDc"), "Disconnection");
+    assert.equal(R.terminationLabel("newCode"), "newCode");
+
+    assert.equal(R.pageResultLabel("Syzygy Adjudication"), "Tablebase draw");
+    assert.equal(R.pageResultLabel("50 Moves"), "50-move rule");
+    assert.equal(R.pageResultLabel("Checkmate"), "Checkmate");
+  });
+
+  test("parsePageResult / outcomeFromPanelClasses", () => {
+    assert.deepEqual(
+      plain(R.parsePageResult(["movetable-gameResult", "movetable-draw"], "Draw 1/2 - 1/2 Syzygy Adjudication")),
+      { outcome: "draw", reason: "Tablebase draw" }
+    );
+    assert.deepEqual(
+      plain(R.parsePageResult(["movetable-gameResult", "movetable-white"], "White Won 1 - 0 Checkmate")),
+      { outcome: "white", reason: "Checkmate" }
+    );
+    assert.equal(R.parsePageResult(["movetable-gameResult"], "Draw 1/2 - 1/2"), null);
+
+    assert.equal(R.outcomeFromPanelClasses(["enginedata-container", "enginedata-loss"]), "black");
+    assert.equal(R.outcomeFromPanelClasses(["enginedata-container", "enginedata-draw"]), "draw");
+    assert.equal(R.outcomeFromPanelClasses(["enginedata-container", "white-high-contrast-box"]), null);
+  });
+
+  test("a websocket result or final game update belongs to the watched game", () => {
+    const watched = { plies: 157, white: "Reckless", black: "Torch", gameNumber: null };
+
+    assert.equal(R.socketResultMatches({ whiteName: "Reckless", blackName: "Torch" }, watched), true);
+    assert.equal(R.socketResultMatches({ whiteName: "Torch", blackName: "Reckless" }, watched), false);
+    assert.equal(
+      R.socketResultMatches({ whiteName: "Torch", blackName: "Reckless" }, { ...watched, white: "", black: "" }),
+      true
+    );
+
+    const update = { gameNr: "212836", white: "Reckless", black: "Torch", plyCount: 157 };
+    assert.equal(R.finalUpdateMismatch(update, watched, ["212836"]), null);
+    assert.equal(R.finalUpdateMismatch(update, watched, ["212836", "212837"]), null);
+    assert.equal(R.finalUpdateMismatch(update, watched, []), null);
+    // an archived game the user opened
+    assert.match(R.finalUpdateMismatch({ ...update, gameNr: "212300" }, watched, ["212836"]), /not a live game/);
+    assert.match(R.finalUpdateMismatch({ ...update, plyCount: 120 }, watched, []), /120 plies/);
+    assert.match(
+      R.finalUpdateMismatch({ ...update, white: "Torch", black: "Reckless" }, watched, []),
+      /Torch - Reckless/
+    );
   });
 });
 
@@ -348,11 +485,6 @@ describe("GameEndRules: schedule", () => {
 
   test(
     "pickFinishedRow at the event end never takes an older game with the same colors",
-    {
-      todo:
-        "bug: event-end mode scans the last 3 finished rows, so the pair game two rows up " +
-        "(same engines, same colors) is taken when the watched row has no result yet",
-    },
     () => {
       // game pairs: the game two rows up has the same engines with the same
       // colors; the watched game's own row has no result yet
@@ -426,11 +558,6 @@ describe("GameEndArbiter", () => {
 
   test(
     "a detector refuted in this game is not shown again",
-    {
-      todo:
-        "bug: after a refuted result the same detector toasts again on the next quiet " +
-        "position (a tablebase draw CCC does not adjudicate toasts after every move)",
-    },
     () => {
       const refutedTablebase = { outcome: "draw", confidence: "certain", source: "tablebase", refuted: true };
       const again = A.decide(refutedTablebase, candidate("draw", "certain", "tablebase"));
@@ -591,7 +718,7 @@ describe("tablebase", () => {
   /** legal moves from the final position of TABLEBASE_GAME (6 men, black to move) */
   const AFTER_TABLEBASE_DRAW = ["Kxa5", "g4", "Kb4", "h4", "Kc3", "g5"];
 
-  test("drawn 6-man position in a real CCC game: one certain toast a second after the move", async () => {
+  test("drawn 6-man position in a real CCC game: one toast once the engine to move stays idle", async () => {
     const world = createWorld();
     world.tablebase = () => "draw";
 
@@ -599,21 +726,17 @@ describe("tablebase", () => {
     const lastMoveAt = world.t;
     await world.advance(3000);
 
-    // asked once: the only position with 6 pieces or less
+    // asked once: the only capture leaving 6 pieces or less
     assert.equal(world.fetches.length, 1);
     assert.equal(R.countPieces(world.fetches[0].fen), 6);
     assert.deepEqual(toastSummary(world), [
       { outcome: "draw", white: "Torch", black: "Reckless", reason: "Tablebase draw · 50 moves" },
     ]);
-    // counted from the first moves table change of the last burst: the
-    // previous move came 100 ms before this one
+    // the freeze rule: the engine to move printed nothing for FREEZE_MS
     const delay = world.toasts[0].t - lastMoveAt;
-    assert.ok(
-      delay >= C.TABLEBASE_CONFIRM_MS - C.SETTLE_DELAY_MS && delay <= C.TABLEBASE_CONFIRM_MS + 600,
-      `${delay} ms`
-    );
+    assert.ok(delay >= C.FREEZE_MS && delay <= C.FREEZE_MS + C.TICK_MS + 100, `${delay} ms`);
 
-    // certain: the schedule is not needed when the next game starts
+    // the next game: the schedule agrees, no second toast and no tab opened
     await world.advance(11_000);
     new LiveGame(world).replaceWithNextGame(NEXT_BOOK, {
       schedule: scheduleAfter41("1/2-1/2 \n 50 Moves"),
@@ -631,7 +754,7 @@ describe("tablebase", () => {
       fen === finalFen ? { category: "draw", delayMs: 2500 } : "win";
 
     const { live } = await playArchivedGame(world, TABLEBASE_GAME);
-    await live.think(1500);
+    await live.think(1500, { everyMs: 0 });
     live.move(AFTER_TABLEBASE_DRAW[0]);
     await live.think(2000);
     live.move(AFTER_TABLEBASE_DRAW[1]);
@@ -643,12 +766,12 @@ describe("tablebase", () => {
     assertNoErrors(world);
   });
 
-  test("a draw answered at once is ignored if a move follows within a second", async () => {
+  test("a draw answered at once is ignored if a move follows within the freeze delay", async () => {
     const world = createWorld();
     world.tablebase = (fen) => (R.countPieces(fen) === 6 ? "draw" : "win");
 
     const { live } = await playArchivedGame(world, TABLEBASE_GAME);
-    await world.advance(600);
+    await world.advance(C.FREEZE_MS - 500);
     live.move(AFTER_TABLEBASE_DRAW[0]);
     await world.advance(3000);
 
@@ -670,27 +793,43 @@ describe("tablebase", () => {
     }
   });
 
-  test(
-    "a drawn position CCC does not adjudicate is reported once, not after every move",
-    {
-      todo:
-        "bug: GameEndArbiter.decide shows any result after a refuted one, so the " +
-        "tablebase detector toasts again after each quiet move",
-    },
-    async () => {
-      const world = createWorld();
-      world.tablebase = () => "draw";
+  test("a drawn position CCC does not adjudicate: the engines keep searching, no toast", async () => {
+    const world = createWorld();
+    world.tablebase = () => "draw";
 
-      const { live } = await playArchivedGame(world, TABLEBASE_GAME);
-      for (const san of AFTER_TABLEBASE_DRAW) {
-        await live.think(1500);
-        live.move(san);
-      }
-      await world.advance(3000);
-
-      assert.equal(world.toasts.length, 1);
+    const { live } = await playArchivedGame(world, TABLEBASE_GAME);
+    for (const san of AFTER_TABLEBASE_DRAW) {
+      await live.think(1500);
+      live.move(san);
     }
-  );
+    await live.think(1500);
+
+    assert.equal(world.toasts.length, 0);
+    // asked for the captures only (Nxa5 to 6 men, Kxa5 to 5)
+    assert.equal(world.fetches.length, 2);
+    assertNoErrors(world);
+  });
+
+  test("an engine silent for a while after a drawn capture: one toast, refuted, not again", async () => {
+    const world = createWorld();
+    world.tablebase = () => "draw";
+
+    const { live } = await playArchivedGame(world, TABLEBASE_GAME);
+    // no search line for 2 s (deep TB think): the freeze rule confirms
+    await live.think(2000, { everyMs: 0 });
+    assert.equal(world.toasts.length, 1);
+
+    // it moves after all (a capture, still a TB draw), then is silent again
+    live.move(AFTER_TABLEBASE_DRAW[0]);
+    await live.think(2500, { everyMs: 0 });
+    for (const san of AFTER_TABLEBASE_DRAW.slice(1)) {
+      live.move(san);
+      await live.think(1500);
+    }
+
+    assert.equal(world.toasts.length, 1);
+    assertNoErrors(world);
+  });
 });
 
 describe("schedule result", () => {
@@ -801,11 +940,6 @@ describe("schedule result", () => {
 
   test(
     "event end is still checked after long thinks used the checks during the game",
-    {
-      todo:
-        "bug: eventEndChecks / nextEventEndCheckAt are never reset on a new move; with " +
-        "the stats hidden every think over 45 s uses a check (and opens the schedule tab)",
-    },
     async () => {
       const { world, live } = await startLiveGame({ enginesTab: false, schedule: SCHEDULE_DURING_41 });
 
@@ -838,12 +972,6 @@ describe("schedule result", () => {
 
   test(
     "the next game replaces the table between two ticks: the schedule result is still found",
-    {
-      todo:
-        "bug: a tick between the table mutation and the settle timer caches the next " +
-        "game's engine names (colors swapped) into the ended session, so the schedule " +
-        "row is rejected (GameEndWatcher.onTick -> cacheEngineNames)",
-    },
     async () => {
       const missed = [];
       for (let phase = 0; phase < C.TICK_MS; phase += 50) {
@@ -871,11 +999,6 @@ describe("schedule result", () => {
 
   test(
     "the schedule shows the next game in progress before the table changes: its number is not taken",
-    {
-      todo:
-        "robustness: captureGameNumber takes the in-progress row without checking the " +
-        "engines, so if the schedule switches first the watched game looks still in progress",
-    },
     async () => {
       const { world, live } = await startLiveGame({
         schedule: SCHEDULE_DURING_41,
@@ -897,6 +1020,309 @@ describe("schedule result", () => {
       assert.equal(world.toasts.length, 1);
     }
   );
+});
+
+describe("CCC websocket (inject/index.js)", () => {
+  test("result message: a certain toast 0.2 s after the last move, nothing more", async () => {
+    const { world, live } = await startLiveGame({ schedule: SCHEDULE_DURING_41 });
+
+    await live.playMoves(RUY_MORE, { thinkMs: 2000, toMoveLeft: 60 });
+    const lastMoveAt = world.t;
+    // before the moves table settled: the final move is counted anyway
+    await world.advance(200);
+    world.socketResult({ score: "1/2-1/2", reason: "Draw by adjudication: SyzygyTB" });
+
+    assert.deepEqual(toastSummary(world), [
+      { outcome: "draw", white: "Torch", black: "Reckless", reason: "Tablebase draw · 13 moves" },
+    ]);
+    assert.equal(world.toasts[0].t - lastMoveAt, 200);
+
+    // the final ply settling, the freeze, the next game: nothing more
+    await world.advance(14_000);
+    live.replaceWithNextGame(NEXT_BOOK, { schedule: scheduleAfter41("1/2-1/2 \n 13 Moves") });
+    await world.advance(15_000);
+    assert.equal(world.toasts.length, 1);
+    assert.equal(scheduleClicks(world), 0);
+    assertNoErrors(world);
+  });
+
+  test("result of other engines, or posted by someone else: ignored", async () => {
+    const { world, live } = await startLiveGame({ schedule: SCHEDULE_DURING_41 });
+
+    await live.playMoves(RUY_MORE, { thinkMs: 2000, toMoveLeft: 60 });
+    await world.advance(300);
+    world.socketResult({ whiteName: "Reckless", blackName: "Torch", score: "0-1", reason: "White mates" });
+    world.pageMessage("result", { whiteName: "Torch", blackName: "Reckless", score: "1-0" }, { source: "page" });
+    world.pageMessage("result", { whiteName: "Torch", blackName: "Reckless", score: "1-0" }, { fromWindow: false });
+    await world.advance(2000);
+    assert.equal(world.toasts.length, 0);
+
+    // the schedule still tells the result
+    await world.advance(12_000);
+    live.replaceWithNextGame(NEXT_BOOK, { schedule: scheduleAfter41("1-0 \n 13 Moves") });
+    await world.advance(15_000);
+    assert.deepEqual(toastSummary(world), [
+      { outcome: "white", white: "Torch", black: "Reckless", reason: "Game 41 · 13 moves" },
+    ]);
+    assertNoErrors(world);
+  });
+
+  test("final game update of the live game: confirmed toast; of an archived game: ignored", async () => {
+    const { world, live } = await startLiveGame({ schedule: SCHEDULE_DURING_41 });
+    world.socketGameUpdate({ gameNr: "212836", live: true });
+
+    await live.playMoves(RUY_MORE.slice(0, 6), { thinkMs: 2000, toMoveLeft: 60 });
+    // the user opened another game a moment ago (no hash change yet)
+    world.socketGameUpdate({
+      gameNr: "212300",
+      termination: "whiteMates",
+      outcome: "1-0",
+      white: "Torch",
+      black: "Reckless",
+      plyCount: 22,
+    });
+    await live.playMoves(RUY_MORE.slice(6), { thinkMs: 2000, toMoveLeft: 60 });
+    await world.advance(13_800);
+    assert.equal(world.toasts.length, 0);
+
+    world.socketGameUpdate({
+      gameNr: "212836",
+      termination: "drawAdj",
+      outcome: "1/2-1/2",
+      white: "Torch",
+      black: "Reckless",
+      plyCount: 26,
+    });
+    assert.deepEqual(toastSummary(world), [
+      { outcome: "draw", white: "Torch", black: "Reckless", reason: "Adjudication · 13 moves" },
+    ]);
+
+    await world.advance(1000);
+    live.replaceWithNextGame(NEXT_BOOK, { schedule: scheduleAfter41("1/2-1/2 \n 13 Moves") });
+    await world.advance(15_000);
+    assert.equal(world.toasts.length, 1);
+    assert.equal(scheduleClicks(world), 0);
+    assertNoErrors(world);
+  });
+
+  test("the page hook forwards result and finished game updates, installed late", () => {
+    const posted = [];
+    const timers = [];
+    let app = null;
+    const previous = [];
+    const handlers = {
+      newMove() {},
+      gameUpdate() {},
+      after_gameUpdate: (messages) => previous.push(messages),
+    };
+
+    const ctx = vm.createContext({
+      window: {
+        location: { origin: "https://www.chess.com" },
+        postMessage: (data, origin) => posted.push({ data, origin }),
+        setTimeout: (fn) => timers.push(fn),
+      },
+      document: { querySelector: (selector) => (selector === "#app" ? app : null) },
+    });
+    vm.runInContext(fs.readFileSync(path.join(SRC_DIR, "inject/index.js"), "utf8"), ctx);
+
+    // the app isn't wired yet: retried
+    assert.equal(timers.length, 1);
+    app = { __vue_app__: { config: { globalProperties: { $socket: { handlers } } } } };
+    timers.shift()();
+    assert.equal(typeof handlers.result, "function");
+
+    handlers.result({
+      type: "result",
+      whiteName: "Reckless",
+      blackName: "Torch",
+      score: "1/2-1/2",
+      reason: "Draw by adjudication: SyzygyTB",
+    });
+    const finished = {
+      type: "gameUpdate",
+      gameDetails: {
+        gameNr: 212836,
+        termination: "drawSyzygy",
+        outcome: "1/2-1/2",
+        pgn: '[White "Reckless"]\n[Black "Torch"]\n[PlyCount "157"]\n\n1. Nf3 {book}',
+      },
+    };
+    handlers.after_gameUpdate([finished]);
+
+    // the app's own after_ handler still runs
+    assert.equal(previous.length, 1);
+    assert.deepEqual(
+      posted.map(({ data, origin }) => [origin, plain(R.parsePageMessage(data))]),
+      [
+        [
+          "https://www.chess.com",
+          {
+            type: "result",
+            whiteName: "Reckless",
+            blackName: "Torch",
+            outcome: "draw",
+            reason: "Draw by adjudication: SyzygyTB",
+          },
+        ],
+        [
+          "https://www.chess.com",
+          {
+            type: "gameUpdate",
+            gameNr: "212836",
+            live: false,
+            termination: "drawSyzygy",
+            outcome: "draw",
+            white: "Reckless",
+            black: "Torch",
+            plyCount: 157,
+          },
+        ],
+      ]
+    );
+
+    // installed once
+    vm.runInContext(fs.readFileSync(path.join(SRC_DIR, "inject/index.js"), "utf8"), ctx);
+    handlers.result({ type: "result", score: "1-0" });
+    assert.equal(posted.length, 3);
+  });
+});
+
+describe("eval draw and freeze rules", () => {
+  test("eval draw in a real CCC game: one toast once the engine to move stays idle", async () => {
+    const world = createWorld();
+
+    await playArchivedGame(world, ADJUDICATED_GAME);
+    const lastMoveAt = world.t;
+    await world.advance(3000);
+
+    assert.deepEqual(toastSummary(world), [
+      { outcome: "draw", white: "Torch", black: "Reckless", reason: "Adjudication · 50 moves" },
+    ]);
+    const delay = world.toasts[0].t - lastMoveAt;
+    assert.ok(delay >= C.FREEZE_MS && delay <= C.FREEZE_MS + C.TICK_MS + 100, `${delay} ms`);
+
+    // the schedule agrees: no second toast, no tab opened
+    await world.advance(11_000);
+    new LiveGame(world).replaceWithNextGame(NEXT_BOOK, {
+      schedule: scheduleAfter41("1/2-1/2 \n 50 Moves"),
+    });
+    await world.advance(20_000);
+    assert.equal(world.toasts.length, 1);
+    assert.equal(scheduleClicks(world), 0);
+    assertNoErrors(world);
+  });
+
+  test("the page shows the result ~14 s later and rebuilds the evals: no second toast", async () => {
+    const world = createWorld();
+
+    await playArchivedGame(world, ADJUDICATED_GAME);
+    await world.advance(13_900);
+    assert.equal(world.toasts.length, 1);
+
+    // the final game update: result box, panel colors, evals from the PGN
+    world.page.resultBox = {
+      classes: ["movetable-gameResult", "movetable-draw"],
+      text: "Draw 1/2 - 1/2 Adjudication",
+    };
+    world.page.panelResult = { white: "enginedata-draw", black: "enginedata-draw" };
+    world.page.evals = { white: "- 0.00", black: "- 0.00" };
+    await world.advance(30_000);
+
+    assert.equal(world.toasts.length, 1);
+    assert.equal(world.eval("GameEndWatcher.session.shown.confidence"), "confirmed");
+    assertNoErrors(world);
+  });
+
+  test("the eval draw rule fires but the engine to move searches on: no toast", async () => {
+    const world = createWorld();
+
+    const { live } = await playArchivedGame(world, ADJUDICATED_GAME);
+    await live.think(5000, { everyMs: 500 });
+
+    assert.equal(world.toasts.length, 0);
+    assertNoErrors(world);
+  });
+
+  test("the eval draw rule needs the plies seen: a page loaded late can't use it", async () => {
+    const world = createWorld();
+    // the page opens 10 plies before the end
+    const late = { ...ADJUDICATED_GAME, plies: ADJUDICATED_GAME.plies.map((ply, i) => (i < 90 ? [ply[0], null, null, null] : ply)) };
+
+    await playArchivedGame(world, late);
+    await world.advance(5000);
+
+    assert.equal(world.toasts.length, 0);
+    assertNoErrors(world);
+  });
+
+  test("an end nothing explains: no toast, then the result box of the page (end of an event)", async () => {
+    const { world, live } = await startLiveGame({ schedule: SCHEDULE_DURING_41 });
+
+    await live.playMoves(RUY_MORE, { thinkMs: 2000, toMoveLeft: 60 });
+    await world.advance(13_900);
+    assert.equal(world.toasts.length, 0);
+    assert.equal(world.eval("GameEndWatcher.session.endedAt !== null"), true);
+
+    world.page.resultBox = {
+      classes: ["movetable-gameResult", "movetable-white"],
+      text: "White Won 1 - 0 Disconnection",
+    };
+    world.page.panelResult = { white: "enginedata-win", black: "enginedata-loss" };
+    await world.advance(500);
+
+    assert.deepEqual(toastSummary(world), [
+      { outcome: "white", white: "Torch", black: "Reckless", reason: "Disconnection · 13 moves" },
+    ]);
+    await world.advance(120_000);
+    assert.equal(world.toasts.length, 1);
+    assert.equal(scheduleClicks(world), 0);
+    assertNoErrors(world);
+  });
+
+  test("only the engine panels' colors: confirmed toast without a reason", async () => {
+    const { world, live } = await startLiveGame({ schedule: SCHEDULE_DURING_41 });
+
+    await live.playMoves(RUY_MORE, { thinkMs: 2000, toMoveLeft: 60 });
+    await world.advance(13_900);
+    world.page.panelResult = { white: "enginedata-draw", black: "enginedata-draw" };
+    await world.advance(500);
+
+    assert.deepEqual(toastSummary(world), [
+      { outcome: "draw", white: "Torch", black: "Reckless", reason: "13 moves" },
+    ]);
+    assertNoErrors(world);
+  });
+});
+
+describe("time forfeit", () => {
+  test("the engine to move searched until its clock ran out: it loses on time", async () => {
+    const { world, live } = await startLiveGame();
+
+    await live.playMoves(RUY_MORE.slice(0, 4), { thinkMs: 2000, toMoveLeft: 3.5 });
+    const lastMoveAt = world.t;
+    // white searches (a line every 500 ms) until its 3.5 s are gone
+    await live.think(3500, { everyMs: 500 });
+    await world.advance(3000);
+
+    assert.deepEqual(toastSummary(world), [
+      { outcome: "black", white: "Torch", black: "Reckless", reason: "Time forfeit · 10 moves" },
+    ]);
+    const delay = world.toasts[0].t - lastMoveAt;
+    assert.ok(delay >= 3500 + C.OVERTIME_GRACE_MS && delay <= 3500 + C.OVERTIME_GRACE_MS + C.TICK_MS + 100, `${delay} ms`);
+    assertNoErrors(world);
+  });
+
+  test("the engines had stopped before the clock ran out (it keeps counting): not a time forfeit", async () => {
+    const { world, live } = await startLiveGame();
+
+    await live.playMoves(RUY_MORE.slice(0, 4), { thinkMs: 2000, toMoveLeft: 2.11 });
+    await world.advance(10_000);
+
+    assert.equal(world.toasts.length, 0);
+    assert.equal(world.eval("GameEndWatcher.session.endedAt !== null"), true);
+    assertNoErrors(world);
+  });
 });
 
 describe("page changes", () => {

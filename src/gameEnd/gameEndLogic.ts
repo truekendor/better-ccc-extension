@@ -11,6 +11,8 @@
  *   gameEnd/gameEndDetectors.js the detectors
  *   gameEnd/gameEndWatcher.js   live game session tracking, feeds the detectors
  *   gameResultToast.js          toast + chime, starts everything
+ * and inject/index.js, injected into the page by highlightDeviation.js,
+ * forwards the CCC websocket results (see PageSocketDetector)
  */
 
 type GameOutcome = "white" | "black" | "draw";
@@ -19,17 +21,20 @@ type EngineColor = "white" | "black";
 
 /**
  * how much a detector trusts its result:
- * - certain: decided on the board (mate, draw by rule, tablebase draw)
- * - provisional: guessed from the page (clocks, frozen engine output, evals)
- * - confirmed: read from the schedule, the official result
+ * - certain: the server said so, or decided on the board (mate, draw by rule)
+ * - provisional: inferred from the page (CCC's adjudication rules, clocks)
+ * - confirmed: the official result shown by the page later (schedule,
+ *   result box, final game update)
  */
 type GameEndConfidence = "certain" | "provisional" | "confirmed";
 
 type GameEndSource =
+  | "page-socket"
   | "board"
   | "tablebase"
+  | "eval-draw"
   | "time-forfeit"
-  | "adjudication"
+  | "page-result"
   | "schedule";
 
 /** what a detector thinks the result of the watched game is */
@@ -46,7 +51,7 @@ type GameEndCandidate = {
   black?: string;
 };
 
-/** an eval as displayed by CCC: "+0.77", "+ 82.50", "+M8", "-M5", "200.00" */
+/** an eval as displayed by CCC: "+0.77", "+ 82.50", "-0.00", "+M8", "-M5" */
 type ParsedEval = {
   /** signed value as displayed, ±MATE_PAWNS for mate scores */
   pawns: number;
@@ -54,22 +59,77 @@ type ParsedEval = {
   mateIn: number | null;
 };
 
-/** eval of one engine */
-type EngineEvalReading = {
-  /** null when read from the stats block (rows don't tell the color) */
-  color: EngineColor | null;
-  text: string;
-  /** size of the advantage, MATE_PAWNS for mate scores */
-  magnitude: number;
-  isMate: boolean;
-  /**
-   * signed value from white's point of view (> 0: good for white),
-   * null while the sign convention of the page is unknown
-   */
-  whitePov: number | null;
+type EvalPointOfView = "white" | "engine";
+
+/** what the side to move's engine did since the last ply */
+type FreezeInput = {
+  now: number;
+  /** when the last ply appeared (or the stats box became readable) */
+  since: number | null;
+  /** the side to move's stats box is displayed */
+  boxKnown: boolean;
+  /** last change of that box since the ply, null if it never changed */
+  changedAt: number | null;
 };
 
-type EvalPointOfView = "white" | "engine" | "unknown";
+/**
+ * - unknown: the stats box isn't displayed
+ * - active: the side to move started searching, the game goes on
+ * - waiting: no change yet, too early to tell
+ * - frozen: no change for the whole delay, the game is over
+ */
+type FreezeState = "unknown" | "active" | "waiting" | "frozen";
+
+type FlagInput = FreezeInput & {
+  /** when the side to move runs out of time, null if unknown */
+  flagAt: number | null;
+};
+
+/**
+ * - not-yet: the side to move still has time (or keeps searching)
+ * - time-forfeit: it searched until its clock ran out
+ * - not-a-flag: its engine had stopped well before: the game ended
+ *   otherwise (the page keeps counting down after any end)
+ * - unclear: can't tell
+ */
+type FlagState = "not-yet" | "time-forfeit" | "not-a-flag" | "unclear";
+
+/** one ply for the eval draw rule */
+type EvalDrawPly = {
+  san: string;
+  /** the mover's score when its ply appeared, null if unknown */
+  score: number | null;
+};
+
+/** messages forwarded by inject/index.js from the CCC websocket */
+type PageSocketMessage =
+  | {
+      type: "result";
+      whiteName: string;
+      blackName: string;
+      outcome: GameOutcome;
+      /** cutechess reason: "Draw by adjudication: SyzygyTB" */
+      reason: string;
+    }
+  | {
+      type: "gameUpdate";
+      /** server game id (not the schedule number) */
+      gameNr: string;
+      /** true at the start of a game, false for a finished one */
+      live: boolean;
+      /** "drawSyzygy", "whiteMates"... empty while live */
+      termination: string;
+      outcome: GameOutcome | null;
+      white: string;
+      black: string;
+      plyCount: number | null;
+    };
+
+/** result box of the moves table, or the engine panels' colors */
+type PageResult = {
+  outcome: GameOutcome;
+  reason: string;
+};
 
 /** one row of the schedule */
 type ScheduleRowInfo = {
@@ -85,7 +145,7 @@ type ScheduleRowInfo = {
 
 type FinishedScheduleRow = ScheduleRowInfo & { outcome: GameOutcome };
 
-/** what is known about the watched game to recognize it in the schedule */
+/** what is known about the watched game to recognize it elsewhere */
 type WatchedGame = {
   plies: number;
   white: string;
@@ -101,32 +161,12 @@ type SchedulePick =
   /** the schedule shows another game's result: give up */
   | { status: "rejected"; why: string };
 
-/** the moment the side to move runs out of time and the engines' activity */
-type GameOverInput = {
-  now: number;
-  lastMoveAt: number;
-  /** when the engine stats text last changed, null if it is not displayed */
-  statsChangedAt: number | null;
-  /** when the side to move runs out of time, null if unknown */
-  flagAt: number | null;
-};
-
-type GameOverState =
-  | { over: false; why: string }
-  | {
-      over: true;
-      /** which signal told the game is over */
-      by: "clock" | "stats";
-      /** what most likely ended it */
-      end: "time-forfeit" | "adjudication" | "unclear";
-      why: string;
-    };
-
 /** result shown for a game, as remembered by the arbiter */
 type ShownResult = {
   outcome: GameOutcome;
   confidence: GameEndConfidence;
-  /** moves were played after it was shown: the game went on, it was wrong */
+  source: GameEndSource;
+  /** moves (or engine activity) came after it: the game went on, it was wrong */
   refuted: boolean;
 };
 
@@ -156,33 +196,59 @@ class GameEndConfig {
   static readonly SETTLE_DELAY_MS = 400;
   /** how often the clocks / engine stats are checked */
   static readonly TICK_MS = 500;
+  /** per-ply snapshots (taken when a ply appears) kept for the session */
+  static readonly PLY_SNAPSHOTS_KEPT = 40;
 
   // * =========================
-  // * tablebase (certain)
+  // * page websocket (certain)
+
+  /** `source` of the window messages posted by inject/index.js */
+  static readonly PAGE_MESSAGE_SOURCE = "better-ccc-page";
+  /**
+   * CCC's `result` may arrive before the final move is rendered: a ply
+   * this soon after it doesn't refute it
+   */
+  static readonly SOCKET_RESULT_GRACE_MS = 3000;
+
+  // * =========================
+  // * freeze rule: the side to move's stats box (Depth, Nodes, Speed,
+  // * TB Hits) changes within 0.5 s of every ply during play and never
+  // * after the final one
+
+  /** an end explained by a rule (tablebase, eval draw) is confirmed after this */
+  static readonly FREEZE_MS = 1500;
+  /** same, for a background tab (throttled timers, late renders) */
+  static readonly FREEZE_HIDDEN_MS = 2000;
+  /**
+   * an end nothing explains: "ended, result unknown" after this (an engine
+   * printed no info for up to 5.4 s before moving), no toast
+   */
+  static readonly UNEXPLAINED_FREEZE_MS = 6000;
+
+  // * =========================
+  // * CCC adjudication rules (provisional, confirmed by the freeze rule)
 
   /** CCC adjudicates drawn 6-man Syzygy positions at once (Info tab) */
   static readonly TB_MAX_PIECES = 6;
   static readonly TABLEBASE_URL = "https://tablebase.lichess.ovh/standard?fen=";
-  /**
-   * a move right after a drawn tablebase position means CCC did not
-   * adjudicate it: wait this long without a move before reporting
-   */
-  static readonly TABLEBASE_CONFIRM_MS = 1000;
   /** fen -> is a draw, entries kept */
   static readonly TABLEBASE_CACHE_SIZE = 500;
+  /**
+   * eval draw (cutechess `-draw movenumber=50 movecount=10 score=10`, fits
+   * all 1,244 archived CCC 26 games): both engines within ±EVAL_DRAW_MAX
+   * for EVAL_DRAW_PLIES plies in a row from fullmove EVAL_DRAW_MIN_FULLMOVE
+   */
+  static readonly EVAL_DRAW_MAX = 0.1;
+  static readonly EVAL_DRAW_PLIES = 20;
+  static readonly EVAL_DRAW_MIN_FULLMOVE = 50;
 
   // * =========================
-  // * game over signals (provisional)
+  // * time forfeit (provisional)
 
   /**
-   * the stats text of the engines may stay the same this long during play
-   * (engines print at the end of a depth iteration: 3.5-6.1 s measured)
-   */
-  static readonly STALL_MS = 8000;
-  /**
-   * no move this long after the side to move's clock ran out = game over
-   * (an engine can't think longer than its remaining time, read right
-   * after the last move; late in a game that is ~2 s, the increment)
+   * no move this long after the side to move's clock ran out (the server
+   * allows 1 s) = loss on time; its remaining time is read right after the
+   * last move
    */
   static readonly OVERTIME_GRACE_MS = 1500;
   /**
@@ -198,41 +264,38 @@ class GameEndConfig {
    * changes once a second)
    */
   static readonly CLOCK_RUNNING_CHECK_MS = 2500;
-  /**
-   * time forfeit: the engine output still changed at most this long
-   * before its clock reached zero
-   */
+  /** flag: the side to move's stats changed at most this long before it */
   static readonly FLAG_ACTIVE_WINDOW_MS = 1000;
-  /**
-   * not a time forfeit: the engine output was already frozen at least
-   * this long before its clock reached zero (the page keeps counting down
-   * after any game end)
-   */
+  /** not a flag: the stats were already frozen this long before it */
   static readonly FLAG_FROZEN_BEFORE_MS = 1500;
-  /** adjudicated draw: both engines' evals are within ±this (pawns) */
-  static readonly DRAW_EVAL_MAX = 0.25;
-  /** adjudicated win: both engines see this side at least this far ahead */
-  static readonly WIN_EVAL_MIN = 5.0;
 
   // * =========================
-  // * schedule (confirmed)
+  // * confirmation: schedule
 
   /** how long to wait for the schedule to show the result */
   static readonly RESULT_TIMEOUT_MS = 10_000;
   static readonly SCHEDULE_RETRY_MS = 1000;
-  /** the schedule tab is opened for at most POLLS * POLL_MS */
+  /** the schedule tab is opened for at most POLLS * POLL_MS (wall clock) */
   static readonly SCHEDULE_PEEK_POLLS = 10;
   static readonly SCHEDULE_PEEK_POLL_MS = 50;
+  /** times the tab is opened while waiting for a replaced game's result */
+  static readonly SCHEDULE_MAX_PEEKS = 3;
   /** schedule move count vs watched moves */
   static readonly MOVE_COUNT_TOLERANCE = 1;
   /**
-   * end of an event (no next game): no move for this long and engines
-   * idle, then look for the watched game among the last finished rows
+   * end of an event (no next game): look for the watched game among the
+   * last finished rows this long after an unexplained end, or after this
+   * long without a move while the engines are idle
    */
+  static readonly EVENT_END_AFTER_END_MS = 15_000;
   static readonly EVENT_END_STALL_MS = 45_000;
   static readonly EVENT_END_RETRY_MS = 30_000;
   static readonly EVENT_END_MAX_CHECKS = 5;
-  static readonly EVENT_END_SCAN_ROWS = 3;
+  /**
+   * finished rows looked at from the end: only the latest, the game two
+   * rows up is the pair game with the same engines and colors
+   */
+  static readonly EVENT_END_SCAN_ROWS = 1;
 
   // * =========================
   // * dev
@@ -242,41 +305,22 @@ class GameEndConfig {
 }
 
 /**
- * how the evals shown by CCC are signed.
- *
- * NOT KNOWN YET: in a game where one side was getting mated, both engine
- * panels and both stats rows showed "+M8" / "+M1", and the losing side
- * "+ 82.50" / "+ 199.88". Until the sign is found, only magnitudes are used
- * (draw adjudications) and win adjudications are never inferred.
+ * how the evals shown by CCC are signed: every live eval (engine panels,
+ * stats boxes) is from white's point of view, the server negates Black's
+ * own score. Only the eval draw rule uses evals, and only their size:
+ * decisive games are played to mate in CCC 26 (no win adjudication in
+ * 1,244 archived games), so a winner is never guessed from evals
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class EvalConvention {
-  /**
-   * - "white": the displayed sign is from white's point of view
-   * - "engine": the displayed sign is from the engine's own point of view
-   * - "unknown": the displayed sign can't be trusted
-   */
-  static readonly POINT_OF_VIEW: EvalPointOfView = "unknown";
+  static readonly POINT_OF_VIEW: EvalPointOfView = "white";
 
-  /**
-   * eval of the engine playing `color` (null: unknown engine),
-   * from white's point of view, null if that can't be told
-   */
-  static toWhitePov(
-    color: EngineColor | null,
-    displayed: ParsedEval
-  ): number | null {
-    switch (this.POINT_OF_VIEW) {
-      case "white":
-        return displayed.pawns;
-      case "engine":
-        if (!color) return null;
-        return color === "white" ? displayed.pawns : -displayed.pawns;
-      case "unknown":
-        return null;
-      default:
-        return this.POINT_OF_VIEW satisfies never;
+  /** eval of the engine playing `color`, from white's point of view */
+  static toWhitePov(color: EngineColor, displayed: ParsedEval): number {
+    if (this.POINT_OF_VIEW === "engine" && color === "black") {
+      return -displayed.pawns;
     }
+    return displayed.pawns;
   }
 }
 
@@ -329,6 +373,11 @@ class GameEndRules {
     return plies % 2 === 0 ? "white" : "black";
   }
 
+  /** who played ply number `ply` (1 = white's first move) */
+  static moverOfPly(ply: number): EngineColor {
+    return ply % 2 === 1 ? "white" : "black";
+  }
+
   /** side to move written in a FEN, null if unreadable */
   static sideToMoveFromFen(fen: string | null): EngineColor | null {
     const field = fen?.split(" ")[1];
@@ -349,6 +398,11 @@ class GameEndRules {
   /** "Qxf7#" */
   static isMateSan(san: string): boolean {
     return san.includes("#");
+  }
+
+  /** "exd5", "Nxe4", "e4", "e8=Q": the 50-move counter restarts */
+  static isCaptureOrPawnMove(san: string): boolean {
+    return san.includes("x") || /^[a-h]/.test(san);
   }
 
   // * =========================
@@ -374,6 +428,19 @@ class GameEndRules {
     }
 
     return !(nonKing.length === 1 && /[bn]/i.test(nonKing[0]!));
+  }
+
+  /**
+   * worth a tablebase lookup: a capture that leaves `maxPieces` men or less
+   * (all 191 archived Syzygy draws were adjudicated on such a capture,
+   * won positions are played to mate)
+   */
+  static isTablebaseCandidate(
+    san: string,
+    fen: string,
+    maxPieces = GameEndConfig.TB_MAX_PIECES
+  ): boolean {
+    return san.includes("x") && this.countPieces(fen) <= maxPieces;
   }
 
   /** lichess tablebase category; cursed wins / blessed losses are draws (50-move rule) */
@@ -451,7 +518,7 @@ class GameEndRules {
   }
 
   // * =========================
-  // * evals
+  // * evals and engine stats
 
   /**
    * "+0.77", "+ 0.01", "-0.00", "200.00", "+M8", "-M5", "M13", "#-3".
@@ -483,232 +550,147 @@ class GameEndRules {
   }
 
   /**
-   * eval shown on an engine panel, e.g. "Torch #1 + 0.80 2:13",
-   * "Reckless #2 + 4.45 13/50 0:01.11", "Reckless #2 +M1", "Torch #1 3:02"
-   * (no eval yet): the token(s) right after the "#rank"
+   * what changes in a stats box of `#graph-valuebar` while its engine
+   * searches. Its six spans: Eval, Depth, Nodes, Time, Speed, TB Hits.
+   * Left out: Time (the engine's clock after its last move, it changes with
+   * moves) and Eval (rebuilt from the PGN once the game is over: "-0.00"
+   * becomes "+0.00"); every search line changes the node count anyway
    */
-  static parsePanelEval(text: string | null | undefined): ParsedEval | null {
-    const afterRank = text?.match(/#\d+\s+(.*)$/s)?.[1];
-    if (!afterRank) {
-      return null;
-    }
-
-    // "+ 0.80" -> "+0.80"
-    const firstToken = afterRank
-      .replace(/([+\-−])\s+(?=[\dM#])/g, "$1")
-      .trim()
-      .split(/\s+/)[0];
-
-    return this.parseEval(firstToken);
+  static valueBoxSignature(spans: readonly string[]): string {
+    return [1, 2, 4, 5].map((index) => (spans[index] ?? "").trim()).join("|");
   }
+
+  // * =========================
+  // * CCC rules
 
   /**
-   * evals of the stats block (`.cpu-champs-page-graph`), top row first.
-   * Rows don't have a fixed number of columns ("+1.18 22 219.96M 147.38M 13"
-   * at the start of a game, "+M1 239 119.3K 0:04 9.45M 0" later), so an eval
-   * is a decimal / mate token followed by a depth
+   * eval draw counter after one more ply (cutechess): +1 while the mover's
+   * score is within ±maxAbs, 0 otherwise; a capture or pawn move restarts
+   * it (at 1 if within). An unknown score (or a book move) restarts it at 0
    */
-  static parseStatsEvals(text: string | null | undefined): ParsedEval[] {
-    if (!text) {
-      return [];
+  static nextEvalDrawCount(
+    count: number,
+    ply: EvalDrawPly,
+    maxAbs = GameEndConfig.EVAL_DRAW_MAX
+  ): number {
+    if (ply.score === null) {
+      return 0;
     }
 
-    const tokens = text
-      .replace(/([+\-−])\s+(?=[\dM#])/g, "$1")
-      .split(/\s+/)
-      .filter(Boolean);
-    const evals: ParsedEval[] = [];
+    // scores have two decimals, ±0.10 itself counts
+    if (Math.abs(ply.score) > maxAbs + 1e-9) {
+      return 0;
+    }
 
-    tokens.forEach((token, index) => {
-      const isEvalLike = /^[+\-−]?(?:\d+\.\d+|M-?\d+|#-?\d+)$/i.test(token);
-      const isDepth = /^\d+(?:\/\d+)?$/.test(tokens[index + 1] ?? "");
-      const parsed = isEvalLike && isDepth ? this.parseEval(token) : null;
-
-      if (parsed) {
-        evals.push(parsed);
-      }
-    });
-
-    return evals;
+    return this.isCaptureOrPawnMove(ply.san) ? 1 : count + 1;
   }
 
-  /** eval readings of the stats block, see `parseStatsEvals` */
-  static statsEvalReadings(text: string | null | undefined): EngineEvalReading[] {
-    return this.parseStatsEvals(text).map((parsed) => ({
-      color: null,
-      text: String(parsed.mateIn !== null ? `M${parsed.mateIn}` : parsed.pawns),
-      magnitude: Math.abs(parsed.pawns),
-      isMate: parsed.mateIn !== null,
-      whitePov: EvalConvention.toWhitePov(null, parsed),
-    }));
-  }
-
-  /**
-   * the stats block text reduced to what changes while the engines search,
-   * null when it is not displayed. Compared as a whole: rows don't have a
-   * fixed number of columns and their order doesn't follow the colors
-   */
-  static statsSignature(text: string | null | undefined): string | null {
-    if (!text) {
-      return null;
-    }
-
-    const signature = text
-      .replace(/\bEval\b|\bDepth\b|\bNodes\b|\bTime\b|\bSpeed\b|\bTB\b|\bHits\b/g, "")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    return signature || null;
-  }
-
-  /**
-   * adjudication guessed from the engines' evals (one per engine):
-   * both close to 0 = draw; both far ahead for the same side = win
-   * (only when the sign is known, see EvalConvention)
-   */
-  static inferAdjudication(
-    evals: readonly (EngineEvalReading | null)[],
-    drawMax = GameEndConfig.DRAW_EVAL_MAX,
-    winMin = GameEndConfig.WIN_EVAL_MIN
-  ): GameOutcome | null {
-    if (evals.length < 2 || evals.some((reading) => !reading)) {
-      return null;
-    }
-
-    const readings = evals as readonly EngineEvalReading[];
-
-    if (readings.every((reading) => !reading.isMate && reading.magnitude <= drawMax)) {
-      return "draw";
-    }
-
-    const whitePov = readings.map((reading) => reading.whitePov);
-
-    if (whitePov.every((value) => value !== null && value >= winMin)) {
-      return "white";
-    }
-    if (whitePov.every((value) => value !== null && value <= -winMin)) {
-      return "black";
-    }
-
-    return null;
+  /** the eval draw rule fires on the ply that brings the game to `plies` */
+  static isEvalDrawReached(
+    count: number,
+    plies: number,
+    needed = GameEndConfig.EVAL_DRAW_PLIES,
+    minFullMove = GameEndConfig.EVAL_DRAW_MIN_FULLMOVE
+  ): boolean {
+    return count >= needed && Math.floor(plies / 2) >= minFullMove;
   }
 
   // * =========================
   // * game over
 
   /**
-   * is the game over although no result is shown? Two signals:
-   * - clock: the side to move can't think longer than its remaining time
-   * - stats: the engines' output stopped changing for STALL_MS
-   * and what most likely ended it: a time forfeit if the side to move was
-   * still searching right until its clock ran out, an adjudication if the
-   * engines had stopped before (the page keeps counting down after any end)
+   * has the side to move's engine shown any activity since the last ply?
+   * During play its stats box changes within 0.5 s; after the final ply it
+   * never changes
    */
-  static classifyGameOver(
-    input: GameOverInput,
+  static freezeState(
+    input: FreezeInput,
+    freezeMs = GameEndConfig.FREEZE_MS
+  ): FreezeState {
+    if (!input.boxKnown || input.since === null) {
+      return "unknown";
+    }
+    if (input.changedAt !== null) {
+      return "active";
+    }
+
+    return input.now - input.since >= freezeMs ? "frozen" : "waiting";
+  }
+
+  /**
+   * did the side to move lose on time? Its clock ran out OVERTIME_GRACE_MS
+   * ago with no move, and its engine searched right until then (the page
+   * keeps counting down after any game end, so an engine that had stopped
+   * well before means the game ended otherwise)
+   */
+  static classifyFlag(
+    input: FlagInput,
     cfg: Pick<
       typeof GameEndConfig,
-      | "STALL_MS"
       | "OVERTIME_GRACE_MS"
       | "STATS_LATENCY_MS"
       | "FLAG_ACTIVE_WINDOW_MS"
       | "FLAG_FROZEN_BEFORE_MS"
     > = GameEndConfig
-  ): GameOverState {
-    const { now, lastMoveAt, statsChangedAt, flagAt } = input;
+  ): FlagState {
+    const { now, flagAt, boxKnown, changedAt } = input;
 
-    const statsQuietMs =
-      statsChangedAt === null ? null : now - Math.max(statsChangedAt, lastMoveAt);
-
-    // the engine still printed well after its flag time: wrong clock reading
-    const clockTrusted =
-      flagAt !== null &&
-      (statsChangedAt === null || statsChangedAt <= flagAt + cfg.STATS_LATENCY_MS);
-
-    const clockExceeded =
-      clockTrusted && flagAt !== null && now >= flagAt + cfg.OVERTIME_GRACE_MS;
-    const statsFrozen = statsQuietMs !== null && statsQuietMs >= cfg.STALL_MS;
-
-    if (!clockExceeded && !statsFrozen) {
-      return {
-        over: false,
-        why: statsQuietMs === null ? "engine stats not shown" : "engines active",
-      };
+    if (flagAt === null || now < flagAt + cfg.OVERTIME_GRACE_MS) {
+      return "not-yet";
+    }
+    if (!boxKnown) {
+      return "unclear";
+    }
+    if (changedAt === null) {
+      // never searched after the last ply: the game ended with it
+      return "not-a-flag";
+    }
+    if (changedAt > flagAt + cfg.STATS_LATENCY_MS) {
+      // still searching after its flag time: the clock reading was wrong
+      return "not-yet";
     }
 
-    const by = clockExceeded ? "clock" : "stats";
-
-    // the side to move still had time: not a flag
-    if (!clockTrusted || flagAt === null || now < flagAt) {
-      return {
-        over: true,
-        by,
-        end: "adjudication",
-        why:
-          flagAt === null
-            ? "engines idle, clock unknown"
-            : "engines idle before the side to move ran out of time",
-      };
-    }
-
-    if (statsChangedAt === null) {
-      return {
-        over: true,
-        by,
-        end: "unclear",
-        why: "clock ran out, engine stats not shown: flag or adjudication?",
-      };
-    }
-
-    const quietBeforeFlagMs = flagAt - statsChangedAt;
+    const quietBeforeFlagMs = flagAt - changedAt;
 
     if (quietBeforeFlagMs <= cfg.FLAG_ACTIVE_WINDOW_MS) {
-      return {
-        over: true,
-        by,
-        end: "time-forfeit",
-        why: `engine searched until its clock ran out (${quietBeforeFlagMs} ms before)`,
-      };
+      return "time-forfeit";
     }
     if (quietBeforeFlagMs >= cfg.FLAG_FROZEN_BEFORE_MS) {
-      return {
-        over: true,
-        by,
-        end: "adjudication",
-        why: `engines stopped ${quietBeforeFlagMs} ms before the clock ran out`,
-      };
+      return "not-a-flag";
     }
 
-    return {
-      over: true,
-      by,
-      end: "unclear",
-      why: `engines stopped ${quietBeforeFlagMs} ms before the clock ran out: flag or adjudication?`,
-    };
+    return "unclear";
   }
 
   /**
-   * the event may be over: no next game replaced the watched one for a
-   * long time and the engines are idle (or not displayed)
+   * the event may be over (no next game replaces the watched one):
+   * a while after an unexplained end, or after a long time without a move
+   * while the side to move's engine is idle
    */
   static isEventEndSuspected(
-    input: Omit<GameOverInput, "flagAt">,
-    eventEndMs = GameEndConfig.EVENT_END_STALL_MS,
-    stallMs = GameEndConfig.STALL_MS
+    input: {
+      now: number;
+      lastMoveAt: number;
+      endedAt: number | null;
+      freeze: FreezeState;
+    },
+    afterEndMs = GameEndConfig.EVENT_END_AFTER_END_MS,
+    stallMs = GameEndConfig.EVENT_END_STALL_MS
   ): boolean {
-    const { now, lastMoveAt, statsChangedAt } = input;
-
-    if (now - lastMoveAt < eventEndMs) {
+    if (input.endedAt !== null) {
+      return input.now - input.endedAt >= afterEndMs;
+    }
+    if (input.freeze === "active") {
       return false;
     }
 
-    return statsChangedAt === null || now - statsChangedAt >= stallMs;
+    return input.now - input.lastMoveAt >= stallMs;
   }
 
   // * =========================
-  // * schedule
+  // * results shown by the page
 
-  /** "1-0" / "0-1" / "1/2-1/2" / "½-½" (the first word of the score cell) */
+  /** "1-0" / "0-1" / "1/2-1/2" / "½-½" (the first word) */
   static parseScore(text: string): GameOutcome | null {
     const score = text.trim().split(/\s+/)[0] ?? "";
 
@@ -717,6 +699,219 @@ class GameEndRules {
     if (score.startsWith("1/2") || score.startsWith("½")) return "draw";
     return null;
   }
+
+  /** cutechess reason of a websocket `result` -> toast label */
+  static socketReasonLabel(reason: string, outcome: GameOutcome): string {
+    const labels: readonly [RegExp, string][] = [
+      [/syzygy|tablebase/i, outcome === "draw" ? "Tablebase draw" : "Tablebase win"],
+      [/mates/i, "Checkmate"],
+      [/adjudication/i, "Adjudication"],
+      [/3-fold|threefold|repetition/i, "Repetition"],
+      [/fifty|50.move/i, "50-move rule"],
+      [/stalemate/i, "Stalemate"],
+      [/insufficient/i, "Insufficient material"],
+      [/on time|time forfeit|timeout/i, "Time forfeit"],
+      [/disconnect/i, "Disconnection"],
+      [/stall/i, "Connection stall"],
+      [/illegal/i, "Illegal move"],
+      [/resign/i, "Resignation"],
+    ];
+
+    const label = labels.find(([pattern]) => pattern.test(reason))?.[1];
+
+    return label ?? reason.trim().slice(0, 60);
+  }
+
+  /** CCC termination code of a finished game -> toast label */
+  static terminationLabel(code: string): string {
+    const labels: Record<string, string> = {
+      whiteMates: "Checkmate",
+      blackMates: "Checkmate",
+      whiteAdjWin: "Adjudication",
+      blackAdjWin: "Adjudication",
+      drawAdj: "Adjudication",
+      drawSyzygy: "Tablebase draw",
+      draw3Fold: "Repetition",
+      draw50Move: "50-move rule",
+      drawStalemate: "Stalemate",
+      drawInsuff: "Insufficient material",
+      whiteTimeout: "Time forfeit",
+      blackTimeout: "Time forfeit",
+      whiteDc: "Disconnection",
+      blackDc: "Disconnection",
+      whiteStall: "Connection stall",
+      blackStall: "Connection stall",
+      whiteIllegal: "Illegal move",
+      blackIllegal: "Illegal move",
+      error: "Error",
+    };
+
+    return labels[code] ?? code;
+  }
+
+  /** label of the moves table result box ("Syzygy Adjudication") -> toast label */
+  static pageResultLabel(label: string): string {
+    const labels: Record<string, string> = {
+      "syzygy adjudication": "Tablebase draw",
+      "50 moves": "50-move rule",
+      "insufficient material": "Insufficient material",
+      timeout: "Time forfeit",
+      "connection stall": "Connection stall",
+    };
+    const text = label.replace(/\s+/g, " ").trim();
+
+    return labels[text.toLowerCase()] ?? text;
+  }
+
+  /**
+   * result box of the moves table: `.movetable-gameResult.movetable-draw`,
+   * text "Draw 1/2 - 1/2 Syzygy Adjudication" (or "White Won 1 - 0 ...")
+   */
+  static parsePageResult(classes: readonly string[], text: string): PageResult | null {
+    let outcome: GameOutcome | null = null;
+
+    if (classes.includes("movetable-white")) outcome = "white";
+    else if (classes.includes("movetable-black")) outcome = "black";
+    else if (classes.includes("movetable-draw")) outcome = "draw";
+
+    if (!outcome) {
+      return null;
+    }
+
+    const label = text
+      .replace(/\s+/g, " ")
+      .replace(/^.*?(?:1\/2\s*-\s*1\/2|½\s*-\s*½|1\s*-\s*0|0\s*-\s*1)\s*/, "");
+
+    return { outcome, reason: this.pageResultLabel(label) };
+  }
+
+  /** classes of the white engine panel: `enginedata-win|loss|draw` */
+  static outcomeFromPanelClasses(whiteClasses: readonly string[]): GameOutcome | null {
+    if (whiteClasses.includes("enginedata-win")) return "white";
+    if (whiteClasses.includes("enginedata-loss")) return "black";
+    if (whiteClasses.includes("enginedata-draw")) return "draw";
+    return null;
+  }
+
+  /**
+   * validates a window message from inject/index.js:
+   * `{ source: "better-ccc-page", type, json: JSON string of the payload }`
+   */
+  static parsePageMessage(
+    data: unknown,
+    source = GameEndConfig.PAGE_MESSAGE_SOURCE
+  ): PageSocketMessage | null {
+    if (!data || typeof data !== "object") {
+      return null;
+    }
+
+    const { source: tag, type, json } = data as Record<string, unknown>;
+    if (tag !== source || typeof type !== "string" || typeof json !== "string") {
+      return null;
+    }
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(json);
+    } catch {
+      return null;
+    }
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
+
+    const fields = payload as Record<string, unknown>;
+    const text = (value: unknown) =>
+      typeof value === "string"
+        ? value.trim()
+        : typeof value === "number"
+        ? String(value)
+        : "";
+
+    if (type === "result") {
+      const outcome = this.parseScore(text(fields.score));
+      if (!outcome) {
+        return null;
+      }
+
+      return {
+        type,
+        whiteName: text(fields.whiteName),
+        blackName: text(fields.blackName),
+        outcome,
+        reason: text(fields.reason),
+      };
+    }
+
+    if (type === "gameUpdate") {
+      const gameNr = text(fields.gameNr);
+      if (!gameNr) {
+        return null;
+      }
+
+      const plyCount =
+        typeof fields.plyCount === "number" && Number.isFinite(fields.plyCount)
+          ? fields.plyCount
+          : null;
+
+      return {
+        type,
+        gameNr,
+        live: fields.live === true,
+        termination: text(fields.termination),
+        outcome: this.parseScore(text(fields.outcome)),
+        white: text(fields.white),
+        black: text(fields.black),
+        plyCount,
+      };
+    }
+
+    return null;
+  }
+
+  /** a websocket `result` (no game number) belongs to the watched game */
+  static socketResultMatches(
+    message: { whiteName: string; blackName: string },
+    watched: WatchedGame
+  ): boolean {
+    return (
+      this.namesMatch(message.whiteName, watched.white) &&
+      this.namesMatch(message.blackName, watched.black)
+    );
+  }
+
+  /**
+   * a finished game's update belongs to the watched game: one of the last
+   * live games' server numbers when known (an archived game opened by the
+   * user has another one), and the same engines and length
+   */
+  static finalUpdateMismatch(
+    message: { gameNr: string; white: string; black: string; plyCount: number | null },
+    watched: WatchedGame,
+    liveGameNrs: readonly string[],
+    tolerance = GameEndConfig.MOVE_COUNT_TOLERANCE
+  ): string | null {
+    if (liveGameNrs.length > 0 && !liveGameNrs.includes(message.gameNr)) {
+      return `game ${message.gameNr} is not a live game (${liveGameNrs.join(", ")})`;
+    }
+    if (
+      !this.namesMatch(message.white, watched.white) ||
+      !this.namesMatch(message.black, watched.black)
+    ) {
+      return `game ${message.gameNr} is ${message.white} - ${message.black}`;
+    }
+    if (
+      message.plyCount !== null &&
+      Math.abs(message.plyCount - watched.plies) > tolerance * 2
+    ) {
+      return `game ${message.gameNr} has ${message.plyCount} plies, the watched game ${watched.plies}`;
+    }
+
+    return null;
+  }
+
+  // * =========================
+  // * schedule
 
   /** "#1 Torch" -> "Torch" */
   static cleanScheduleName(text: string): string {
@@ -915,7 +1110,9 @@ class GameEndRules {
  * - a provisional result is followed by nothing if a certain / confirmed
  *   one agrees, or by a "Corrected result" toast if it disagrees
  * - one provisional result per game
- * - a result refuted by later moves doesn't count anymore
+ * - a result refuted by later moves doesn't count anymore, and its
+ *   detector isn't trusted again for that game (a drawn position CCC
+ *   doesn't adjudicate would toast after every move)
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class GameEndArbiter {
@@ -926,11 +1123,21 @@ class GameEndArbiter {
     const asShown: ShownResult = {
       outcome: candidate.outcome,
       confidence: candidate.confidence,
+      source: candidate.source,
       refuted: false,
     };
 
     if (!shown) {
       return { notify: true, corrected: false, next: asShown, why: "first result" };
+    }
+
+    if (shown.refuted && shown.source === candidate.source) {
+      return {
+        notify: false,
+        corrected: false,
+        next: shown,
+        why: `the ${candidate.source} result was refuted earlier in this game`,
+      };
     }
 
     if (shown.refuted) {

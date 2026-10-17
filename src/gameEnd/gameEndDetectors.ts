@@ -2,17 +2,18 @@
  * Live game end detection, part 3 of 4: the detectors.
  *
  * Each one looks at the watched game (a LiveGameSession) and proposes a
- * result (a GameEndCandidate) that the arbiter shows or not:
+ * result (a GameEndCandidate) that the arbiter shows or not, roughly in
+ * this order of arrival and trust:
+ * - PageSocketDetector (certain): CCC's own `result` message, ~0.2 s after
+ *   the last move (needs inject/index.js)
  * - BoardRulesDetector (certain): mate, stalemate, repetition, 50 moves,
  *   insufficient material, as soon as the move is played
- * - TablebaseDetector (certain): drawn positions with 6 pieces or less,
- *   which CCC adjudicates at once
+ * - TablebaseDetector, EvalDrawDetector (provisional): CCC's adjudication
+ *   rules, shown once FreezeDetector confirms the engines stopped
  * - TimeForfeitDetector (provisional): the side to move ran out of time
  *   while it was searching
- * - AdjudicationDetector (provisional): the game is over (clock ran out or
- *   engines idle) without a reason on the board: guessed from the evals
- * - ScheduleResultDetector (confirmed): the official result in the schedule
- *   once the next game started, or when the event is over
+ * - PageResultDetector, ScheduleResultDetector, the final websocket game
+ *   update (confirmed): the official result, ~14 s after the end
  */
 
 type GameEndReporter = (
@@ -37,7 +38,7 @@ class BoardRulesDetector {
     // "#" in the last move: its player wins
     const mate: GameEndCandidate | null = GameEndRules.isMateSan(lastMove)
       ? {
-          outcome: GameEndRules.opponent(GameEndRules.sideToMove(pgn.length)),
+          outcome: GameEndRules.moverOfPly(pgn.length),
           reason: "Checkmate",
           confidence: "certain",
           source: "board",
@@ -64,11 +65,6 @@ class BoardRulesDetector {
       // move not understood (e.g. not played from the initial position)
     }
 
-    GameEndDebug.log(
-      "board",
-      mate ? `mate on the board (${lastMove})` : "no result on the board"
-    );
-
     return { candidate: mate, fen };
   }
 }
@@ -79,15 +75,17 @@ class TablebaseDetector {
   private static readonly cache = new Map<string, boolean>();
 
   /**
-   * asks the lichess tablebase whether the position after the last move
-   * is a draw, and reports it unless more moves were played since
+   * a capture left 6 men or less: asks the lichess tablebase whether the
+   * position is a draw, and proposes it (to be confirmed by the freeze
+   * rule) unless more moves were played since
    */
   static async check(
     session: LiveGameSession,
+    san: string,
     fen: string,
-    report: GameEndReporter
+    propose: GameEndReporter
   ): Promise<void> {
-    if (GameEndRules.countPieces(fen) > GameEndConfig.TB_MAX_PIECES) {
+    if (!GameEndRules.isTablebaseCandidate(san, fen)) {
       return;
     }
 
@@ -111,12 +109,17 @@ class TablebaseDetector {
         }
 
         const { category } = (await response.json()) as { category?: string };
+        if (category === undefined) {
+          GameEndDebug.log("tablebase", "no category in the answer");
+          return;
+        }
+
         isDraw = GameEndRules.isTablebaseDraw(category);
         this.remember(fen, isDraw);
 
         GameEndDebug.log("tablebase", `${fen}: ${category}`);
       } catch (e) {
-        // offline / rate limited: the schedule will tell the result
+        // offline / rate limited: the page will tell the result
         GameEndDebug.log("tablebase", "request failed", e);
         return;
       }
@@ -126,22 +129,15 @@ class TablebaseDetector {
       return;
     }
 
-    // a move right after it would mean CCC did not adjudicate the position
-    const wait =
-      GameEndConfig.TABLEBASE_CONFIRM_MS - (Date.now() - session.lastMoveAt);
-    if (wait > 0) {
-      await Utils.sleepAsync(wait);
-    }
-
     if (isStale()) {
       GameEndDebug.log("tablebase", "draw ignored, more moves were played since");
       return;
     }
 
-    report(session, {
+    propose(session, {
       outcome: "draw",
       reason: "Tablebase draw",
-      confidence: "certain",
+      confidence: "provisional",
       source: "tablebase",
     });
   }
@@ -159,21 +155,113 @@ class TablebaseDetector {
 }
 
 /**
- * shared "is the game over?" signal of the time forfeit and adjudication
- * detectors, from the side to move's clock and the engines' output
+ * CCC's eval draw adjudication (cutechess `-draw movenumber=50 movecount=10
+ * score=10`), replayed with each mover's score as shown when its ply
+ * appeared. Live scores sometimes differ from the server's by a few
+ * centipawns, so the result is confirmed by the freeze rule
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-class GameOverSignal {
+class EvalDrawDetector {
+  /** counts ply `ply`; the candidate when the rule fires on it */
+  static onPly(
+    session: LiveGameSession,
+    ply: number,
+    san: string,
+    score: number | null
+  ): GameEndCandidate | null {
+    session.evalDrawCount = GameEndRules.nextEvalDrawCount(
+      session.evalDrawCount,
+      { san, score }
+    );
+
+    if (!GameEndRules.isEvalDrawReached(session.evalDrawCount, ply)) {
+      return null;
+    }
+
+    GameEndDebug.log(
+      "eval-draw",
+      `ply ${ply}: ${session.evalDrawCount} plies within ±${GameEndConfig.EVAL_DRAW_MAX}`
+    );
+
+    return {
+      outcome: "draw",
+      reason: "Adjudication",
+      confidence: "provisional",
+      source: "eval-draw",
+    };
+  }
+}
+
+/**
+ * "has the side to move's engine stopped?": its stats box (Depth, Nodes,
+ * Speed, TB Hits) changes within 0.5 s of every ply during play, and never
+ * after the final one
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class FreezeDetector {
+  /** reads the side to move's stats box (every tick) */
+  static sample(session: LiveGameSession, now: number): void {
+    const box = GameEndPage.readValueBox(session.sideToMove);
+    session.sampleBox(box?.signature ?? null, now);
+  }
+
+  static freezeMs(): number {
+    return document.hidden
+      ? GameEndConfig.FREEZE_HIDDEN_MS
+      : GameEndConfig.FREEZE_MS;
+  }
+
+  static state(session: LiveGameSession, now: number): FreezeState {
+    return GameEndRules.freezeState(session.freezeInput(now), this.freezeMs());
+  }
+
+  /** nothing explains the end, but nothing moved for UNEXPLAINED_FREEZE_MS */
+  static isLongFrozen(session: LiveGameSession, now: number): boolean {
+    return (
+      GameEndRules.freezeState(
+        session.freezeInput(now),
+        GameEndConfig.UNEXPLAINED_FREEZE_MS
+      ) === "frozen"
+    );
+  }
+
+  /**
+   * a rule (tablebase, eval draw) explains the end: confirmed once the
+   * engine to move stayed frozen (or, stats hidden, once its clock ran out
+   * without a move); dropped as soon as it searches
+   */
+  static confirmation(
+    session: LiveGameSession,
+    now: number
+  ): "confirm" | "drop" | "wait" {
+    switch (this.state(session, now)) {
+      case "frozen":
+        return "confirm";
+      case "active":
+        return "drop";
+      case "waiting":
+        return "wait";
+      case "unknown": {
+        const flagAt = session.clock?.flagAt ?? null;
+        return flagAt !== null && now >= flagAt + GameEndConfig.OVERTIME_GRACE_MS
+          ? "confirm"
+          : "wait";
+      }
+      default:
+        return "wait";
+    }
+  }
+}
+
+/** when the side to move runs out of time */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class ClockWatch {
   /**
    * called right after a move (`movedAt`: when it arrived) and on every
    * tick: reads the side to move's clock once to know when it runs out of
    * time, then checks a moment later that this clock is the one counting down
    */
-  static trackClock(
-    session: LiveGameSession,
-    now: number,
-    movedAt?: number
-  ): void {
+  static track(session: LiveGameSession, now: number, movedAt?: number): void {
     const color = session.sideToMove;
     const clock = session.clock;
 
@@ -218,117 +306,163 @@ class GameOverSignal {
       );
     }
   }
-
-  static read(session: LiveGameSession, now: number): GameOverState {
-    return GameEndRules.classifyGameOver({
-      now,
-      lastMoveAt: session.lastMoveAt,
-      statsChangedAt: session.statsChangedAt,
-      flagAt: session.clock?.flagAt ?? null,
-    });
-  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class TimeForfeitDetector {
   /**
-   * the side to move ran out of time while searching: the opponent wins,
-   * or it is a draw if the opponent can't mate
+   * the side to move's clock ran out OVERTIME_GRACE_MS ago and its engine
+   * searched until then: the opponent wins, or it is a draw if the
+   * opponent can't mate
    */
   static check(
     session: LiveGameSession,
-    state: GameOverState
-  ): GameEndCandidate | null {
-    if (!state.over || state.end !== "time-forfeit") {
-      return null;
+    now: number
+  ): { flag: FlagState; candidate: GameEndCandidate | null } {
+    const flag = GameEndRules.classifyFlag({
+      ...session.freezeInput(now),
+      flagAt: session.clock?.flagAt ?? null,
+    });
+
+    if (flag !== "time-forfeit") {
+      return { flag, candidate: null };
     }
 
     const flagged = session.sideToMove;
     const outcome = GameEndRules.timeForfeitOutcome(session.fen, flagged);
 
     GameEndDebug.log("time-forfeit", `${flagged} lost on time: ${outcome}`, {
-      why: state.why,
       turnIndicator: GameEndPage.readTurnIndicator(),
     });
 
     return {
-      outcome,
-      reason: "Time forfeit",
-      confidence: "provisional",
-      source: "time-forfeit",
+      flag,
+      candidate: {
+        outcome,
+        reason: "Time forfeit",
+        confidence: "provisional",
+        source: "time-forfeit",
+      },
     };
   }
 }
 
+/**
+ * results forwarded from the CCC websocket by inject/index.js (page
+ * world): `result` right after the last move, and the finished game's
+ * `gameUpdate` ~14 s later
+ */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-class AdjudicationDetector {
+class PageSocketDetector {
   /**
-   * the game is over with no reason on the board: CCC adjudicated it.
-   * Draw when both evals are close to 0, a win when both engines agree on a
-   * big advantage (needs the eval sign, see EvalConvention), otherwise
-   * nothing (the schedule will tell)
+   * server numbers of the last live games (`live` game updates), newest
+   * last: the finished game's update may come after the next game's
    */
-  static check(
-    session: LiveGameSession,
-    state: GameOverState
-  ): GameEndCandidate | null {
-    if (!state.over) {
-      GameEndDebug.log("adjudication", `game not over: ${state.why}`);
-      return null;
+  private static readonly liveGameNrs: string[] = [];
+
+  static init(onMessage: (message: PageSocketMessage) => void): void {
+    window.addEventListener("message", (event: MessageEvent) => {
+      if (event.source !== window) {
+        return;
+      }
+
+      const message = GameEndRules.parsePageMessage(event.data);
+      if (!message) {
+        return;
+      }
+
+      if (message.type === "gameUpdate" && message.live) {
+        this.rememberLiveGame(message.gameNr);
+      }
+
+      try {
+        onMessage(message);
+      } catch (e) {
+        Utils.logError(e);
+      }
+    });
+  }
+
+  static get recentLiveGameNrs(): readonly string[] {
+    return this.liveGameNrs;
+  }
+
+  private static rememberLiveGame(gameNr: string): void {
+    if (this.liveGameNrs[this.liveGameNrs.length - 1] === gameNr) {
+      return;
     }
 
-    if (state.end !== "adjudication") {
-      GameEndDebug.log(
-        "adjudication",
-        `game over (${state.by}), not guessing: ${state.why}`
-      );
-      return null;
+    this.liveGameNrs.push(gameNr);
+    if (this.liveGameNrs.length > 2) {
+      this.liveGameNrs.shift();
     }
+    GameEndDebug.log("socket", `live game ${gameNr}`);
+  }
 
-    const evals = this.readEvals(session);
-    const outcome = GameEndRules.inferAdjudication(evals);
-    const details = {
-      by: state.by,
-      why: state.why,
-      evals: evals.map((reading) => reading?.text ?? null),
-      turnIndicator: GameEndPage.readTurnIndicator(),
-    };
-
-    if (!outcome) {
-      GameEndDebug.log(
-        "adjudication",
-        "game over, evals inconclusive: waiting for the schedule",
-        details
-      );
-      return null;
-    }
-
-    GameEndDebug.log("adjudication", `game over: ${outcome}`, details);
-
+  static resultCandidate(
+    message: Extract<PageSocketMessage, { type: "result" }>
+  ): GameEndCandidate {
     return {
-      outcome,
-      reason: "Adjudication",
-      confidence: "provisional",
-      source: "adjudication",
+      outcome: message.outcome,
+      reason: GameEndRules.socketReasonLabel(message.reason, message.outcome),
+      confidence: "certain",
+      source: "page-socket",
+      white: message.whiteName || undefined,
+      black: message.blackName || undefined,
     };
   }
 
-  /** one eval per engine: the engine panels, else the stats block rows */
-  private static readEvals(
-    session: LiveGameSession
-  ): (EngineEvalReading | null)[] {
-    const fromPanels = [
-      GameEndPage.readEvalForColor("white"),
-      GameEndPage.readEvalForColor("black"),
-    ];
-
-    if (fromPanels.every(Boolean)) {
-      return fromPanels;
+  /** null while the game update has no result */
+  static finalUpdateCandidate(
+    message: Extract<PageSocketMessage, { type: "gameUpdate" }>
+  ): GameEndCandidate | null {
+    if (!message.outcome) {
+      return null;
     }
 
-    const fromStats = GameEndRules.statsEvalReadings(session.statsText);
+    return {
+      outcome: message.outcome,
+      reason: message.termination
+        ? GameEndRules.terminationLabel(message.termination)
+        : "",
+      confidence: "confirmed",
+      source: "page-socket",
+      moveCount:
+        message.plyCount !== null
+          ? GameEndRules.fullMoves(message.plyCount)
+          : undefined,
+      white: message.white || undefined,
+      black: message.black || undefined,
+    };
+  }
+}
 
-    return fromStats.length === 2 ? fromStats : fromPanels;
+/**
+ * the result box of the moves table / the engine panels' colors: shown
+ * ~14 s after the end when no next game follows at once (end of an event)
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+class PageResultDetector {
+  static check(session: LiveGameSession): GameEndCandidate | null {
+    const result = GameEndPage.readPageResult();
+    if (!result) {
+      return null;
+    }
+
+    // the box belongs to the game in the moves table
+    const pgn = GameEndPage.readLivePgn();
+    if (pgn.length !== session.plies) {
+      return null;
+    }
+
+    GameEndDebug.log("page-result", `${result.outcome} (${result.reason})`);
+
+    return {
+      outcome: result.outcome,
+      reason: result.reason,
+      confidence: "confirmed",
+      source: "page-result",
+    };
   }
 }
 
@@ -336,6 +470,7 @@ class AdjudicationDetector {
 class ScheduleResultDetector {
   /** "event id|game number" of the schedule results already used */
   private static readonly usedResults = new Set<string>();
+  private static readonly USED_RESULTS_KEPT = 200;
 
   /**
    * the watched game was replaced by the next one: its result appears in
@@ -348,15 +483,29 @@ class ScheduleResultDetector {
     isStillReplaced: () => boolean
   ): Promise<void> {
     const deadline = Date.now() + GameEndConfig.RESULT_TIMEOUT_MS;
+    let peeks = 0;
 
     while (true) {
       if (!isStillReplaced()) {
         GameEndDebug.log("schedule", "the watched game is back, no result to read");
         return;
       }
+      if (session.isSettled) {
+        // e.g. the final websocket game update came meanwhile
+        return;
+      }
 
-      const pick = await GameEndPage.findInSchedule((rows) =>
-        GameEndRules.pickFinishedRow(rows, session.watchedGame(), "replaced")
+      // the tab is only opened while no result at all was shown, a few times
+      const allowPeek =
+        !session.hasStandingResult && peeks < GameEndConfig.SCHEDULE_MAX_PEEKS;
+      if (allowPeek && !GameEndPage.readScheduleRows()) {
+        peeks += 1;
+      }
+
+      const pick = await GameEndPage.findInSchedule(
+        (rows) =>
+          GameEndRules.pickFinishedRow(rows, session.watchedGame(), "replaced"),
+        allowPeek
       );
 
       if (pick.status === "found") {
@@ -378,23 +527,27 @@ class ScheduleResultDetector {
   }
 
   /**
-   * at the end of an event no next game replaces the watched one: after a
-   * long idle time, look for the watched game among the last finished rows.
-   * Called on every tick, checks a few times then gives up
+   * at the end of an event no next game replaces the watched one: a while
+   * after the end (or a long idle time), look for the watched game among
+   * the last finished rows. Called on every tick, checks a few times then
+   * gives up (the counter starts over with every move)
    */
   static checkEventEnd(
     session: LiveGameSession,
     now: number,
+    freeze: FreezeState,
     report: GameEndReporter
   ): void {
     const suspected = GameEndRules.isEventEndSuspected({
       now,
       lastMoveAt: session.lastMoveAt,
-      statsChangedAt: session.statsChangedAt,
+      endedAt: session.endedAt,
+      freeze,
     });
 
     if (
       !suspected ||
+      document.hidden ||
       session.eventEndCheckRunning ||
       session.eventEndChecks >= GameEndConfig.EVENT_END_MAX_CHECKS ||
       now < session.nextEventEndCheckAt
@@ -406,8 +559,10 @@ class ScheduleResultDetector {
     session.nextEventEndCheckAt = now + GameEndConfig.EVENT_END_RETRY_MS;
     session.eventEndCheckRunning = true;
 
-    GameEndPage.findInSchedule((rows) =>
-      GameEndRules.pickFinishedRow(rows, session.watchedGame(), "event-end")
+    GameEndPage.findInSchedule(
+      (rows) =>
+        GameEndRules.pickFinishedRow(rows, session.watchedGame(), "event-end"),
+      !session.hasStandingResult
     )
       .then((pick) => {
         if (pick.status === "found") {
@@ -437,6 +592,13 @@ class ScheduleResultDetector {
       return;
     }
     this.usedResults.add(key);
+
+    if (this.usedResults.size > this.USED_RESULTS_KEPT) {
+      const oldest = this.usedResults.values().next().value;
+      if (oldest !== undefined) {
+        this.usedResults.delete(oldest);
+      }
+    }
 
     report(session, {
       outcome: row.outcome,

@@ -2,10 +2,16 @@
  * Live game end detection, part 2 of 4: everything read from the page.
  *
  * - moves: `_DOM_Store.movesTable` (the same <table> for every game)
- * - engine panels: `#white-player` / `#black-player`, only rendered while
- *   the middle "Engines" tab is shown, re-created on tab switches
- * - engine stats: `.cpu-champs-page-graph` ("Eval Depth Nodes Time ..."
- *   then one row per engine that searched, then the graph axis labels)
+ * - engine panels: `#white-player` / `#black-player` (id = color), only
+ *   rendered while the middle "Engines" tab is shown, re-created on tab
+ *   switches; `#enginedata-eval` = `<span>{sign}</span> <span>{number}</span>`
+ *   (a mate is all in the first span: "+M13"), white-relative
+ * - engine stats: `#graph-valuebar`, first child `div.black-box` (Black),
+ *   second `div.white-box` (White), six spans each: Eval, Depth, Nodes,
+ *   Time, Speed, TB Hits
+ * - result box: `.movetable-gameResult.movetable-white|black|draw` and
+ *   `.enginedata-win|loss|draw` on the panels, ~14 s after the end, only
+ *   when no next game follows at once (end of the event)
  * - schedule: `.schedule-container .schedule-game-link` rows, only rendered
  *   while the bottom "Schedule" tab is open
  */
@@ -63,28 +69,19 @@ class GameEndPage {
     return GameEndRules.parseClockSeconds(text);
   }
 
-  /**
-   * eval of the engine playing `color`, from its panel
-   * ("Torch #1 + 0.80 2:13"). The sign is not trusted, see EvalConvention
-   */
-  static readEvalForColor(color: EngineColor): EngineEvalReading | null {
-    const container = this.getPanel(color)?.querySelector(
-      ".enginedata-container"
-    ) as HTMLElement | null | undefined;
-    const text = container?.innerText ?? container?.textContent ?? "";
-    const parsed = GameEndRules.parsePanelEval(text);
-
-    if (!parsed) {
+  /** eval on the engine panel of `color` (white-relative), null if none */
+  static readEvalForColor(color: EngineColor): ParsedEval | null {
+    const evalEl = this.getPanel(color)?.querySelector("#enginedata-eval");
+    if (!evalEl) {
       return null;
     }
 
-    return {
-      color,
-      text: text.replace(/\s+/g, " ").trim(),
-      magnitude: Math.abs(parsed.pawns),
-      isMate: parsed.mateIn !== null,
-      whitePov: EvalConvention.toWhitePov(color, parsed),
-    };
+    // "<span>+</span> <span>0.61</span>" or "<span>+M13</span><span></span>"
+    const text = Array.from(evalEl.children)
+      .map((span) => span.textContent ?? "")
+      .join("");
+
+    return GameEndRules.parseEval(text || evalEl.textContent);
   }
 
   /** which panel shows the "thinking" icon, for the debug log only */
@@ -101,17 +98,74 @@ class GameEndPage {
   // * =========================
   // * engine stats
 
-  /** text of the stats block, null if not displayed */
-  static readStatsText(): string | null {
-    const block = document.querySelector(
-      ".cpu-champs-page-graph"
-    ) as HTMLElement | null;
-
-    if (!block) {
+  /**
+   * stats box of the engine playing `color`: its signature (what changes
+   * while it searches) and its eval; null if not displayed
+   */
+  static readValueBox(
+    color: EngineColor
+  ): { signature: string; eval: ParsedEval | null } | null {
+    const box = document.querySelector(`#graph-valuebar > .${color}-box`);
+    if (!box) {
       return null;
     }
 
-    return block.innerText ?? block.textContent ?? null;
+    const spans = Array.from(box.children)
+      .filter((el) => el.tagName === "SPAN")
+      .map((span) => span.textContent ?? "");
+
+    if (spans.length < 6) {
+      return null;
+    }
+
+    return {
+      signature: GameEndRules.valueBoxSignature(spans),
+      eval: GameEndRules.parseEval(spans[0]),
+    };
+  }
+
+  /** the score `color`'s engine shows: its stats box, else its panel */
+  static readScore(color: EngineColor): ParsedEval | null {
+    return this.readValueBox(color)?.eval ?? this.readEvalForColor(color);
+  }
+
+  // * =========================
+  // * result shown by the page
+
+  /**
+   * result box of the moves table, or the engine panels' win / loss / draw
+   * colors; null while the game is not over (or the next one started)
+   */
+  static readPageResult(): PageResult | null {
+    const box = _DOM_Store.movesTableContainer?.querySelector(
+      ".movetable-gameResult"
+    );
+
+    if (box) {
+      const result = GameEndRules.parsePageResult(
+        this.classesOf(box, ["movetable-white", "movetable-black", "movetable-draw"]),
+        box.textContent ?? ""
+      );
+      if (result) {
+        return result;
+      }
+    }
+
+    const whitePanel = this.getPanel("white")?.querySelector(
+      ".enginedata-container"
+    );
+    const outcome = whitePanel
+      ? GameEndRules.outcomeFromPanelClasses(
+          this.classesOf(whitePanel, ["enginedata-win", "enginedata-loss", "enginedata-draw"])
+        )
+      : null;
+
+    return outcome ? { outcome, reason: "" } : null;
+  }
+
+  /** which of `names` the element has */
+  private static classesOf(el: Element, names: readonly string[]): string[] {
+    return names.filter((name) => el.classList.contains(name));
   }
 
   // * =========================
@@ -131,14 +185,20 @@ class GameEndPage {
 
   /**
    * runs `pick` on the schedule rows. The schedule is only rendered while
-   * its tab is open, so the tab is opened for a moment if needed
+   * its tab is open, so the tab is opened for a moment if needed and
+   * `allowPeek` (never in a background tab)
    */
   static async findInSchedule(
-    pick: (rows: ScheduleRowInfo[]) => SchedulePick
+    pick: (rows: ScheduleRowInfo[]) => SchedulePick,
+    allowPeek = true
   ): Promise<SchedulePick> {
     const rows = this.readScheduleRows();
     if (rows && rows.length > 0) {
       return pick(rows);
+    }
+
+    if (!allowPeek || document.hidden) {
+      return { status: "pending", why: "schedule not shown" };
     }
 
     const peek = this.peekQueue.then(() => this.peekSchedule(pick));
@@ -166,11 +226,19 @@ class GameEndPage {
       why: "schedule did not render",
     };
 
+    // timers may be throttled: the tab stays open for a bounded time
+    const deadline =
+      Date.now() +
+      GameEndConfig.SCHEDULE_PEEK_POLLS * GameEndConfig.SCHEDULE_PEEK_POLL_MS;
+
     scheduleBtn.click();
 
     try {
       for (let i = 0; i < GameEndConfig.SCHEDULE_PEEK_POLLS; i++) {
         await Utils.sleepAsync(GameEndConfig.SCHEDULE_PEEK_POLL_MS);
+        if (Date.now() > deadline + GameEndConfig.SCHEDULE_PEEK_POLL_MS) {
+          break;
+        }
 
         const rows = this.readScheduleRows();
         if (!rows || rows.length === 0) {

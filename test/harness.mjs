@@ -5,7 +5,11 @@
  * context with a small fake of the CCC page and virtual time:
  * - timers (setTimeout / setInterval / Date) only move with `world.advance`
  * - the page model (`world.page`) renders the moves table, the engine
- *   panels, the engine stats block, the schedule tab and the tab buttons
+ *   panels (eval spans, result colors), the engine stats (`#graph-valuebar`
+ *   boxes and the `.cpu-champs-page-graph` text), the moves table result
+ *   box, the schedule tab and the tab buttons
+ * - `world.socketResult` / `world.socketGameUpdate` post the window
+ *   messages inject/index.js forwards from the CCC websocket
  * - `fetch` (lichess tablebase) is answered by `world.tablebase`
  * - every `GameResultToast.notify` call is recorded in `world.toasts`
  *
@@ -255,6 +259,12 @@ export class FakePage {
     this.statsCounter = 0;
     /** evals of the two stats rows */
     this.statsEvals = ["+0.10", "+0.05"];
+    /** search lines printed by each engine (`#graph-valuebar` boxes) */
+    this.boxCounters = { white: 0, black: 0 };
+    /** `.movetable-gameResult` box: { classes: [...], text } or null */
+    this.resultBox = null;
+    /** panel result colors: { white: "enginedata-win", black: "enginedata-loss" } */
+    this.panelResult = null;
     /** schedule rows: { n, white, black, score, inProgress } */
     this.schedule = [];
     this.selectedTab = "standings";
@@ -318,6 +328,28 @@ export class FakePage {
   /** the engine to move printed a new search line */
   engineOutput() {
     this.statsCounter += 1;
+    this.boxCounters[this.pgn.length % 2 === 0 ? "white" : "black"] += 1;
+  }
+
+  /** eval as the engine panel / stats box shows it, without spaces */
+  evalText(color) {
+    if (this.panelText) {
+      // "Torch #1 + 0.80 2:13": the token after the rank, if it is an eval
+      const afterRank = this.panelText[color].match(/#\d+\s+(.*)$/)?.[1] ?? "";
+      const first = afterRank.replace(/^([+-])\s+(?=\d)/, "$1").split(/\s+/)[0] ?? "";
+      return /^[+-]?(M\d+|\d+\.\d+)$/.test(first) ? first : "";
+    }
+    return (this.evals[color] ?? "").replace(/\s+/g, "");
+  }
+
+  /** the six spans of a `#graph-valuebar` box: Eval Depth Nodes Time Speed TB Hits */
+  valueBoxSpans(color) {
+    // a recording: every change of the stats text changes both boxes
+    const n =
+      this.statsOverride !== null
+        ? Array.from(this.statsOverride).reduce((sum, ch, i) => (sum + ch.charCodeAt(0) * (i + 1)) % 1e9, 0)
+        : this.boxCounters[color];
+    return [this.evalText(color), String(20 + (n % 30)), `${100 + n}.00M`, "0:02", "300.00M", String(n)];
   }
 
   selectTab(name) {
@@ -338,9 +370,20 @@ function panelElement(page, color) {
           return staticElement({ textContent: page.clockText(color) });
         case "#enginedata-rightOfImage > span":
           return staticElement({ textContent: page.engineName(color) });
+        case "#enginedata-eval": {
+          // <span>{sign}</span> <span>{number}</span>, a mate in the first span
+          const value = page.evalText(color);
+          const [, sign = "", number = ""] = value.match(/^([+-]?M?)(.*)$/) ?? [];
+          const span = (text) => ({ tagName: "SPAN", textContent: text });
+          return staticElement({
+            children: value.includes("M") ? [span(value), span("")] : [span(sign), span(number)],
+            textContent: value,
+          });
+        }
         case ".enginedata-container": {
           const text = page.panelContainerText(color);
           return staticElement({
+            classes: ["enginedata-container", ...(page.panelResult ? [page.panelResult[color]] : [])],
             innerText: text,
             textContent: text.replace(/\s+/g, ""),
             getAttribute: (key) =>
@@ -434,6 +477,14 @@ export function createWorld({ start = 1_800_000_000_000 } = {}) {
       return null;
     },
     querySelector: (selector) => {
+      const box = selector.match(/^#graph-valuebar > \.(white|black)-box$/);
+      if (box) {
+        if (!page.enginesTab) return null;
+        return staticElement({
+          classes: [`${box[1]}-box`],
+          children: page.valueBoxSpans(box[1]).map((text) => ({ tagName: "SPAN", textContent: text })),
+        });
+      }
       if (selector === ".cpu-champs-page-graph") {
         if (!page.enginesTab) return null;
         const text = page.statsText();
@@ -539,7 +590,17 @@ export function createWorld({ start = 1_800_000_000_000 } = {}) {
       get movesTable() {
         return movesTable;
       },
-      movesTableContainer: null,
+      movesTableContainer: {
+        // the toast looks for the board next to it
+        closest: () => null,
+        querySelector: (selector) =>
+          selector === ".movetable-gameResult" && page.resultBox
+            ? staticElement({
+                classes: page.resultBox.classes,
+                textContent: page.resultBox.text,
+              })
+            : null,
+      },
       get tabButtons() {
         return page.noTabButtons ? [] : tabButtons;
       },
@@ -623,6 +684,26 @@ export function createWorld({ start = 1_800_000_000_000 } = {}) {
       for (const { observer } of observers.slice()) {
         observer.callback([{ type: "childList" }], observer);
       }
+    },
+
+    /** a message posted by inject/index.js (page world) */
+    pageMessage(type, payload, { source = "better-ccc-page", fromWindow = true } = {}) {
+      const event = {
+        type: "message",
+        source: fromWindow ? window : {},
+        data: { source, type, json: JSON.stringify(payload) },
+      };
+      for (const fn of listeners.message ?? []) fn(event);
+    },
+
+    /** CCC's websocket `result` for the live game */
+    socketResult({ whiteName = page.names.white, blackName = page.names.black, score, reason }) {
+      world.pageMessage("result", { whiteName, blackName, score, reason });
+    },
+
+    /** CCC's websocket `gameUpdate` (summarized like inject/index.js does) */
+    socketGameUpdate({ gameNr, live = false, termination = "", outcome = "", white = "", black = "", plyCount = null }) {
+      world.pageMessage("gameUpdate", { gameNr, live, termination, outcome, white, black, plyCount });
     },
 
     setHash(hash) {
