@@ -6,15 +6,16 @@
  * and an optional chime when the *live* game finishes.
  *
  * How the end of the live game is detected:
- * CCC renders `.movetable-gameResult` (with `movetable-white` /
- * `movetable-black` / `movetable-draw`) inside the moves table wrapper
- * as soon as the displayed game has a result. That element also shows up
- * when the page loads on a finished game or when an old game is opened
- * from the schedule, so it only counts as "the live game just ended" if:
- * - the URL hash has no `game=` (CCC adds it when an archived game is open)
- * - the same game was watched in progress (no result) for a while before
- * - the final moves continue the moves seen while it was in progress
- * - this game was not reported before
+ * CCC does not render any result for the live game. When it ends, the page
+ * jumps straight to the next game: the moves table is refilled with the new
+ * game (same <table> element) and the schedule row of the finished game gets
+ * its score ("1-0  86 Moves"). So:
+ * - the live moves are tracked while they grow move by move
+ * - when they are replaced by a different, shorter game (and no archived game
+ *   was opened, CCC adds `game=` to the hash for those) the live game ended
+ * - the result is read from the schedule row right before the new
+ *   "In Progress..." row. The schedule is only rendered while its tab is
+ *   open, so the tab is opened for a moment if needed.
  */
 
 type GameOutcome = "white" | "black" | "draw";
@@ -23,47 +24,44 @@ type GameEndInfo = {
   outcome: GameOutcome;
   white: string;
   black: string;
-  /** termination reason as displayed by CCC, e.g. "Checkmate"; may be empty */
+  /** extra line under the result, e.g. "Game 467 · 86 moves"; may be empty */
   reason: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class GameEndWatcher {
   /** the game must be watched in progress at least this long (ms) */
-  private static readonly MIN_WATCH_TIME_MS = 1500;
-  /** max plies between the last in-progress position and the final one */
-  private static readonly MAX_PLY_GAP = 2;
+  private static readonly MIN_WATCH_TIME_MS = 5000;
+  /** shorter games are not reported (book moves are loaded at once) */
+  private static readonly MIN_PLIES = 10;
+  /** moves table mutations come in bursts, wait for the table to settle */
+  private static readonly SETTLE_DELAY_MS = 400;
+  /** how long to wait for the schedule to show the score */
+  private static readonly RESULT_TIMEOUT_MS = 10_000;
 
   /** moves of the live game while it is in progress, null when unknown */
   private static livePgn: string[] | null = null;
   /** when the current in-progress game started being watched */
   private static liveSince = 0;
-  private static resultShown = false;
+  private static settleTimerId = 0;
 
   private static readonly notifiedGames = new Set<string>();
   private static readonly cachedNames = { white: "", black: "" };
 
   static init(): void {
-    const container = _DOM_Store.movesTableContainer;
     const table = _DOM_Store.movesTable;
 
-    if (!container || !table) {
+    if (!table) {
       return;
     }
 
-    this.resultShown = !!ExtractPageData.getGameResultDiv();
     this.updateLiveSnapshot();
 
-    // result element is a direct child of the table wrapper
-    const resultObserver = new MutationObserver(() => {
-      this.handleResultChange();
-    });
-    resultObserver.observe(container, {
-      childList: true,
-    });
-
     const movesObserver = new MutationObserver(() => {
-      this.updateLiveSnapshot();
+      clearTimeout(this.settleTimerId);
+      this.settleTimerId = window.setTimeout(() => {
+        this.updateLiveSnapshot();
+      }, this.SETTLE_DELAY_MS);
     });
     movesObserver.observe(table, {
       childList: true,
@@ -71,8 +69,10 @@ class GameEndWatcher {
       characterData: true,
     });
 
+    // opening an archived game or going back to the live one replaces
+    // the moves too: start over instead of reporting a game end
     window.addEventListener("hashchange", () => {
-      this.updateLiveSnapshot();
+      this.livePgn = null;
     });
   }
 
@@ -81,100 +81,8 @@ class GameEndWatcher {
     return /(^#|&)game=/.test(window.location.hash);
   }
 
-  static readGameEndInfo(resultDiv: Element): GameEndInfo | null {
-    const classes = resultDiv.classList;
-    const children = resultDiv.children;
-
-    let outcome: GameOutcome | null = null;
-
-    if (classes.contains("movetable-white")) {
-      outcome = "white";
-    } else if (classes.contains("movetable-black")) {
-      outcome = "black";
-    } else if (classes.contains("movetable-draw")) {
-      outcome = "draw";
-    } else {
-      // second child holds the score, like "1 - 0"
-      const score = Utils.removeWhitespace(children[1]?.textContent ?? "");
-
-      if (score === "1-0") {
-        outcome = "white";
-      } else if (score === "0-1") {
-        outcome = "black";
-      } else if (score.startsWith("1/2") || score.startsWith("½")) {
-        outcome = "draw";
-      }
-    }
-
-    if (!outcome) {
-      return null;
-    }
-
-    // third child holds the termination reason, like "Checkmate"
-    const reason = (children[2]?.textContent ?? "").trim();
-
-    return {
-      outcome,
-      white: this.getEngineName("white"),
-      black: this.getEngineName("black"),
-      reason,
-    };
-  }
-
   static getEngineName(color: "white" | "black"): string {
     return this.readEngineName(color) || this.cachedNames[color] || "";
-  }
-
-  private static handleResultChange(): void {
-    const resultDiv = ExtractPageData.getGameResultDiv();
-    const hasResult = !!resultDiv;
-
-    if (hasResult === this.resultShown) {
-      return;
-    }
-    this.resultShown = hasResult;
-
-    if (!resultDiv) {
-      // new game or back from an archived game
-      this.updateLiveSnapshot();
-      return;
-    }
-
-    const watchedPgn = this.livePgn;
-    const watchedSince = this.liveSince;
-    this.livePgn = null;
-
-    if (!watchedPgn || this.isArchiveView()) {
-      return;
-    }
-
-    const finalPgn = ExtractPageData.getPGNFromMoveTable();
-
-    if (finalPgn.length === 0 || !this.isContinuation(watchedPgn, finalPgn)) {
-      return;
-    }
-    if (Date.now() - watchedSince < this.MIN_WATCH_TIME_MS) {
-      return;
-    }
-
-    const info = this.readGameEndInfo(resultDiv);
-    if (!info) {
-      return;
-    }
-
-    const gameKey = [
-      _State.eventId ?? "",
-      info.white,
-      info.black,
-      finalPgn.join(" "),
-    ].join("|");
-
-    if (this.notifiedGames.has(gameKey)) {
-      return;
-    }
-    this.notifiedGames.add(gameKey);
-
-    GameResultToast.notify(info);
   }
 
   private static updateLiveSnapshot(): void {
@@ -183,26 +91,207 @@ class GameEndWatcher {
       return;
     }
 
-    // game is over: keep the last in-progress moves for comparison
-    if (ExtractPageData.getGameResultDiv()) {
+    const pgn = ExtractPageData.getPGNFromMoveTable();
+
+    // table is being re-rendered
+    if (pgn.length === 0) {
       return;
     }
 
-    const pgn = ExtractPageData.getPGNFromMoveTable();
+    const previousPgn = this.livePgn;
 
-    if (!this.livePgn || !this.isContinuation(this.livePgn, pgn)) {
-      this.liveSince = Date.now();
+    if (previousPgn && this.isContinuation(previousPgn, pgn)) {
+      this.livePgn = pgn;
+      this.cacheEngineNames();
+      return;
     }
-    this.livePgn = pgn;
 
+    // a different game replaced the one being watched
+    if (
+      previousPgn &&
+      previousPgn.length >= this.MIN_PLIES &&
+      pgn.length < previousPgn.length &&
+      Date.now() - this.liveSince >= this.MIN_WATCH_TIME_MS
+    ) {
+      this.handleLiveGameEnded(previousPgn, { ...this.cachedNames });
+    }
+
+    this.livePgn = pgn;
+    this.liveSince = Date.now();
+    this.cachedNames.white = "";
+    this.cachedNames.black = "";
     this.cacheEngineNames();
   }
 
-  /** true if `next` is `prev` plus at most `MAX_PLY_GAP` moves */
-  private static isContinuation(prev: string[], next: string[]): boolean {
-    const gap = next.length - prev.length;
+  private static async handleLiveGameEnded(
+    finalPgn: string[],
+    names: { white: string; black: string }
+  ): Promise<void> {
+    try {
+      const row = await this.waitForFinishedGameRow();
 
-    if (gap < 0 || gap > this.MAX_PLY_GAP) {
+      if (!row) {
+        console.log("better-ccc: live game ended, result not found");
+        return;
+      }
+
+      const info = this.readScheduleRow(row.element);
+      if (!info) {
+        return;
+      }
+
+      info.white ||= names.white;
+      info.black ||= names.black;
+
+      const gameKey = [_State.eventId ?? "", row.gameNumber, finalPgn[0]].join(
+        "|"
+      );
+
+      if (this.notifiedGames.has(gameKey)) {
+        return;
+      }
+      this.notifiedGames.add(gameKey);
+
+      GameResultToast.notify(info);
+    } catch (e) {
+      Utils.logError(e);
+    }
+  }
+
+  /**
+   * row of the game that just finished: right before the "In Progress..."
+   * row, once its score is shown. Opens the schedule tab for a moment
+   * when it isn't rendered
+   */
+  private static async waitForFinishedGameRow(): Promise<{
+    element: Element;
+    gameNumber: string;
+  } | null> {
+    const deadline = Date.now() + this.RESULT_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+      const row =
+        this.findFinishedGameRow() ?? (await this.peekScheduleTab());
+
+      if (row) {
+        return row;
+      }
+
+      await Utils.sleepAsync(1000);
+    }
+
+    return null;
+  }
+
+  private static findFinishedGameRow(): {
+    element: Element;
+    gameNumber: string;
+  } | null {
+    const inProgress = document.querySelector(
+      ".schedule-container .schedule-in-progress"
+    );
+    const row = inProgress?.previousElementSibling;
+
+    if (!row || !row.classList.contains("schedule-game-link")) {
+      return null;
+    }
+    if (!this.readScheduleRow(row)) {
+      return null;
+    }
+
+    const gameNumber =
+      row.querySelector(".schedule-index")?.textContent?.trim() ?? "";
+
+    return { element: row, gameNumber };
+  }
+
+  /** opens the schedule tab, reads the row and goes back to the previous tab */
+  private static async peekScheduleTab(): Promise<{
+    element: Element;
+    gameNumber: string;
+  } | null> {
+    const scheduleBtn = _DOM_Store.scheduleBtn;
+    const buttons = Array.from(_DOM_Store.tabButtons ?? []);
+    const previousBtn = buttons.find((btn) =>
+      btn.classList.contains("selection-panel-selected")
+    );
+
+    if (!scheduleBtn || !previousBtn || previousBtn === scheduleBtn) {
+      return null;
+    }
+
+    scheduleBtn.click();
+
+    let row: ReturnType<typeof this.findFinishedGameRow> = null;
+    for (let i = 0; i < 10 && !row; i++) {
+      await Utils.sleepAsync(50);
+      row = this.findFinishedGameRow();
+    }
+
+    // keep the data, the element is gone once the tab is closed
+    const result = row
+      ? { element: row.element.cloneNode(true) as Element, gameNumber: row.gameNumber }
+      : null;
+
+    previousBtn.click();
+
+    return result;
+  }
+
+  /**
+   * schedule row of a finished game:
+   *   <div.schedule-index>467</div> <img> <div.win>#1 Torch</div>
+   *   <div>1-0  86 Moves</div> <div.loss>#2 Reckless</div> <img>
+   */
+  private static readScheduleRow(row: Element): GameEndInfo | null {
+    const cells = Array.from(row.children).filter(
+      (el) => el.tagName === "DIV"
+    );
+    const [indexCell, whiteCell, scoreCell, blackCell] = cells;
+
+    if (!indexCell || !whiteCell || !scoreCell || !blackCell) {
+      return null;
+    }
+
+    const scoreText = (scoreCell.textContent ?? "").trim();
+    const score = Utils.removeWhitespace(scoreText.split(/\s+/)[0] ?? "");
+
+    let outcome: GameOutcome | null = null;
+    if (score === "1-0") {
+      outcome = "white";
+    } else if (score === "0-1") {
+      outcome = "black";
+    } else if (score.startsWith("1/2") || score.startsWith("½")) {
+      outcome = "draw";
+    }
+
+    if (!outcome) {
+      return null;
+    }
+
+    const cleanName = (cell: Element) =>
+      (cell.textContent ?? "").replace(/^\s*#\d+\s*/, "").trim();
+
+    const gameNumber = (indexCell.textContent ?? "").trim();
+    const moves = scoreText.match(/(\d+)\s*Moves?/i)?.[1];
+    const reason = [
+      gameNumber && `Game ${gameNumber}`,
+      moves && `${moves} moves`,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    return {
+      outcome,
+      white: cleanName(whiteCell),
+      black: cleanName(blackCell),
+      reason,
+    };
+  }
+
+  /** true if `next` is `prev` plus the moves played since */
+  private static isContinuation(prev: string[], next: string[]): boolean {
+    if (next.length < prev.length) {
       return false;
     }
 

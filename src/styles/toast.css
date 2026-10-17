@@ -35,9 +35,9 @@
   gap: 6px;
 
   box-sizing: border-box;
-  min-width: 220px;
-  max-width: min(440px, calc(100vw - 32px));
-  padding: 16px 28px;
+  min-width: 300px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 24px 40px;
 
   background: var(--ccc-toast-bg);
   color: var(--ccc-toast-fg);
@@ -100,7 +100,7 @@
   align-items: center;
   gap: 4px 10px;
 
-  font-size: 1.4rem;
+  font-size: 2.2rem;
   font-weight: 700;
 }
 
@@ -124,7 +124,7 @@
 }
 
 .ccc-result-toast_reason {
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
