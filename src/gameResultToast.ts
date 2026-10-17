@@ -13,8 +13,9 @@
  * - the live moves are tracked while they grow move by move
  * - when they are replaced by a different, shorter game (and no archived game
  *   was opened, CCC adds `game=` to the hash for those) the live game ended
- * - mates ("#") and draws by rule are reported as soon as the move is
- *   played (checked with chess.js)
+ * - mates ("#"), draws by rule (checked with chess.js) and drawn 6-man
+ *   tablebase positions (lichess tablebase API) are reported as soon as
+ *   the move is played
  * - otherwise (adjudication) the result is read from the schedule row right before the new
  *   "In Progress..." row. The schedule is only rendered while its tab is
  *   open, so the tab is opened for a moment if needed.
@@ -51,6 +52,10 @@ class GameEndWatcher {
   /** final moves of the games already reported from the board position */
   private static readonly gamesEndedOnBoard = new Set<string>();
   private static readonly board = ChessJS.chess();
+  /** CCC adjudicates drawn 6-man tablebase positions (see the Info tab) */
+  private static readonly TB_ADJUDICATION_PIECES = 6;
+  /** fen -> is a tablebase draw */
+  private static readonly tablebaseCache = new Map<string, boolean>();
   private static readonly cachedNames = { white: "", black: "" };
 
   static init(): void {
@@ -135,8 +140,9 @@ class GameEndWatcher {
 
   /**
    * reports the result right away when it is decided on the board:
-   * mate ("#") or draw by rule. Adjudicated games (resign / TB / eval
-   * draw rules) are reported when the next game starts
+   * mate ("#"), draw by rule, or a drawn 6-man tablebase position
+   * (CCC adjudicates those at once, won TB positions are played to mate).
+   * Other adjudications are reported when the next game starts
    */
   private static checkBoardResult(pgn: string[]): void {
     const key = pgn.join(" ");
@@ -145,28 +151,44 @@ class GameEndWatcher {
       return;
     }
 
-    let result: { outcome: GameOutcome; reason: string } | null = null;
-
     if (pgn[pgn.length - 1]?.includes("#")) {
       // white plays the odd plies
-      result = {
+      this.reportBoardResult(pgn, {
         outcome: pgn.length % 2 === 1 ? "white" : "black",
         reason: "Checkmate",
-      };
-    } else {
-      try {
-        this.board.actions.setPGN(pgn);
-        result = this.board.boardResult;
-      } catch {
-        // move not understood, let the schedule tell the result
-        return;
-      }
-    }
-
-    if (!result) {
+      });
       return;
     }
 
+    try {
+      this.board.actions.setPGN(pgn);
+    } catch {
+      // move not understood, let the schedule tell the result
+      return;
+    }
+
+    const result = this.board.boardResult;
+    if (result) {
+      this.reportBoardResult(pgn, result);
+      return;
+    }
+
+    const fenHistory = this.board.fields.FenHistoryFull;
+    const fen = fenHistory[fenHistory.length - 1];
+    if (fen && this.countPieces(fen) <= this.TB_ADJUDICATION_PIECES) {
+      this.checkTablebaseDraw(pgn, fen);
+    }
+  }
+
+  private static reportBoardResult(
+    pgn: string[],
+    result: { outcome: GameOutcome; reason: string }
+  ): void {
+    const key = pgn.join(" ");
+
+    if (this.gamesEndedOnBoard.has(key)) {
+      return;
+    }
     this.gamesEndedOnBoard.add(key);
 
     GameResultToast.notify({
@@ -174,6 +196,60 @@ class GameEndWatcher {
       white: this.getEngineName("white"),
       black: this.getEngineName("black"),
       reason: `${result.reason} · ${Math.ceil(pgn.length / 2)} moves`,
+    });
+  }
+
+  private static countPieces(fen: string): number {
+    return (fen.split(" ")[0] ?? "").replace(/[^a-zA-Z]/g, "").length;
+  }
+
+  /** asks the lichess tablebase whether the position is a draw */
+  private static async checkTablebaseDraw(
+    pgn: string[],
+    fen: string
+  ): Promise<void> {
+    if (this.tablebaseCache.has(fen)) {
+      if (this.tablebaseCache.get(fen)) {
+        this.reportTablebaseDraw(pgn);
+      }
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://tablebase.lichess.ovh/standard?fen=${encodeURIComponent(fen)}`
+      );
+      if (!response.ok) {
+        return;
+      }
+
+      const { category } = (await response.json()) as { category?: string };
+      // cursed win / blessed loss are draws under the 50-move rule
+      const isDraw =
+        category === "draw" ||
+        category === "cursed-win" ||
+        category === "blessed-loss";
+
+      this.tablebaseCache.set(fen, isDraw);
+
+      if (isDraw) {
+        this.reportTablebaseDraw(pgn);
+      }
+    } catch (e) {
+      // offline / rate limited: the schedule will tell the result
+      console.log("better-ccc: tablebase request failed", e);
+    }
+  }
+
+  private static reportTablebaseDraw(pgn: string[]): void {
+    // more moves were played meanwhile: the game was not adjudicated here
+    if (this.livePgn?.join(" ") !== pgn.join(" ")) {
+      return;
+    }
+
+    this.reportBoardResult(pgn, {
+      outcome: "draw",
+      reason: "Tablebase draw",
     });
   }
 
