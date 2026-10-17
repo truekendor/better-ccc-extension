@@ -92,6 +92,10 @@ declare namespace user_config {
     extraHotkeys: boolean;
     liveTabTitle: boolean;
 
+    // game end notifications
+    showResultToast: boolean;
+    playGameEndSound: boolean;
+
     // movetable styles
     // todo move to visual settings?
     deviationColor: string | null;

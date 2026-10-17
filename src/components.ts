@@ -542,6 +542,27 @@ namespace components {
           tooltip:
             "Highlights the moves that were played in the reverse game and shows the point at which the game deviated. Consumes more traffic ~25-200kb per game",
           experimental: true,
+        }),
+        // * ======
+        // * ======
+        this.crLineSeparator("Game end"),
+
+        this.crExtensionSettingRow({
+          key: "showResultToast",
+          description: "Show result toast",
+          tooltip:
+            "Briefly shows the result over the board when the live game ends",
+        }),
+        this.crExtensionSettingRow({
+          key: "playGameEndSound",
+          description: "Play sound on game end",
+          tooltip: "Plays a short chime when the live game ends",
+          onToggle: (checked) => {
+            // the click is a user gesture: unlock audio and preview the chime
+            if (checked) {
+              GameEndSound.preview();
+            }
+          },
         })
       );
 
@@ -571,11 +592,14 @@ namespace components {
       description,
       tooltip,
       experimental = false,
+      onToggle,
     }: {
       key: BooleanKeys<user_config.settings>;
       description: string;
       tooltip: string;
       experimental?: boolean;
+      /** called after the setting was toggled and saved */
+      onToggle?: (checked: boolean) => void;
     }): HTMLLabelElement {
       const row = document.createElement("label");
       row.classList.add("ccc-extension-settings_row");
@@ -620,6 +644,8 @@ namespace components {
         });
 
         ExtensionHelper.applyUserSettings(key);
+
+        onToggle?.(UserSettings.customSettings[key]);
       });
 
       row.append(descriptionElem, input);

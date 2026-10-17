@@ -1,0 +1,188 @@
+/* ==========================
+ * game result toast
+ * created by gameResultToast.ts
+ * ========================== */
+
+.ccc-result-toast {
+  /* set from JS to the center of the board */
+  --ccc-toast-x: 50vw;
+  --ccc-toast-y: 50vh;
+
+  position: fixed;
+  left: var(--ccc-toast-x);
+  top: var(--ccc-toast-y);
+  transform: translate(-50%, -50%);
+
+  z-index: 10000;
+
+  pointer-events: none;
+  user-select: none;
+}
+
+.ccc-result-toast_card {
+  --ccc-toast-bg: linear-gradient(160deg, #2b3340, #1b2029);
+  --ccc-toast-fg: #eef2f7;
+  --ccc-toast-accent: #7fb2e5;
+  --ccc-toast-glow: rgba(127, 178, 229, 0.35);
+  --ccc-toast-score-fg: #0f1419;
+
+  position: relative;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+
+  box-sizing: border-box;
+  min-width: 220px;
+  max-width: min(440px, calc(100vw - 32px));
+  padding: 16px 28px;
+
+  background: var(--ccc-toast-bg);
+  color: var(--ccc-toast-fg);
+
+  border: 2px solid var(--ccc-toast-accent);
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 14px 40px rgba(0, 0, 0, 0.55),
+    0 0 32px var(--ccc-toast-glow);
+
+  text-align: center;
+  line-height: 1.25;
+
+  opacity: 0;
+  animation: ccc-result-toast-pop 3.25s cubic-bezier(0.2, 0.8, 0.2, 1)
+    forwards;
+}
+
+/* white won: ivory card, gold accent */
+.ccc-result-toast_white {
+  --ccc-toast-bg: linear-gradient(160deg, #fdfaf2, #e7e0cf);
+  --ccc-toast-fg: #1c1c1c;
+  --ccc-toast-accent: #d9b444;
+  --ccc-toast-glow: rgba(255, 228, 140, 0.45);
+  --ccc-toast-score-fg: #1c1c1c;
+}
+
+/* black won: dark card, steel accent */
+.ccc-result-toast_black {
+  --ccc-toast-bg: linear-gradient(160deg, #2c2c31, #111113);
+  --ccc-toast-fg: #f3f3f3;
+  --ccc-toast-accent: #a7adb9;
+  --ccc-toast-glow: rgba(167, 173, 185, 0.35);
+  --ccc-toast-score-fg: #111113;
+}
+
+/* draw: keeps the default slate card with a blue accent */
+
+/* light sweep across the card */
+.ccc-result-toast_card::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 65%
+  );
+
+  transform: translateX(-120%);
+  animation: ccc-result-toast-shine 0.9s 0.25s ease-out forwards;
+}
+
+.ccc-result-toast_headline {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 10px;
+
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.ccc-result-toast_title {
+  overflow-wrap: anywhere;
+}
+
+.ccc-result-toast_separator {
+  opacity: 0.55;
+}
+
+.ccc-result-toast_score {
+  padding: 1px 8px;
+
+  border-radius: 6px;
+
+  background-color: var(--ccc-toast-accent);
+  color: var(--ccc-toast-score-fg);
+
+  font-variant-numeric: tabular-nums;
+}
+
+.ccc-result-toast_reason {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  opacity: 0.75;
+}
+
+@keyframes ccc-result-toast-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  7% {
+    opacity: 1;
+    transform: scale(1.07);
+  }
+  11% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  88% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.94) translateY(-6px);
+  }
+}
+
+@keyframes ccc-result-toast-shine {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes ccc-result-toast-fade {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ccc-result-toast_card {
+    animation-name: ccc-result-toast-fade;
+    animation-timing-function: linear;
+  }
+
+  .ccc-result-toast_card::after {
+    display: none;
+  }
+}

@@ -118,6 +118,10 @@ class UserSettings {
     extraHotkeys: true,
     liveTabTitle: true,
 
+    // game end notifications
+    showResultToast: true,
+    playGameEndSound: false,
+
     // moves table styles
     bookMovesColor: null,
     deviationColor: null,
@@ -151,6 +155,12 @@ class UserSettings {
     extraHotkeys: true,
     // last move / result of the displayed game in the tab title
     liveTabTitle: true,
+
+    // game end notifications
+    // toast with the result when the live game ends
+    showResultToast: true,
+    // short chime when the live game ends (off by default)
+    playGameEndSound: false,
 
     // moves table styles
     bookMovesColor: null,

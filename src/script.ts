@@ -34,6 +34,9 @@ async function loadUserSettings(): Promise<void> {
       "highlightReverseDeviation",
       "extraHotkeys",
       "liveTabTitle",
+      // game end notifications
+      "showResultToast",
+      "playGameEndSound",
       // movetable styles
       "bookMovesColor",
       "deviationColor",

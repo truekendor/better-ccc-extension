@@ -15,7 +15,8 @@
         "styles/pairs-per-row-media.css",
         "styles/dev-panel.css",
         "styles/extension-settings.css",
-        "styles/hotkeys.css"
+        "styles/hotkeys.css",
+        "styles/toast.css"
       ],
       "js": [
         "chess-js.js",
@@ -40,7 +41,8 @@
         "highlightDeviation.js",
         "capturedPiecesCount.js",
         "hotkeys.js",
-        "liveTabTitle.js"
+        "liveTabTitle.js",
+        "gameResultToast.js"
       ],
       "run_at": "document_end"
     }

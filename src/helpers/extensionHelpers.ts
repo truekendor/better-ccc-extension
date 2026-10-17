@@ -147,6 +147,10 @@ class ExtensionHelper {
       case "elo":
       case "ptnml":
         break;
+      // read from UserSettings when a game ends, nothing to apply here
+      case "showResultToast":
+      case "playGameEndSound":
+        break;
       case "clearQueryStringOnCurrentGame":
         this.handleClearURLHash();
         break;
