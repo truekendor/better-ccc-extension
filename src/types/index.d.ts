@@ -89,6 +89,8 @@ declare namespace user_config {
     replaceClockSvg: boolean;
     showCapturedPieces: boolean;
     clearQueryStringOnCurrentGame: boolean;
+    extraHotkeys: boolean;
+    liveTabTitle: boolean;
 
     // movetable styles
     // todo move to visual settings?
