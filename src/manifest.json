@@ -42,6 +42,10 @@
         "capturedPiecesCount.js",
         "hotkeys.js",
         "liveTabTitle.js",
+        "gameEnd/gameEndLogic.js",
+        "gameEnd/gameEndPage.js",
+        "gameEnd/gameEndDetectors.js",
+        "gameEnd/gameEndWatcher.js",
         "gameResultToast.js"
       ],
       "run_at": "document_end"
