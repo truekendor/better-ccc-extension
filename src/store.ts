@@ -116,6 +116,7 @@ class UserSettings {
     showCapturedPieces: true,
     clearQueryStringOnCurrentGame: true,
     extraHotkeys: true,
+    liveTabTitle: true,
 
     // moves table styles
     bookMovesColor: null,
@@ -148,6 +149,8 @@ class UserSettings {
     clearQueryStringOnCurrentGame: true,
     // 1-5 / L / E / ? hotkeys and the hotkeys help overlay
     extraHotkeys: true,
+    // last move / result of the displayed game in the tab title
+    liveTabTitle: true,
 
     // moves table styles
     bookMovesColor: null,

@@ -155,6 +155,9 @@ class ExtensionHelper {
           ExtraHotkeys.closeHelp();
         }
         break;
+      case "liveTabTitle":
+        LiveTabTitle.update();
+        break;
       default:
         // exhaustive check
         console.log(key satisfies never);

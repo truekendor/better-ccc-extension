@@ -39,7 +39,8 @@
         "script.js",
         "highlightDeviation.js",
         "capturedPiecesCount.js",
-        "hotkeys.js"
+        "hotkeys.js",
+        "liveTabTitle.js"
       ],
       "run_at": "document_end"
     }

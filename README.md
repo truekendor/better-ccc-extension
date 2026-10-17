@@ -34,6 +34,7 @@
   - Click on schedule button to scroll to the current game ![schedule button click](https://github.com/truekendor/better-ccc-extension/blob/main/img/schedule-click.jpg)
   - GUI bugfixes
   - Extra hotkeys with a `?` help overlay listing every shortcut (can be turned off in the extension settings: `Extra hotkeys`)
+  - Live tab title: the browser tab shows the last move (`34. Nf3`, `34… Rxe5`) or the result (`1-0`) of the displayed game, so you can follow it from another tab (setting: `Last move in tab title`)
  
 ## Hotkeys 
 
