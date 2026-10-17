@@ -14,7 +14,8 @@
         "styles/default-ccc.css",
         "styles/pairs-per-row-media.css",
         "styles/dev-panel.css",
-        "styles/extension-settings.css"
+        "styles/extension-settings.css",
+        "styles/toast.css"
       ],
       "js": [
         "chess-js.js",
@@ -37,7 +38,8 @@
         "clockFix.js",
         "script.js",
         "highlightDeviation.js",
-        "capturedPiecesCount.js"
+        "capturedPiecesCount.js",
+        "gameResultToast.js"
       ],
       "run_at": "document_end"
     }

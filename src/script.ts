@@ -30,6 +30,9 @@ async function loadUserSettings(): Promise<void> {
       "showCapturedPieces",
       "clearQueryStringOnCurrentGame",
       "highlightReverseDeviation",
+      // game end notifications
+      "showResultToast",
+      "playGameEndSound",
       // movetable styles
       "bookMovesColor",
       "deviationColor",

@@ -116,6 +116,10 @@ class UserSettings {
     showCapturedPieces: true,
     clearQueryStringOnCurrentGame: true,
 
+    // game end notifications
+    showResultToast: true,
+    playGameEndSound: false,
+
     // moves table styles
     bookMovesColor: null,
     deviationColor: null,
@@ -145,6 +149,12 @@ class UserSettings {
     showCapturedPieces: true,
     // removes event id from hash query if game is ongoing
     clearQueryStringOnCurrentGame: true,
+
+    // game end notifications
+    // toast with the result when the live game ends
+    showResultToast: true,
+    // short chime when the live game ends (off by default)
+    playGameEndSound: false,
 
     // moves table styles
     bookMovesColor: null,

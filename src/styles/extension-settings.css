@@ -20,7 +20,7 @@
   position: relative;
 
   display: flex;
-  justify-content: center;
+  justify-content: safe center;
   align-items: center;
 
   gap: 8px;
@@ -32,6 +32,9 @@
   background-color: var(--ccc-settings-bg);
   width: 290px;
   height: max-content;
+  /* keeps every setting reachable on short screens */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 
   cursor: auto;
 

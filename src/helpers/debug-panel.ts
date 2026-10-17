@@ -69,7 +69,8 @@ class DebugPanel {
       // this.panelButtons.crBookMovesBtn(),
       // this.panelButtons.crCalcTranspositionsBtn(),
       this.panelButtons.crConsoleLogBtn(),
-      this.crPageLogsBtn()
+      this.crPageLogsBtn(),
+      this.crTestResultToastBtn()
     );
 
     this.debugPanel.append(this.pingElement);
@@ -80,6 +81,25 @@ class DebugPanel {
 
   // * ====================
   // * buttons creation
+
+  /** cycles through 1-0 / 0-1 / draw result toasts */
+  private static crTestResultToastBtn(): HTMLButtonElement {
+    const btn = document.createElement("button");
+    btn.textContent = "result toast";
+
+    const results = ["1-0", "0-1", "1/2-1/2"] as const;
+    let index = 0;
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      GameResultToast.test(results[index % results.length]);
+      index += 1;
+    });
+
+    return btn;
+  }
+
   private static crPageLogsBtn(): HTMLButtonElement {
     const btn = document.createElement("button");
     btn.textContent = "logs panel";
