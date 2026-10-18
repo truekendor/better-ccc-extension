@@ -25,6 +25,9 @@ type GameEndInfo = {
 class GameResultToast {
   /** must match the animation duration in styles/toast.css */
   private static readonly TOTAL_DURATION_MS = 3250;
+  /** names and reasons come from the page: kept short */
+  private static readonly NAME_MAX_LENGTH = 40;
+  private static readonly REASON_MAX_LENGTH = 120;
   private static readonly ANIMATION_NAMES = [
     "ccc-result-toast-pop",
     "ccc-result-toast-fade",
@@ -77,7 +80,7 @@ class GameResultToast {
     if (info.reason) {
       const reason = document.createElement("div");
       reason.classList.add("ccc-result-toast_reason");
-      reason.textContent = info.reason;
+      reason.textContent = this.clip(info.reason, this.REASON_MAX_LENGTH);
 
       card.append(reason);
     }
@@ -170,7 +173,10 @@ class GameResultToast {
     }
 
     const fallback = info.outcome === "white" ? "White" : "Black";
-    const winner = info.outcome === "white" ? info.white : info.black;
+    const winner = this.clip(
+      info.outcome === "white" ? info.white : info.black,
+      this.NAME_MAX_LENGTH
+    );
 
     return `${winner || fallback} wins`;
   }
@@ -228,6 +234,11 @@ class GameResultToast {
       ),
       y: this.clamp(rect.top + rect.height / 2, 60, viewportHeight - 60),
     };
+  }
+
+  private static clip(text: string, max: number): string {
+    const value = text.replace(/\s+/g, " ").trim();
+    return value.length > max ? `${value.slice(0, max - 1)}…` : value;
   }
 
   private static clamp(value: number, min: number, max: number): number {

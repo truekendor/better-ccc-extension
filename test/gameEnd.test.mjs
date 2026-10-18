@@ -672,6 +672,33 @@ describe("scripts", () => {
   });
 });
 
+describe("toast", () => {
+  test("text only, names and reason kept short", () => {
+    const world = createWorld().start();
+
+    world.eval(`GameResultToast.show({
+      outcome: "black",
+      white: "Torch",
+      black: "<b>Reckless</b> " + "x".repeat(500),
+      reason: "Game 41 · " + "y".repeat(500),
+    })`);
+
+    const [element] = world.toastElements();
+    const texts = [];
+    const walk = (el) => {
+      if (el.children.length === 0) texts.push(el.textContent);
+      el.children.forEach(walk);
+    };
+    walk(element);
+
+    assert.equal(texts.length, 4);
+    assert.ok(texts[0].startsWith("<b>Reckless</b> xxx") && texts[0].endsWith("… wins"), texts[0]);
+    assert.ok(texts[0].length <= 50, `${texts[0].length}`);
+    assert.equal(texts[2], "0-1");
+    assert.ok(texts[3].startsWith("Game 41 · yyy") && texts[3].length === 120, `${texts[3].length}`);
+  });
+});
+
 describe("board results", () => {
   test("mate: one toast as soon as the moves table settles", async () => {
     const { world, live } = await startLiveGame({ book: LEGALL.slice(0, 8) });
