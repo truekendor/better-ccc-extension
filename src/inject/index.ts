@@ -15,12 +15,14 @@
  *
  * Posted as `{ source: "better-ccc-page", type, json }` (json: a JSON
  * string, read by GameEndRules.parsePageMessage).
+ *
+ * The hooks are checked again every few seconds: if the app replaces its
+ * handlers (or its socket object), they are put back, never twice.
  */
 (function installGameEndHook(): void {
-  type SocketHandler = (messages: unknown) => void;
+  type SocketHandler = ((messages: unknown) => void) & { __betterCccGameEnd?: true };
   type CccSocket = {
     handlers?: Record<string, SocketHandler | undefined>;
-    __betterCccGameEndHook?: boolean;
   };
   type AppElement = Element & {
     __vue_app__?: { config?: { globalProperties?: { $socket?: CccSocket } } };
@@ -30,8 +32,21 @@
   const RETRY_MS = 500;
   /** the app is wired within seconds: give up after 10 minutes */
   const MAX_TRIES = 1200;
+  /** once installed: how often the hooks are checked */
+  const CHECK_MS = 5000;
 
   let tries = 0;
+  let installed = false;
+
+  const isOurs = (handler: unknown): boolean =>
+    typeof handler === "function" &&
+    (handler as SocketHandler).__betterCccGameEnd === true;
+
+  const ours = (handler: (messages: unknown) => void): SocketHandler => {
+    const marked = handler as SocketHandler;
+    marked.__betterCccGameEnd = true;
+    return marked;
+  };
 
   const findSocket = (): CccSocket | null => {
     const app = document.querySelector("#app") as AppElement | null;
@@ -81,11 +96,16 @@
     );
   };
 
+  /** `after_<type>`, chained to the app's own one if any */
   const hook = (handlers: Record<string, SocketHandler | undefined>, type: string): void => {
     const key = `after_${type}`;
     const previous = handlers[key];
 
-    handlers[key] = (messages: unknown) => {
+    if (isOurs(previous)) {
+      return;
+    }
+
+    handlers[key] = ours((messages: unknown) => {
       try {
         previous?.(messages);
       } finally {
@@ -97,48 +117,47 @@
           // never break the app's socket
         }
       }
-    };
+    });
   };
 
-  const install = (): void => {
-    const socket = findSocket();
-    const handlers = socket?.handlers;
+  /** false while the app isn't wired */
+  const install = (): boolean => {
+    const handlers = findSocket()?.handlers;
 
-    // the app isn't wired yet
-    if (!socket || !handlers || typeof handlers.newMove !== "function") {
-      tries += 1;
-      if (tries < MAX_TRIES) {
-        window.setTimeout(tryInstall, RETRY_MS);
-      }
-      return;
+    if (!handlers || typeof handlers.newMove !== "function") {
+      return false;
     }
-
-    if (socket.__betterCccGameEndHook) {
-      return;
-    }
-    socket.__betterCccGameEndHook = true;
 
     // the app has no `result` handler: be it (a missing main handler could
-    // keep the `after_` ones from running)
+    // keep the `after_` ones from running); if it has one, follow it
     if (typeof handlers.result !== "function") {
-      handlers.result = (message: unknown) => {
+      handlers.result = ours((message: unknown) => {
         try {
           post("result", message);
         } catch {
           // never break the app's socket
         }
-      };
-    } else {
+      });
+    } else if (!isOurs(handlers.result)) {
       hook(handlers, "result");
     }
     hook(handlers, "gameUpdate");
+
+    return true;
   };
 
   const tryInstall = (): void => {
     try {
-      install();
+      installed = install() || installed;
     } catch {
       // not the CCC app
+    }
+
+    tries += 1;
+    if (installed) {
+      window.setTimeout(tryInstall, CHECK_MS);
+    } else if (tries < MAX_TRIES) {
+      window.setTimeout(tryInstall, RETRY_MS);
     }
   };
 

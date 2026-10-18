@@ -1331,6 +1331,78 @@ describe("CCC websocket (inject/index.js)", () => {
     handlers.result({ type: "result", score: "1-0" });
     assert.equal(posted.length, 3);
   });
+
+  test("the page hook comes back when the app replaces its handlers, never twice, never throws", () => {
+    const posted = [];
+    const timers = [];
+    let postFails = false;
+    const socket = { handlers: { newMove() {}, gameUpdate() {} } };
+    const app = { __vue_app__: { config: { globalProperties: { $socket: socket } } } };
+
+    const ctx = vm.createContext({
+      window: {
+        location: { origin: "https://www.chess.com" },
+        postMessage: (data) => {
+          if (postFails) throw new Error("DataCloneError");
+          posted.push(R.parsePageMessage(data));
+        },
+        setTimeout: (fn, ms) => timers.push({ fn, ms }),
+      },
+      document: { querySelector: (selector) => (selector === "#app" ? app : null) },
+    });
+    vm.runInContext(fs.readFileSync(path.join(SRC_DIR, "inject/index.js"), "utf8"), ctx);
+    const runChecks = (times = 1) => {
+      for (let i = 0; i < times; i++) timers.shift().fn();
+    };
+
+    const result = { type: "result", whiteName: "Torch", blackName: "Reckless", score: "1-0", reason: "White mates" };
+    const finished = { gameDetails: { gameNr: 1, outcome: "1-0", termination: "whiteMates", pgn: "" } };
+    const dispatch = (handlers) => {
+      handlers.result?.(result);
+      handlers.after_result?.([result]);
+      handlers.gameUpdate(finished);
+      handlers.after_gameUpdate?.([finished]);
+    };
+
+    dispatch(socket.handlers);
+    assert.deepEqual(posted.map((m) => m.type), ["result", "gameUpdate"]);
+    // checked again later, not re-wrapped
+    assert.ok(timers.length === 1 && timers[0].ms >= 1000);
+    runChecks(3);
+    posted.length = 0;
+    dispatch(socket.handlers);
+    assert.deepEqual(posted.map((m) => m.type), ["result", "gameUpdate"]);
+
+    // the app replaces its handler table (reconnect), and later sets its
+    // own result and after_gameUpdate handlers
+    const appCalls = [];
+    socket.handlers = { newMove() {}, gameUpdate() {} };
+    runChecks();
+    socket.handlers.result = (m) => appCalls.push(["result", m.type]);
+    socket.handlers.after_gameUpdate = (ms) => appCalls.push(["after_gameUpdate", ms.length]);
+    runChecks();
+    posted.length = 0;
+    dispatch(socket.handlers);
+    assert.deepEqual(posted.map((m) => m.type), ["result", "gameUpdate"]);
+    assert.deepEqual(appCalls, [["result", "result"], ["after_gameUpdate", 1]]);
+
+    // a new socket object
+    app.__vue_app__.config.globalProperties.$socket = { handlers: { newMove() {}, gameUpdate() {} } };
+    runChecks();
+    posted.length = 0;
+    dispatch(app.__vue_app__.config.globalProperties.$socket.handlers);
+    assert.deepEqual(posted.map((m) => m.type), ["result", "gameUpdate"]);
+
+    // our part never throws into the app; the app's own errors still do
+    postFails = true;
+    const handlers = app.__vue_app__.config.globalProperties.$socket.handlers;
+    assert.doesNotThrow(() => dispatch(handlers));
+    handlers.after_gameUpdate = (() => {
+      throw new Error("app bug");
+    });
+    runChecks();
+    assert.throws(() => handlers.after_gameUpdate([finished]), /app bug/);
+  });
 });
 
 describe("eval draw and freeze rules", () => {
