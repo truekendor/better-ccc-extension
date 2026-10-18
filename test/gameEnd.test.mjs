@@ -269,6 +269,60 @@ describe("GameEndRules: results shown by the page", () => {
     assert.equal(R.parsePageMessage(null), null);
   });
 
+  test("parsePageMessage: strict shapes and short texts (any page script can post one)", () => {
+    const result = { whiteName: "Reckless", blackName: "Torch", score: "1-0", reason: "White mates" };
+    const update = { gameNr: "212836", live: false, termination: "whiteMates", outcome: "1-0", white: "Reckless", black: "Torch", plyCount: 157 };
+    const long = "x".repeat(65);
+
+    assert.equal(message("result", result).outcome, "white");
+    assert.equal(message("result", { ...result, reason: undefined }).reason, "");
+    for (const bad of [
+      { whiteName: "" },
+      { blackName: undefined },
+      { whiteName: long },
+      { blackName: 42 },
+      { score: "½-½" },
+      { score: "1-0 extra" },
+      { score: 1 },
+      { reason: "y".repeat(201) },
+      { reason: { text: "White mates" } },
+    ]) {
+      assert.equal(message("result", { ...result, ...bad }), null, JSON.stringify(bad));
+    }
+
+    assert.equal(message("gameUpdate", update).plyCount, 157);
+    assert.equal(message("gameUpdate", { gameNr: 212836, live: true }).gameNr, "212836");
+    for (const bad of [
+      { gameNr: "21283a" },
+      { gameNr: "1".repeat(13) },
+      { live: "yes" },
+      { termination: "<img src=x onerror=alert(1)>" },
+      { termination: "white Mates" },
+      { termination: "a".repeat(33) },
+      { outcome: "draw" },
+      { white: long },
+      { plyCount: -1 },
+      { plyCount: 1.5 },
+      { plyCount: "157" },
+      { plyCount: 99_999 },
+    ]) {
+      assert.equal(message("gameUpdate", { ...update, ...bad }), null, JSON.stringify(bad));
+    }
+
+    // whole message
+    assert.equal(message("result", [result]), null);
+    assert.equal(message("result", { ...result, padding: "z".repeat(C.PAGE_MESSAGE_MAX_LENGTH) }), null);
+    assert.equal(R.parsePageMessage({ source: "better-ccc-page", type: "result", json: { ...result } }), null);
+  });
+
+  test("labels: only known keys, never Object.prototype", () => {
+    for (const key of ["constructor", "toString", "__proto__", "hasOwnProperty"]) {
+      assert.equal(R.terminationLabel(key), key);
+      assert.equal(R.pageResultLabel(key), key);
+    }
+    assert.equal(R.pageResultLabel("z".repeat(500)).length, 60);
+  });
+
   test("result reasons and termination codes become toast labels", () => {
     const labels = {
       "White mates": "Checkmate",
@@ -1065,6 +1119,43 @@ describe("CCC websocket (inject/index.js)", () => {
       { outcome: "white", white: "Torch", black: "Reckless", reason: "Game 41 · 13 moves" },
     ]);
     assertNoErrors(world);
+  });
+
+  test("forged messages: no spoofed names or text in the toast", async () => {
+    const { world, live } = await startLiveGame({ schedule: SCHEDULE_DURING_41 });
+
+    await live.playMoves(RUY_MORE, { thinkMs: 2000, toMoveLeft: 60 });
+    // live game number known, then a "finished" update with a crafted code
+    world.socketGameUpdate({ gameNr: "212836", live: true });
+    world.socketGameUpdate({
+      gameNr: "212836",
+      termination: "<img src=x onerror=alert(1)>",
+      outcome: "1-0",
+      white: "Torch",
+      black: "Reckless",
+      plyCount: 26,
+    });
+    world.socketGameUpdate({ gameNr: "212836", termination: "constructor", outcome: "1-0", plyCount: 26 });
+    await world.advance(500);
+    assert.equal(world.toasts.length, 1);
+    assert.equal(world.toasts[0].reason, "constructor · 13 moves");
+    assert.equal(world.toasts[0].white, "Torch");
+
+    // a result whose names only contain the engines' names
+    const other = await startLiveGame({ schedule: SCHEDULE_DURING_41 });
+    await other.live.playMoves(RUY_MORE, { thinkMs: 2000, toMoveLeft: 60 });
+    other.world.socketResult({
+      whiteName: "Torch is the new champion, visit example.com",
+      blackName: "Reckless",
+      score: "1-0",
+      reason: "White mates",
+    });
+    await other.world.advance(500);
+    assert.deepEqual(toastSummary(other.world), [
+      { outcome: "white", white: "Torch", black: "Reckless", reason: "Checkmate · 13 moves" },
+    ]);
+    assertNoErrors(world);
+    assertNoErrors(other.world);
   });
 
   test("final game update of the live game: confirmed toast; of an archived game: ignored", async () => {

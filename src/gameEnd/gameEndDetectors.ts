@@ -399,16 +399,21 @@ class PageSocketDetector {
     GameEndDebug.log("socket", `live game ${gameNr}`);
   }
 
+  /**
+   * the toast shows the engine names of the page (`known`) when there are
+   * any: the message only had to match them
+   */
   static resultCandidate(
-    message: Extract<PageSocketMessage, { type: "result" }>
+    message: Extract<PageSocketMessage, { type: "result" }>,
+    known: { white: string; black: string }
   ): GameEndCandidate {
     return {
       outcome: message.outcome,
       reason: GameEndRules.socketReasonLabel(message.reason, message.outcome),
       confidence: "certain",
       source: "page-socket",
-      white: message.whiteName || undefined,
-      black: message.blackName || undefined,
+      white: known.white || message.whiteName,
+      black: known.black || message.blackName,
     };
   }
 

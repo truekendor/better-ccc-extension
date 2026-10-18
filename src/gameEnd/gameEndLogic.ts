@@ -204,6 +204,10 @@ class GameEndConfig {
 
   /** `source` of the window messages posted by inject/index.js */
   static readonly PAGE_MESSAGE_SOURCE = "better-ccc-page";
+  /** longest JSON payload / engine name / result reason accepted from the page */
+  static readonly PAGE_MESSAGE_MAX_LENGTH = 2000;
+  static readonly PAGE_NAME_MAX_LENGTH = 64;
+  static readonly PAGE_REASON_MAX_LENGTH = 200;
   /**
    * CCC's `result` may arrive before the final move is rendered: a ply
    * this soon after it doesn't refute it
@@ -746,7 +750,8 @@ class GameEndRules {
       error: "Error",
     };
 
-    return labels[code] ?? code;
+    // own keys only: "constructor" is not a label
+    return Object.prototype.hasOwnProperty.call(labels, code) ? labels[code]! : code;
   }
 
   /** label of the moves table result box ("Syzygy Adjudication") -> toast label */
@@ -758,9 +763,10 @@ class GameEndRules {
       timeout: "Time forfeit",
       "connection stall": "Connection stall",
     };
-    const text = label.replace(/\s+/g, " ").trim();
+    const text = label.replace(/\s+/g, " ").trim().slice(0, 60);
+    const key = text.toLowerCase();
 
-    return labels[text.toLowerCase()] ?? text;
+    return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key]! : text;
   }
 
   /**
@@ -795,7 +801,9 @@ class GameEndRules {
 
   /**
    * validates a window message from inject/index.js:
-   * `{ source: "better-ccc-page", type, json: JSON string of the payload }`
+   * `{ source: "better-ccc-page", type, json: JSON string of the payload }`.
+   * Any page script can post one, so the shapes are strict and the texts
+   * short: a forged message can at most show a (text only) toast
    */
   static parsePageMessage(
     data: unknown,
@@ -806,7 +814,12 @@ class GameEndRules {
     }
 
     const { source: tag, type, json } = data as Record<string, unknown>;
-    if (tag !== source || typeof type !== "string" || typeof json !== "string") {
+    if (
+      tag !== source ||
+      typeof type !== "string" ||
+      typeof json !== "string" ||
+      json.length > GameEndConfig.PAGE_MESSAGE_MAX_LENGTH
+    ) {
       return null;
     }
 
@@ -816,53 +829,78 @@ class GameEndRules {
     } catch {
       return null;
     }
-    if (!payload || typeof payload !== "object") {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       return null;
     }
 
     const fields = payload as Record<string, unknown>;
-    const text = (value: unknown) =>
-      typeof value === "string"
-        ? value.trim()
-        : typeof value === "number"
-        ? String(value)
-        : "";
+    /** a string of at most `max` characters (trimmed), null otherwise */
+    const text = (value: unknown, max: number): string | null => {
+      if (typeof value !== "string") {
+        return null;
+      }
+      const trimmed = value.trim();
+      return trimmed.length <= max ? trimmed : null;
+    };
+    const SCORES = ["1-0", "0-1", "1/2-1/2"];
+    const NAME_MAX = GameEndConfig.PAGE_NAME_MAX_LENGTH;
 
     if (type === "result") {
-      const outcome = this.parseScore(text(fields.score));
-      if (!outcome) {
+      const score = text(fields.score, 7);
+      const whiteName = text(fields.whiteName, NAME_MAX);
+      const blackName = text(fields.blackName, NAME_MAX);
+      const reason = text(fields.reason ?? "", GameEndConfig.PAGE_REASON_MAX_LENGTH);
+
+      if (!score || !SCORES.includes(score) || !whiteName || !blackName || reason === null) {
         return null;
       }
 
       return {
         type,
-        whiteName: text(fields.whiteName),
-        blackName: text(fields.blackName),
-        outcome,
-        reason: text(fields.reason),
+        whiteName,
+        blackName,
+        outcome: this.parseScore(score)!,
+        reason,
       };
     }
 
     if (type === "gameUpdate") {
-      const gameNr = text(fields.gameNr);
-      if (!gameNr) {
+      const gameNr = text(
+        Number.isInteger(fields.gameNr) ? String(fields.gameNr) : fields.gameNr,
+        12
+      );
+      const termination = text(fields.termination ?? "", 32);
+      const outcome = text(fields.outcome ?? "", 7);
+      const white = text(fields.white ?? "", NAME_MAX);
+      const black = text(fields.black ?? "", NAME_MAX);
+      const { plyCount } = fields;
+
+      if (
+        !gameNr ||
+        !/^\d+$/.test(gameNr) ||
+        (fields.live !== undefined && typeof fields.live !== "boolean") ||
+        termination === null ||
+        !/^[A-Za-z0-9]*$/.test(termination) ||
+        outcome === null ||
+        (outcome !== "" && !SCORES.includes(outcome)) ||
+        white === null ||
+        black === null ||
+        (plyCount !== null &&
+          plyCount !== undefined &&
+          !(Number.isInteger(plyCount) && (plyCount as number) >= 0 && (plyCount as number) <= 2000))
+      ) {
         return null;
       }
-
-      const plyCount =
-        typeof fields.plyCount === "number" && Number.isFinite(fields.plyCount)
-          ? fields.plyCount
-          : null;
 
       return {
         type,
         gameNr,
         live: fields.live === true,
-        termination: text(fields.termination),
-        outcome: this.parseScore(text(fields.outcome)),
-        white: text(fields.white),
-        black: text(fields.black),
-        plyCount,
+        termination,
+        outcome: outcome ? this.parseScore(outcome) : null,
+        white,
+        black,
+        plyCount: typeof plyCount === "number" ? plyCount : null,
       };
     }
 

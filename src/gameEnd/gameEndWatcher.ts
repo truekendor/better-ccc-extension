@@ -711,7 +711,7 @@ class GameEndWatcher {
       return;
     }
 
-    this.report(session, PageSocketDetector.resultCandidate(message));
+    this.report(session, PageSocketDetector.resultCandidate(message, session.names));
   }
 
   /** a finished game's update: the live game's, or an archived one opened */
