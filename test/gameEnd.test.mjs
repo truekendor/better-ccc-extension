@@ -1148,6 +1148,33 @@ describe("CCC websocket (inject/index.js)", () => {
     assertNoErrors(world);
   });
 
+  test("result before the final ply is rendered, then the table re-renders: no second toast", async () => {
+    const world = createWorld();
+    world.tablebase = () => "draw";
+
+    const plies = TABLEBASE_GAME.plies;
+    const { live } = await playArchivedGame(world, TABLEBASE_GAME, { upTo: plies.length - 1 });
+    await live.think(100);
+    world.socketResult({ score: "1/2-1/2", reason: "Draw by adjudication: SyzygyTB" });
+    await world.advance(200);
+    const [san, score, , left] = plies.at(-1);
+    live.move(san, { left, evalText: score });
+    await world.advance(3000);
+    assert.equal(world.toasts.length, 1);
+
+    // half the moves for a moment, then all of them again
+    const full = world.page.pgn.slice();
+    world.page.pgn = full.slice(0, 90);
+    world.mutate();
+    await world.advance(1000);
+    world.page.pgn = full;
+    world.mutate();
+    await world.advance(5000);
+
+    assert.equal(world.toasts.length, 1);
+    assertNoErrors(world);
+  });
+
   test("forged messages: no spoofed names or text in the toast", async () => {
     const { world, live } = await startLiveGame({ schedule: SCHEDULE_DURING_41 });
 

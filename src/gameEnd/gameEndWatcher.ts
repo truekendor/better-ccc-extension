@@ -498,6 +498,10 @@ class GameEndWatcher {
     const known = this.resultsByPosition.get(session.positionKey);
     if (known) {
       session.shown = known;
+    } else if (session.hasStandingResult) {
+      // CCC's result came just before this ply was rendered: it is this
+      // position's result (a re-rendered table must find it)
+      this.rememberResult(session);
     }
 
     this.cacheEngineNames(session);
