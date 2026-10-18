@@ -24,7 +24,7 @@ import {
   scheduleRow,
 } from "./harness.mjs";
 
-const { GameEndRules: R, GameEndArbiter: A, GameEndConfig: C, EvalConvention: E } = loadLogic();
+const { GameEndRules: R, GameEndArbiter: A, GameEndConfig: C } = loadLogic();
 
 const GAMES = Object.fromEntries(
   JSON.parse(readFixture("ccc-games.json")).map((game) => [game.termination, game])
@@ -82,11 +82,6 @@ describe("GameEndRules: evals and engine stats", () => {
     for (const text of ["3:02", "0:02.11", "13/50", "", null, undefined, "Torch", "+"]) {
       assert.equal(R.parseEval(text), null, `${text}`);
     }
-  });
-
-  test("evals are white-relative (the server negates Black's score)", () => {
-    assert.equal(E.POINT_OF_VIEW, "white");
-    assert.equal(E.toWhitePov("black", R.parseEval("-1.50")), -1.5);
   });
 
   test("valueBoxSignature: Depth, Nodes, Speed, TB Hits (not Time, the clock, nor the rebuilt Eval)", () => {
@@ -1061,7 +1056,6 @@ describe("schedule result", () => {
           setup: (w) => {
             // evals that make no adjudication guess
             w.page.evals = { white: "+ 1.50", black: "+ 1.40" };
-            w.page.statsEvals = ["+1.50", "+1.40"];
           },
         });
 
@@ -1085,7 +1079,6 @@ describe("schedule result", () => {
         schedule: SCHEDULE_DURING_41,
         setup: (w) => {
           w.page.evals = { white: "+ 1.50", black: "+ 1.40" };
-          w.page.statsEvals = ["+1.50", "+1.40"];
         },
       });
 

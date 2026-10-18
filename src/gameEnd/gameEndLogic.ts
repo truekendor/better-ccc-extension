@@ -59,8 +59,6 @@ type ParsedEval = {
   mateIn: number | null;
 };
 
-type EvalPointOfView = "white" | "engine";
-
 /** what the side to move's engine did since the last ply */
 type FreezeInput = {
   now: number;
@@ -309,26 +307,6 @@ class GameEndConfig {
 }
 
 /**
- * how the evals shown by CCC are signed: every live eval (engine panels,
- * stats boxes) is from white's point of view, the server negates Black's
- * own score. Only the eval draw rule uses evals, and only their size:
- * decisive games are played to mate in CCC 26 (no win adjudication in
- * 1,244 archived games), so a winner is never guessed from evals
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-class EvalConvention {
-  static readonly POINT_OF_VIEW: EvalPointOfView = "white";
-
-  /** eval of the engine playing `color`, from white's point of view */
-  static toWhitePov(color: EngineColor, displayed: ParsedEval): number {
-    if (this.POINT_OF_VIEW === "engine" && color === "black") {
-      return -displayed.pawns;
-    }
-    return displayed.pawns;
-  }
-}
-
-/**
  * pure functions of the game end detection: parsing what the page shows
  * and the decisions made from it.
  *
@@ -526,7 +504,12 @@ class GameEndRules {
 
   /**
    * "+0.77", "+ 0.01", "-0.00", "200.00", "+M8", "-M5", "M13", "#-3".
-   * null for anything else (clock, "13/50", empty)
+   * null for anything else (clock, "13/50", empty).
+   * Every live eval (engine panels, stats boxes) is from white's point of
+   * view, the server negates Black's own score. Only the eval draw rule
+   * uses evals, and only their size: decisive games are played to mate in
+   * CCC 26 (no win adjudication in 1,244 archived games), so a winner is
+   * never guessed from evals
    */
   static parseEval(text: string | null | undefined): ParsedEval | null {
     if (!text) {

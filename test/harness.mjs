@@ -6,8 +6,7 @@
  * - timers (setTimeout / setInterval / Date) only move with `world.advance`
  * - the page model (`world.page`) renders the moves table, the engine
  *   panels (eval spans, result colors), the engine stats (`#graph-valuebar`
- *   boxes and the `.cpu-champs-page-graph` text), the moves table result
- *   box, the schedule tab and the tab buttons
+ *   boxes), the moves table result box, the schedule tab and the tab buttons
  * - `world.socketResult` / `world.socketGameUpdate` post the window
  *   messages inject/index.js forwards from the CCC websocket
  * - `fetch` (lichess tablebase) is answered by `world.tablebase`
@@ -66,7 +65,7 @@ export function loadLogic() {
   const ctx = vm.createContext({ console });
   readScript("gameEnd/gameEndLogic.js").runInContext(ctx);
   return vm.runInContext(
-    "({ GameEndRules, GameEndArbiter, GameEndConfig, EvalConvention })",
+    "({ GameEndRules, GameEndArbiter, GameEndConfig })",
     ctx
   );
 }
@@ -243,7 +242,7 @@ export class FakePage {
     this.pgn = [];
     this.hash = "";
     this.hidden = false;
-    /** engine panels and stats block rendered (middle "Engines" tab) */
+    /** engine panels and stats boxes rendered (middle "Engines" tab) */
     this.enginesTab = true;
     this.names = { white: "Torch", black: "Reckless" };
     this.ranks = { white: "#1", black: "#2" };
@@ -254,11 +253,8 @@ export class FakePage {
     };
     /** raw panel texts ("Torch #1 + 0.80 2:13") overriding the model */
     this.panelText = null;
-    /** stats block text, null = rendered from the engines' output counter */
+    /** recorded stats text: each change of it changes both stats boxes */
     this.statsOverride = null;
-    this.statsCounter = 0;
-    /** evals of the two stats rows */
-    this.statsEvals = ["+0.10", "+0.05"];
     /** search lines printed by each engine (`#graph-valuebar` boxes) */
     this.boxCounters = { white: 0, black: 0 };
     /** `.movetable-gameResult` box: { classes: [...], text } or null */
@@ -312,22 +308,8 @@ export class FakePage {
     return this.names[color];
   }
 
-  statsText() {
-    if (this.statsOverride !== null) {
-      return this.statsOverride;
-    }
-    const n = this.statsCounter;
-    const [first, second] = this.statsEvals;
-    return (
-      "Eval Depth Nodes Time Speed TB Hits " +
-      `${first} ${20 + (n % 30)} ${100 + n}.00M 0:02 300.00M ${n} ` +
-      `${second} 31 1.10B 0:11 301.00M 0 2468-1.5-1-0.500.511.5`
-    );
-  }
-
   /** the engine to move printed a new search line */
   engineOutput() {
-    this.statsCounter += 1;
     this.boxCounters[this.pgn.length % 2 === 0 ? "white" : "black"] += 1;
   }
 
@@ -484,11 +466,6 @@ export function createWorld({ start = 1_800_000_000_000 } = {}) {
           classes: [`${box[1]}-box`],
           children: page.valueBoxSpans(box[1]).map((text) => ({ tagName: "SPAN", textContent: text })),
         });
-      }
-      if (selector === ".cpu-champs-page-graph") {
-        if (!page.enginesTab) return null;
-        const text = page.statsText();
-        return staticElement({ innerText: text, textContent: text.replace(/\s+/g, "") });
       }
       if (selector === ".schedule-container") {
         if (!page.scheduleOpen) return null;
